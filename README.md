@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/cryptomator/cryptolib.svg?branch=master)](https://travis-ci.org/cryptomator/cryptolib)
+[![Coverage Status](https://coveralls.io/repos/github/cryptomator/cryptolib/badge.svg?branch=master)](https://coveralls.io/github/cryptomator/cryptolib?branch=master)
 
 # Cryptomator Crypto Library
 
