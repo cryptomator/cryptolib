@@ -75,7 +75,7 @@ public class ParallelizerTest {
 		exec.shutdown();
 	}
 
-	@Test(timeout = 500)
+	@Test(timeout = 1000)
 	public void testTenThreadsSleepingAtTheSameTime() throws InterruptedException {
 		final List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 		final ExecutorService exec = Executors.newFixedThreadPool(10);
@@ -85,7 +85,7 @@ public class ParallelizerTest {
 
 			@Override
 			public Integer call(Integer num) {
-				sleepQuietly(300, TimeUnit.MILLISECONDS);
+				sleepQuietly(501, TimeUnit.MILLISECONDS);
 				return num;
 			}
 
