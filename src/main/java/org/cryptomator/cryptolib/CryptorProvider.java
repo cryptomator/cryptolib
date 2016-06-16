@@ -80,7 +80,7 @@ public class CryptorProvider {
 			SecretKey macKey = AesKeyWrap.unwrap(kek, keyFile.getMacMasterKey(), MAC_ALG);
 			Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
 			byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(CURRENT_VAULT_VERSION).array());
-			if (!MessageDigest.isEqual(versionMac, keyFile.getVersionMac())) {
+			if (keyFile.getVersionMac() == null || !MessageDigest.isEqual(versionMac, keyFile.getVersionMac())) {
 				// attempted downgrade attack: versionMac doesn't match version.
 				throw new UnsupportedVaultFormatException(Integer.MAX_VALUE, CURRENT_VAULT_VERSION);
 			}
