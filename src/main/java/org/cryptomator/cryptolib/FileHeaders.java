@@ -89,6 +89,9 @@ final class FileHeaders {
 		// decrypt payload:
 		Cipher cipher = CipherSupplier.AES_CTR.forDecryption(headerKey, new IvParameterSpec(nonce));
 		byte[] plaintextPayload = cipher.update(ciphertextPayload);
+		if (plaintextPayload == null) {
+			throw new IllegalStateException("Stream cipher returned null, even though this is only specified for block ciphers.");
+		}
 		try {
 			ByteBuffer plaintextBuf = ByteBuffer.wrap(plaintextPayload);
 			plaintextBuf.position(FileHeader.Payload.FILESIZE_POS);

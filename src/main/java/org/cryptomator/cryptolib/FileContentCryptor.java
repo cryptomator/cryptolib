@@ -66,7 +66,10 @@ public class FileContentCryptor {
 	 */
 	public void decryptFile(ReadableByteChannel ciphertext, WritableByteChannel cleartext) throws IOException {
 		ByteBuffer headerBuf = ByteBuffer.allocate(FileHeader.SIZE);
-		ciphertext.read(headerBuf);
+		int read = ciphertext.read(headerBuf);
+		if (read != FileHeader.SIZE) {
+			throw new IllegalArgumentException("Ciphertext shorter than header size.");
+		}
 		headerBuf.flip();
 		FileHeader header = FileHeaders.decryptHeader(headerBuf, headerKey, macKey);
 		try {

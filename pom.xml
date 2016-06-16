@@ -75,7 +75,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.2</version>
+				<version>3.5.1</version>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
@@ -86,6 +86,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
+				<version>3.0.0</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
