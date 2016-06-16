@@ -48,7 +48,12 @@ public class Cryptor implements Destroyable {
 
 	@Override
 	public boolean isDestroyed() {
-		return encKey.isDestroyed() && macKey.isDestroyed();
+		// SecretKey did not implement Destroyable in Java 7:
+		if (encKey instanceof Destroyable && macKey instanceof Destroyable) {
+			return ((Destroyable) encKey).isDestroyed() && ((Destroyable) macKey).isDestroyed();
+		} else {
+			return false;
+		}
 	}
 
 	@Override
@@ -68,13 +73,12 @@ public class Cryptor implements Destroyable {
 			final SecretKey kek = new SecretKeySpec(kekBytes, Constants.ENC_ALG);
 			wrappedEncryptionKey = AesKeyWrap.wrap(kek, encKey);
 			wrappedMacKey = AesKeyWrap.wrap(kek, macKey);
-			destroyQuietly(kek);
 		} finally {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}
 
 		final Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
-		final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.BYTES).putInt(CURRENT_VAULT_VERSION).array());
+		final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(CURRENT_VAULT_VERSION).array());
 
 		final KeyFile keyfile = new KeyFile();
 		keyfile.setVersion(CURRENT_VAULT_VERSION);
@@ -87,9 +91,11 @@ public class Cryptor implements Destroyable {
 		return keyfile.serialize();
 	}
 
-	private void destroyQuietly(Destroyable d) {
+	private void destroyQuietly(SecretKey key) {
 		try {
-			d.destroy();
+			if (key instanceof Destroyable) {
+				((Destroyable) key).destroy();
+			}
 		} catch (DestroyFailedException e) {
 			// ignore
 		}

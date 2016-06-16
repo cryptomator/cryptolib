@@ -48,6 +48,11 @@ class FileHeader implements Destroyable {
 	}
 
 	@Override
+	public boolean isDestroyed() {
+		return payload.isDestroyed();
+	}
+
+	@Override
 	public void destroy() {
 		payload.destroy();
 	}
@@ -59,6 +64,7 @@ class FileHeader implements Destroyable {
 		static final int CONTENT_KEY_POS = 8;
 		static final int CONTENT_KEY_LEN = 32;
 		static final int SIZE = FILESIZE_LEN + CONTENT_KEY_LEN;
+		private static final byte[] EMPTY_CONTENT_KEY = new byte[CONTENT_KEY_LEN];
 
 		private long filesize;
 		private final byte[] contentKeyBytes;
@@ -86,6 +92,11 @@ class FileHeader implements Destroyable {
 
 		public byte[] getContentKeyBytes() {
 			return contentKeyBytes;
+		}
+
+		@Override
+		public boolean isDestroyed() {
+			return Arrays.equals(contentKeyBytes, EMPTY_CONTENT_KEY);
 		}
 
 		@Override

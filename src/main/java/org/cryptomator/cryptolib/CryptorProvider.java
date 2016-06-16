@@ -24,8 +24,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.DestroyFailedException;
-import javax.security.auth.Destroyable;
 
 public class CryptorProvider {
 
@@ -81,9 +79,8 @@ public class CryptorProvider {
 		try {
 			SecretKey macKey = AesKeyWrap.unwrap(kek, keyFile.getMacMasterKey(), MAC_ALG);
 			Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
-			byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.BYTES).putInt(CURRENT_VAULT_VERSION).array());
+			byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(CURRENT_VAULT_VERSION).array());
 			if (!MessageDigest.isEqual(versionMac, keyFile.getVersionMac())) {
-				destroyQuietly(macKey);
 				// attempted downgrade attack: versionMac doesn't match version.
 				throw new UnsupportedVaultFormatException(Integer.MAX_VALUE, CURRENT_VAULT_VERSION);
 			}
@@ -93,16 +90,6 @@ public class CryptorProvider {
 			throw new InvalidPassphraseException();
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("Hard-coded algorithm doesn't exist.", e);
-		} finally {
-			destroyQuietly(kek);
-		}
-	}
-
-	private void destroyQuietly(Destroyable d) {
-		try {
-			d.destroy();
-		} catch (DestroyFailedException e) {
-			// ignore
 		}
 	}
 

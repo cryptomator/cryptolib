@@ -13,6 +13,7 @@ import java.security.SecureRandom;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.DestroyFailedException;
+import javax.security.auth.Destroyable;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,8 +45,8 @@ public class CryptorTest {
 
 	@Test
 	public void testDestruction() throws DestroyFailedException {
-		SecretKey encKey = Mockito.mock(SecretKey.class);
-		SecretKey macKey = Mockito.mock(SecretKey.class);
+		DestroyableSecretKey encKey = Mockito.mock(DestroyableSecretKey.class);
+		DestroyableSecretKey macKey = Mockito.mock(DestroyableSecretKey.class);
 		final Cryptor cryptor = new Cryptor(encKey, macKey, RANDOM_MOCK);
 		cryptor.destroy();
 		Mockito.verify(encKey).destroy();
@@ -53,6 +54,10 @@ public class CryptorTest {
 		Mockito.when(encKey.isDestroyed()).thenReturn(true);
 		Mockito.when(macKey.isDestroyed()).thenReturn(true);
 		Assert.assertTrue(cryptor.isDestroyed());
+	}
+
+	private static interface DestroyableSecretKey extends SecretKey, Destroyable {
+		// In Java7 SecretKey doesn't implement Destroyable...
 	}
 
 	// @Test
