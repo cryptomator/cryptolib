@@ -3,4 +3,15 @@ language: java
 sudo: false
 
 jdk:
-  - openjdk7
+- openjdk7
+
+deploy:
+  provider: releases
+  prerelease: false
+  api_key:
+    secure: DdABs6v/PtP/6lPm2s0ZsmxzDlBD+QrvqzsLba+kEPGG7mfMXP7jw05rRL+eV4gex4pQCtc5oFaRhUP1nZaNRXMhq/Y0GL6OiZ0U/YBfxb225nSCSUnEQ/EDTQWVeBSrZCkvAOmm1jcyr+K8M4+QGsLa+CWlOvVMUSCtUkA75ZefB+DoeUa6G06uLNYQvY7PufLBToQAzPSdLZE4tDL/+8PEFImo4+ZW08s9liI12HNxbyLw2s2nSG7V25FoeU+ckTSWX85ajRJ5Qmn0E+rMjRbGK2ds4Znuq20l6gl5UtDhkzYCMIBQuFglqfSqJtNcSMsYKlMjqziJGFpuHoblXNVN8L230pxjEU4p9XoOPa9cUurEH1X1LzxTUmxVHl8ZXzqUf6d0MSJJWxRwck47bfBAnZT0mfeoFvFoYHgna0ySKrBNnUb6YZnejAkfvu3YBmEaTN00wKYfU4kQefLrOxgsQEYsDKd8pE9m8E2PxkM25iKg9h6Pi4Bk4GRT0eaR8r2yxM5VmVYZTs0btq820YB+aa0qHimeGzNmeQRwgo3yoz2BJKpRXacbrhx6LPRA3AUERdgMThnKU9o0QpWgyjo/imGrCUPSaqnyzm/AjGyiZANqpt/KBbQuGDgVV1j094tuKjnDv6qQMTuMqAmA8Ep4xbctbs3/BvMPK3QovRM=
+  file: target/cryptolib-$TRAVIS_TAG.jar
+  skip_cleanup: true
+  on:
+    repo: cryptomator/cryptolib
+    tags: true
