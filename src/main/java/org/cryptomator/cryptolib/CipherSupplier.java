@@ -12,13 +12,12 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
-import java.util.function.Supplier;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
-final class CipherSupplier implements Supplier<Cipher> {
+final class CipherSupplier {
 
 	public static final CipherSupplier AES_CTR = new CipherSupplier("AES/CTR/NoPadding");
 
@@ -27,15 +26,17 @@ final class CipherSupplier implements Supplier<Cipher> {
 
 	public CipherSupplier(String cipherAlgorithm) {
 		this.cipherAlgorithm = cipherAlgorithm;
-		this.threadLocal = ThreadLocal.withInitial(this);
+		this.threadLocal = new Provider();
 	}
 
-	@Override
-	public Cipher get() {
-		try {
-			return Cipher.getInstance(cipherAlgorithm);
-		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-			throw new IllegalArgumentException("Invalid cipher algorithm or padding.", e);
+	private class Provider extends ThreadLocal<Cipher> {
+		@Override
+		protected Cipher initialValue() {
+			try {
+				return Cipher.getInstance(cipherAlgorithm);
+			} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+				throw new IllegalArgumentException("Invalid cipher algorithm or padding.", e);
+			}
 		}
 	}
 

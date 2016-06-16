@@ -10,12 +10,11 @@ package org.cryptomator.cryptolib;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.function.Supplier;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 
-final class MacSupplier implements Supplier<Mac> {
+final class MacSupplier {
 
 	public static final MacSupplier HMAC_SHA256 = new MacSupplier("HmacSHA256");
 
@@ -24,15 +23,17 @@ final class MacSupplier implements Supplier<Mac> {
 
 	public MacSupplier(String macAlgorithm) {
 		this.macAlgorithm = macAlgorithm;
-		this.threadLocal = ThreadLocal.withInitial(this);
+		this.threadLocal = new Provider();
 	}
 
-	@Override
-	public Mac get() {
-		try {
-			return Mac.getInstance(macAlgorithm);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalArgumentException("Invalid MAC algorithm.", e);
+	private class Provider extends ThreadLocal<Mac> {
+		@Override
+		protected Mac initialValue() {
+			try {
+				return Mac.getInstance(macAlgorithm);
+			} catch (NoSuchAlgorithmException e) {
+				throw new IllegalArgumentException("Invalid MAC algorithm.", e);
+			}
 		}
 	}
 
