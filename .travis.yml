@@ -5,6 +5,8 @@ sudo: false
 jdk:
 - openjdk7
 
+script: mvn clean test
+
 deploy:
   provider: releases
   prerelease: false
