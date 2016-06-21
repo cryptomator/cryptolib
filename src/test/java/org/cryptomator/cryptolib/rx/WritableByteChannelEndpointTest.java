@@ -37,7 +37,7 @@ public class WritableByteChannelEndpointTest {
 			}
 		}).subscribeOn(Schedulers.newThread());
 
-		new WritableByteChannelEndpoint(ch, observable).waitForTermination(IOException.class);
+		new WritableByteChannelEndpoint(ch, observable).awaitTermination(IOException.class);
 
 		Assert.assertArrayEquals("hello world".getBytes(StandardCharsets.UTF_8), baos.toByteArray());
 	}

@@ -45,7 +45,7 @@ class FileContentDecryptor {
 		Observable<ByteBuffer> observableCleartext = Parallelizer.forObservable(observablePayloads).onScheduler(Schedulers.from(EXECUTOR)).map(new PayloadToCleartextMapper(), true);
 
 		try {
-			new WritableByteChannelEndpoint(cleartextOut, observableCleartext.subscribeOn(Schedulers.io())).waitForTermination(IOException.class);
+			new WritableByteChannelEndpoint(cleartextOut, observableCleartext.subscribeOn(Schedulers.io())).awaitTermination(IOException.class);
 		} catch (InterruptedException e) {
 			IOException e2 = new InterruptedIOException();
 			e2.initCause(e);

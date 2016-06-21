@@ -54,7 +54,7 @@ class FileContentEncryptor {
 		Observable<ByteBuffer> observableCiphertext = Parallelizer.forObservable(observablePayloads).onScheduler(Schedulers.from(EXECUTOR)).map(new PayloadToCiphertextMapper(), true);
 
 		try {
-			new WritableByteChannelEndpoint(ciphertextOut, observableCiphertext.subscribeOn(Schedulers.io())).waitForTermination(IOException.class);
+			new WritableByteChannelEndpoint(ciphertextOut, observableCiphertext.subscribeOn(Schedulers.io())).awaitTermination(IOException.class);
 		} catch (InterruptedException e) {
 			IOException e2 = new InterruptedIOException();
 			e2.initCause(e);

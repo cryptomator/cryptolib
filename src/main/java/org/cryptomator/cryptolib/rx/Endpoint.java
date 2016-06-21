@@ -21,7 +21,15 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 	private final Countdown countdown = new Countdown();
 	protected final Observable<T> observable;
 
-	public Endpoint(Observable<T> observable) {
+	/**
+	 * Creates a new endpoint, that initializes a barrier on {@link Observable#doAfterTerminate(Action0) observable.doAfterTerminate(...)}.
+	 * This barrier can be used do invoke {@link #awaitTermination(Class)} (preferrably on a different thread than what the observable
+	 * will be {@link Observable#subscribeOn(rx.Scheduler) subscribed on}).
+	 * 
+	 * @param observable The observable to register the afterTerminate hook. This endpoint does not automatically subscribe to the observable. Please call {@link #subscribe()} explicitly.
+	 * @see #awaitTermination(Class) Please read hint regarding potential deadlocks in awaitTermination(...).
+	 */
+	protected Endpoint(Observable<T> observable) {
 		this.observable = observable.doAfterTerminate(countdown);
 	}
 
@@ -44,7 +52,6 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 
 	@Override
 	public final void onError(Throwable e) {
-		e.printStackTrace();
 		this.exception = e;
 	}
 
@@ -58,7 +65,7 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 	 * @throws E If the expected exception has been thrown.
 	 * @throws RuntimeException If an unexpected exception has been thrown.
 	 */
-	public <E extends Throwable> void waitForTermination(Class<E> expectedException) throws InterruptedException, E, RuntimeException {
+	public <E extends Throwable> void awaitTermination(Class<E> expectedException) throws InterruptedException, E, RuntimeException {
 		cdl.await();
 		if (exception == null) {
 			// :-)
