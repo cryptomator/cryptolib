@@ -29,7 +29,7 @@
  * // encrypt file:
  * ReadableByteChannel cleartextIn = ...;
  * SeekableByteChannel ciphertextOut = ...;
- * cryptor.{@link Cryptor#contents() contents()}.{@link org.cryptomator.cryptolib.FileContentCryptor#encryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.WritableByteChannel) encryptFile(cleartextIn, ciphertextOut)};
+ * cryptor.{@link Cryptor#fileContents() contents()}.{@link org.cryptomator.cryptolib.FileContentCryptor#encryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.WritableByteChannel) encryptFile(cleartextIn, ciphertextOut)};
  * </pre>
  */
 package org.cryptomator.cryptolib;

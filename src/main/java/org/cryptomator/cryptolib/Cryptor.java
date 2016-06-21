@@ -30,6 +30,7 @@ public class Cryptor implements Destroyable {
 	private final SecretKey macKey;
 	private final SecureRandom random;
 	private final FileContentCryptor fileContentCryptor;
+	private final FileNameCryptor fileNameCryptor;
 
 	/**
 	 * Package-private constructor.
@@ -40,10 +41,15 @@ public class Cryptor implements Destroyable {
 		this.macKey = macKey;
 		this.random = random;
 		this.fileContentCryptor = new FileContentCryptor(encryptionKey, macKey, random);
+		this.fileNameCryptor = new FileNameCryptor(encryptionKey, macKey);
 	}
 
-	public FileContentCryptor contents() {
+	public FileContentCryptor fileContents() {
 		return fileContentCryptor;
+	}
+
+	public FileNameCryptor fileNames() {
+		return fileNameCryptor;
 	}
 
 	@Override

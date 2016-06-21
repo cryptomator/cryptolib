@@ -15,6 +15,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +42,18 @@ public class CryptorTest {
 		final Cryptor cryptor = new Cryptor(encKey, macKey, RANDOM_MOCK);
 		final byte[] serialized = cryptor.writeKeysToMasterkeyFile("asd");
 		Assert.assertArrayEquals(expectedMasterKey.getBytes(), serialized);
+	}
+
+	@Test
+	public void testGetFileContentCryptor() {
+		final Cryptor cryptor = new Cryptor(encKey, macKey, RANDOM_MOCK);
+		Assert.assertThat(cryptor.fileContents(), CoreMatchers.instanceOf(FileContentCryptor.class));
+	}
+
+	@Test
+	public void testGetFileNameCryptor() {
+		final Cryptor cryptor = new Cryptor(encKey, macKey, RANDOM_MOCK);
+		Assert.assertThat(cryptor.fileNames(), CoreMatchers.instanceOf(FileNameCryptor.class));
 	}
 
 	@Test

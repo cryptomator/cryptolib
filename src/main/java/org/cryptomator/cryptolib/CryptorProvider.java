@@ -88,8 +88,6 @@ public class CryptorProvider {
 			return new Cryptor(encKey, macKey, random);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("Hard-coded algorithm doesn't exist.", e);
 		}
 	}
 

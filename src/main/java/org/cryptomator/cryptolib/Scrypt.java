@@ -27,11 +27,11 @@ final class Scrypt {
 	 * 
 	 * @param passphrase The passphrase
 	 * @param salt Salt, ideally randomly generated
-	 * @param costParam Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * costParam / 8)</code>
+	 * @param costParam Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
 	 * @param blockSize Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
-	 * @see <a href="https://tools.ietf.org/html/draft-josefsson-scrypt-kdf-04#section-2">RFC Draft</a>
+	 * @see <a href="https://tools.ietf.org/html/draft-josefsson-scrypt-kdf-05#section-2">RFC Draft</a>
 	 */
 	public static byte[] scrypt(CharSequence passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
 		// This is an attempt to get the password bytes without copies of the password being created in some dark places inside the JVM:

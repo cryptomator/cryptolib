@@ -20,6 +20,7 @@ import javax.crypto.SecretKey;
 final class CipherSupplier {
 
 	public static final CipherSupplier AES_CTR = new CipherSupplier("AES/CTR/NoPadding");
+	public static final CipherSupplier RFC3394_KEYWRAP = new CipherSupplier("AESWrap");
 
 	private final String cipherAlgorithm;
 	private final ThreadLocal<Cipher> threadLocal;
@@ -46,6 +47,14 @@ final class CipherSupplier {
 
 	public Cipher forDecryption(SecretKey key, AlgorithmParameterSpec params) {
 		return forMode(Cipher.DECRYPT_MODE, key, params);
+	}
+
+	public Cipher forWrapping(SecretKey kek) {
+		return forMode(Cipher.WRAP_MODE, kek, null);
+	}
+
+	public Cipher forUnwrapping(SecretKey kek) {
+		return forMode(Cipher.UNWRAP_MODE, kek, null);
 	}
 
 	private Cipher forMode(int ciphermode, SecretKey key, AlgorithmParameterSpec params) {

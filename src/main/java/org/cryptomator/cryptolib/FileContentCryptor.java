@@ -25,7 +25,7 @@ public class FileContentCryptor {
 
 	/**
 	 * Package-private constructor.
-	 * Use {@link Cryptor#contents()} to obtain a FileContentCryptor instance.
+	 * Use {@link Cryptor#fileContents()} to obtain a FileContentCryptor instance.
 	 */
 	FileContentCryptor(SecretKey encryptionKey, SecretKey macKey, SecureRandom random) {
 		this.headerKey = encryptionKey;
