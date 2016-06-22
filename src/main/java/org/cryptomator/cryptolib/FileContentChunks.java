@@ -22,7 +22,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 
-public final class FileContentChunks {
+final class FileContentChunks {
 
 	private FileContentChunks() {
 	}

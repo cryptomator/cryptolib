@@ -17,6 +17,12 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.BaseNCodec;
 import org.cryptomator.siv.SivMode;
 
+/**
+ * Provides deterministic encryption capabilities as filenames must not change on subsequent encryption attempts,
+ * otherwise each change results in major directory structure changes which would be a terrible idea for cloud storage encryption.
+ * 
+ * @see <a href="https://en.wikipedia.org/wiki/Deterministic_encryption">Wikipedia on deterministic encryption</a>
+ */
 public class FileNameCryptor {
 
 	private static final BaseNCodec BASE32 = new Base32();
@@ -36,6 +42,9 @@ public class FileNameCryptor {
 		this.macKey = macKey;
 	}
 
+	/**
+	 * @return constant length string, that is unlikely to collide with any other name.
+	 */
 	public String hashDirectoryId(String cleartextDirectoryId) {
 		byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
 		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes);
@@ -43,12 +52,22 @@ public class FileNameCryptor {
 		return BASE32.encodeAsString(hashedBytes);
 	}
 
+	/**
+	 * @param cleartextName original filename including cleartext file extension
+	 * @param associatedData optional associated data, that will not get encrypted but needs to be provided during decryption
+	 * @return encrypted filename without any file extension
+	 */
 	public String encryptFilename(String cleartextName, byte[]... associatedData) {
 		byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
 		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes, associatedData);
 		return BASE32.encodeAsString(encryptedBytes);
 	}
 
+	/**
+	 * @param ciphertextName Ciphertext only, with any additional strings like file extensions stripped first.
+	 * @param associatedData the same associated data used during encryption, otherwise and {@link AuthenticationFailedException} will be thrown
+	 * @return cleartext filename, probably including its cleartext file extension.
+	 */
 	public String decryptFilename(String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
 		try {
 			byte[] encryptedBytes = BASE32.decode(ciphertextName);

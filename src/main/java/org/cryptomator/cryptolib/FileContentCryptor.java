@@ -25,7 +25,7 @@ public class FileContentCryptor {
 
 	/**
 	 * Package-private constructor.
-	 * Use {@link Cryptor#fileContents()} to obtain a FileContentCryptor instance.
+	 * Use {@link Cryptor#fileContentCryptor()} to obtain a FileContentCryptor instance.
 	 */
 	FileContentCryptor(SecretKey encryptionKey, SecretKey macKey, SecureRandom random) {
 		this.headerKey = encryptionKey;
@@ -62,9 +62,10 @@ public class FileContentCryptor {
 	 * 
 	 * @param ciphertext Input before decryption
 	 * @param cleartext Decrypted output
+	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
 	 * @throws IOException In case of exceptions that occur during read/write from the given channels.
 	 */
-	public void decryptFile(ReadableByteChannel ciphertext, WritableByteChannel cleartext) throws IOException {
+	public void decryptFile(ReadableByteChannel ciphertext, WritableByteChannel cleartext, boolean authenticate) throws IOException {
 		ByteBuffer headerBuf = ByteBuffer.allocate(FileHeader.SIZE);
 		int read = ciphertext.read(headerBuf);
 		if (read != FileHeader.SIZE) {
@@ -74,7 +75,7 @@ public class FileContentCryptor {
 		FileHeader header = FileHeaders.decryptHeader(headerBuf, headerKey, macKey);
 		try {
 			// TODO decorate ciphertext with size-limiter
-			FileContentDecryptor decryptor = new FileContentDecryptor(header, macKey);
+			FileContentDecryptor decryptor = new FileContentDecryptor(header, macKey, authenticate);
 			decryptor.decrypt(ciphertext, cleartext, 0);
 		} finally {
 			header.destroy();

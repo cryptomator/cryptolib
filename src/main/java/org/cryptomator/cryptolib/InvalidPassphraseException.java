@@ -10,8 +10,4 @@ package org.cryptomator.cryptolib;
 
 public class InvalidPassphraseException extends CryptoException {
 
-	public InvalidPassphraseException() {
-		super();
-	}
-
 }

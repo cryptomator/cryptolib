@@ -64,7 +64,59 @@ public class FileContentCryptorTest {
 		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		WritableByteChannel out = Channels.newChannel(result);
-		fileContentCryptor.decryptFile(in, out);
+		fileContentCryptor.decryptFile(in, out, true);
+		byte[] cleartext = result.toByteArray();
+		byte[] expected = "hello world".getBytes(StandardCharsets.UTF_8);
+		Assert.assertArrayEquals(expected, cleartext);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testDecryptionWithTooShortHeader() throws InterruptedException, IOException {
+		byte[] ciphertext = Base64.decode("AAAAAAAA");
+		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		WritableByteChannel out = Channels.newChannel(result);
+		fileContentCryptor.decryptFile(in, out, true);
+	}
+
+	@Test(expected = AuthenticationFailedException.class)
+	public void testDecryptionWithUnauthenticNonce() throws InterruptedException, IOException {
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
+				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAABAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		WritableByteChannel out = Channels.newChannel(result);
+		fileContentCryptor.decryptFile(in, out, true);
+	}
+
+	@Test(expected = AuthenticationFailedException.class)
+	public void testDecryptionWithUnauthenticContent() throws InterruptedException, IOException {
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
+				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		WritableByteChannel out = Channels.newChannel(result);
+		fileContentCryptor.decryptFile(in, out, true);
+	}
+
+	@Test(expected = AuthenticationFailedException.class)
+	public void testDecryptionWithUnauthenticMac() throws InterruptedException, IOException {
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
+				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
+		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		WritableByteChannel out = Channels.newChannel(result);
+		fileContentCryptor.decryptFile(in, out, true);
+	}
+
+	@Test
+	public void testDecryptionWithUnauthenticMacSkipAuth() throws InterruptedException, IOException {
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
+				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
+		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		WritableByteChannel out = Channels.newChannel(result);
+		fileContentCryptor.decryptFile(in, out, false);
 		byte[] cleartext = result.toByteArray();
 		byte[] expected = "hello world".getBytes(StandardCharsets.UTF_8);
 		Assert.assertArrayEquals(expected, cleartext);

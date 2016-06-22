@@ -32,10 +32,12 @@ class FileContentDecryptor {
 
 	private final FileHeader header;
 	private final SecretKey macKey;
+	private final boolean authenticate;
 
-	public FileContentDecryptor(FileHeader header, SecretKey macKey) {
+	public FileContentDecryptor(FileHeader header, SecretKey macKey, boolean authenticate) {
 		this.header = header;
 		this.macKey = macKey;
+		this.authenticate = authenticate;
 	}
 
 	public void decrypt(ReadableByteChannel ciphertextIn, WritableByteChannel cleartextOut, long firstChunkNumber) throws IOException {
@@ -45,7 +47,7 @@ class FileContentDecryptor {
 		Observable<ByteBuffer> observableCleartext = Parallelizer.forObservable(observablePayloads).onScheduler(Schedulers.from(EXECUTOR)).map(new PayloadToCleartextMapper(), true);
 
 		try {
-			new WritableByteChannelEndpoint(cleartextOut, observableCleartext.subscribeOn(Schedulers.io())).awaitTermination(IOException.class);
+			new WritableByteChannelEndpoint(cleartextOut, observableCleartext.subscribeOn(Schedulers.io())).awaitTermination(CryptoException.class);
 		} catch (InterruptedException e) {
 			IOException e2 = new InterruptedIOException();
 			e2.initCause(e);
@@ -60,12 +62,11 @@ class FileContentDecryptor {
 
 		@Override
 		public ByteBuffer call(Payload payload) {
-			final boolean isAuthentic = FileContentChunks.checkChunkMac(macKey, header.getNonce(), payload.getChunkNumber(), payload.getPayload());
+			final boolean isAuthentic = !authenticate || FileContentChunks.checkChunkMac(macKey, header.getNonce(), payload.getChunkNumber(), payload.getPayload());
 			if (isAuthentic) {
 				return FileContentChunks.decryptChunk(payload.getPayload(), header.getPayload().getContentKey());
 			} else {
-				// TODO
-				throw new RuntimeException("TODO Auth failed in chunk " + payload.getChunkNumber());
+				throw new AuthenticationFailedException("Authentication of chunk " + payload.getChunkNumber() + " failed.");
 			}
 		}
 

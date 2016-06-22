@@ -10,19 +10,15 @@ package org.cryptomator.cryptolib;
 
 public class AuthenticationFailedException extends CryptoException {
 
-	AuthenticationFailedException() {
+	public AuthenticationFailedException() {
 		super();
 	}
 
-	AuthenticationFailedException(String message) {
+	public AuthenticationFailedException(String message) {
 		super(message);
 	}
 
-	AuthenticationFailedException(Throwable cause) {
-		super(cause);
-	}
-
-	AuthenticationFailedException(String message, Throwable cause) {
+	public AuthenticationFailedException(String message, Throwable cause) {
 		super(message, cause);
 	}
 

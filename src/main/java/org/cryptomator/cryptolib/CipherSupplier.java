@@ -28,6 +28,7 @@ final class CipherSupplier {
 	public CipherSupplier(String cipherAlgorithm) {
 		this.cipherAlgorithm = cipherAlgorithm;
 		this.threadLocal = new Provider();
+		this.threadLocal.get(); // eagerly initialize to provoke exceptions
 	}
 
 	private class Provider extends ThreadLocal<Cipher> {
@@ -57,7 +58,8 @@ final class CipherSupplier {
 		return forMode(Cipher.UNWRAP_MODE, kek, null);
 	}
 
-	private Cipher forMode(int ciphermode, SecretKey key, AlgorithmParameterSpec params) {
+	// visible for testing
+	Cipher forMode(int ciphermode, SecretKey key, AlgorithmParameterSpec params) {
 		final Cipher cipher = threadLocal.get();
 		try {
 			cipher.init(ciphermode, key, params);
@@ -65,7 +67,7 @@ final class CipherSupplier {
 		} catch (InvalidKeyException e) {
 			throw new IllegalArgumentException("Invalid key.", e);
 		} catch (InvalidAlgorithmParameterException e) {
-			throw new IllegalArgumentException("IV not appropriate for " + cipher.getAlgorithm() + ".", e);
+			throw new IllegalArgumentException("Algorithm parameter not appropriate for " + cipher.getAlgorithm() + ".", e);
 		}
 	}
 }

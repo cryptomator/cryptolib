@@ -42,10 +42,45 @@ public class FileContentEncryptorTest {
 		ByteArrayInputStream cleartextIn = new ByteArrayInputStream(cleartext);
 		ByteArrayOutputStream ciphertextOut = new ByteArrayOutputStream();
 		new FileContentEncryptor(header, macKey, RANDOM_MOCK).encrypt(Channels.newChannel(cleartextIn), Channels.newChannel(ciphertextOut), 0);
+		byte[] ciphertext = ciphertextOut.toByteArray();
 
-		ByteArrayInputStream ciphertextIn = new ByteArrayInputStream(ciphertextOut.toByteArray());
+		ByteArrayInputStream ciphertextIn = new ByteArrayInputStream(ciphertext);
 		ByteArrayOutputStream cleartextOut = new ByteArrayOutputStream();
-		new FileContentDecryptor(header, macKey).decrypt(Channels.newChannel(ciphertextIn), Channels.newChannel(cleartextOut), 0);
+		new FileContentDecryptor(header, macKey, true).decrypt(Channels.newChannel(ciphertextIn), Channels.newChannel(cleartextOut), 0);
+
+		Assert.assertArrayEquals(cleartext, cleartextOut.toByteArray());
+	}
+
+	@Test(expected = AuthenticationFailedException.class)
+	public void testDecryptManipulatedEncrypted() throws InterruptedException, IOException {
+		// 2mb
+		byte[] cleartext = new byte[20 * 1024 * 1024];
+
+		ByteArrayInputStream cleartextIn = new ByteArrayInputStream(cleartext);
+		ByteArrayOutputStream ciphertextOut = new ByteArrayOutputStream();
+		new FileContentEncryptor(header, macKey, RANDOM_MOCK).encrypt(Channels.newChannel(cleartextIn), Channels.newChannel(ciphertextOut), 0);
+		byte[] ciphertext = ciphertextOut.toByteArray();
+		ciphertext[ciphertext.length - 1] = (byte) ~ciphertext[ciphertext.length - 1];
+
+		ByteArrayInputStream ciphertextIn = new ByteArrayInputStream(ciphertext);
+		ByteArrayOutputStream cleartextOut = new ByteArrayOutputStream();
+		new FileContentDecryptor(header, macKey, true).decrypt(Channels.newChannel(ciphertextIn), Channels.newChannel(cleartextOut), 0);
+	}
+
+	@Test
+	public void testDecryptManipulatedEncryptedSkipAuth() throws InterruptedException, IOException {
+		// 2mb
+		byte[] cleartext = new byte[20 * 1024 * 1024];
+
+		ByteArrayInputStream cleartextIn = new ByteArrayInputStream(cleartext);
+		ByteArrayOutputStream ciphertextOut = new ByteArrayOutputStream();
+		new FileContentEncryptor(header, macKey, RANDOM_MOCK).encrypt(Channels.newChannel(cleartextIn), Channels.newChannel(ciphertextOut), 0);
+		byte[] ciphertext = ciphertextOut.toByteArray();
+		ciphertext[ciphertext.length - 1] = (byte) ~ciphertext[ciphertext.length - 1];
+
+		ByteArrayInputStream ciphertextIn = new ByteArrayInputStream(ciphertext);
+		ByteArrayOutputStream cleartextOut = new ByteArrayOutputStream();
+		new FileContentDecryptor(header, macKey, false).decrypt(Channels.newChannel(ciphertextIn), Channels.newChannel(cleartextOut), 0);
 
 		Assert.assertArrayEquals(cleartext, cleartextOut.toByteArray());
 	}

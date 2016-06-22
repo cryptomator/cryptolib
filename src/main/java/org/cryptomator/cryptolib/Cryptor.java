@@ -44,11 +44,11 @@ public class Cryptor implements Destroyable {
 		this.fileNameCryptor = new FileNameCryptor(encryptionKey, macKey);
 	}
 
-	public FileContentCryptor fileContents() {
+	public FileContentCryptor fileContentCryptor() {
 		return fileContentCryptor;
 	}
 
-	public FileNameCryptor fileNames() {
+	public FileNameCryptor fileNameCryptor() {
 		return fileNameCryptor;
 	}
 

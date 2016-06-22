@@ -21,15 +21,32 @@
  * Example Usage:
  * 
  * <pre>
- * // decrypt masterkey file:
- * byte[] masterkeyFile = Files.readAllBytes(pathToMasterkeyJsonFile);
+ * // Create new cryptor and save to masterkey file:
  * String password = "dadada";
- * {@link org.cryptomator.cryptolib.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.CryptorProvider#createFromKeyFile(byte[], CharSequence) CryptorProvider.createFromKeyFile(masterkeyFile, CharSequence)}.
+ * {@link org.cryptomator.cryptolib.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.CryptorProvider#createNew() CryptorProvider.createNew()};
+ * byte[] masterkeyFileContents = cryptor.{@link org.cryptomator.cryptolib.Cryptor#writeKeysToMasterkeyFile(CharSequence) writeKeysToMasterkeyFile(password)};
+ * Files.write(pathToMasterkeyJsonFile, masterkeyFileContents, WRITE, CREATE, TRUNCATE_EXISTING);
  * 
- * // encrypt file:
+ * // Create Cryptor from existing masterkey file:
+ * byte[] masterkeyFileContents = Files.readAllBytes(pathToMasterkeyJsonFile);
+ * String password = "dadada";
+ * Cryptor cryptor = {@link org.cryptomator.cryptolib.CryptorProvider#createFromKeyFile(byte[], CharSequence) CryptorProvider.createFromKeyFile(masterkeyFileContents, password)};
+ * 
+ * // Encrypt and decrypt file name:
+ * String uniqueIdOfDirectory = "87826cbd-344f-4df8-9c8d-af9bc769dfcf";
+ * String cleartextFileName = "foo.txt";
+ * String encryptedName = cryptor.{@link org.cryptomator.cryptolib.Cryptor#fileNameCryptor() fileNameCryptor()}.{@link org.cryptomator.cryptolib.FileNameCryptor#encryptFilename(String, byte[][])  encryptFilename(cleartextFileName, uniqueIdOfDirectory.getBytes())};
+ * String decryptedName = cryptor.fileNameCryptor().{@link org.cryptomator.cryptolib.FileNameCryptor#decryptFilename(String, byte[][])  encryptFilename(encryptedName, uniqueIdOfDirectory.getBytes())};
+ * 
+ * // Encrypt file contents:
  * ReadableByteChannel cleartextIn = ...;
  * SeekableByteChannel ciphertextOut = ...;
- * cryptor.{@link Cryptor#fileContents() contents()}.{@link org.cryptomator.cryptolib.FileContentCryptor#encryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.WritableByteChannel) encryptFile(cleartextIn, ciphertextOut)};
+ * cryptor.{@link org.cryptomator.cryptolib.Cryptor#fileContentCryptor() fileContentCryptor()}.{@link org.cryptomator.cryptolib.FileContentCryptor#encryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.SeekableByteChannel) encryptFile(cleartextIn, ciphertextOut)};
+ * 
+ * // Decrypt file contents:
+ * ReadableByteChannel ciphertextIn = ...;
+ * WritableByteChannel cleartextOut = ...;
+ * cryptor.fileContentCryptor().{@link org.cryptomator.cryptolib.FileContentCryptor#decryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.WritableByteChannel) decryptFile(ciphertextIn, cleartextOut)};
  * </pre>
  */
 package org.cryptomator.cryptolib;

@@ -28,8 +28,26 @@ public class EndpointTest {
 		});
 		Endpoint<String> testEndpoint = new TestEndpointImpl<>(obs);
 		thrown.expect(IOException.class);
-		thrown.expectMessage("i am your father");
+		thrown.expectCause(CoreMatchers.allOf(CoreMatchers.instanceOf(IOException.class), //
+				ThrowableMessageMatcher.hasMessage(CoreMatchers.containsString("i am your father"))));
 		testEndpoint.awaitTermination(IOException.class);
+	}
+
+	@Test
+	public void testOnErrorWithExpectedExceptionWithoutDefaultConstructor() throws InterruptedException, ExceptionWithoutDefaultConstructor {
+		Observable<String> obs = Observable.fromCallable(new Callable<String>() {
+
+			@Override
+			public String call() throws Exception {
+				throw new ExceptionWithoutDefaultConstructor("i am your father");
+			}
+
+		});
+		Endpoint<String> testEndpoint = new TestEndpointImpl<>(obs);
+		thrown.expect(ExceptionWithoutDefaultConstructor.class);
+		thrown.expectMessage("i am your father");
+		thrown.expectCause(CoreMatchers.nullValue(Throwable.class));
+		testEndpoint.awaitTermination(ExceptionWithoutDefaultConstructor.class);
 	}
 
 	@Test
@@ -47,6 +65,12 @@ public class EndpointTest {
 		thrown.expectCause(CoreMatchers.allOf(CoreMatchers.instanceOf(IOException.class), //
 				ThrowableMessageMatcher.hasMessage(CoreMatchers.containsString("i am your father"))));
 		testEndpoint.awaitTermination(IndexOutOfBoundsException.class);
+	}
+
+	private static class ExceptionWithoutDefaultConstructor extends Exception {
+		public ExceptionWithoutDefaultConstructor(String msg) {
+			super(msg);
+		}
 	}
 
 	private static class TestEndpointImpl<T> extends Endpoint<T> {

@@ -56,11 +56,12 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 	}
 
 	/**
-	 * Waits until either completed or failed due to an error.<br/>
+	 * Waits until either completed or failed due to an error.<br>
 	 * <b>Important:</b> This method causes deadlocks, when subscribed to an {@link Observable} on the same thread, that is calling this method.
 	 * Please use {@link Observable#subscribeOn(rx.Scheduler)} to make sure, this will not happen.
 	 * 
-	 * @param expectedException The type of exception that can occur in this stream.
+	 * @param <E> type of the expectedException
+	 * @param expectedException The type of exception that can occur in this stream. Use any {@link RuntimeException}, if you don't expect exceptions.
 	 * @throws InterruptedException If the caller is interrupted while waiting for this streams termination.
 	 * @throws E If the expected exception has been thrown.
 	 * @throws RuntimeException If an unexpected exception has been thrown.
@@ -70,7 +71,15 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 		if (exception == null) {
 			// :-)
 		} else if (expectedException.isInstance(exception)) {
-			throw expectedException.cast(exception);
+			try {
+				@SuppressWarnings("unchecked")
+				E e = (E) exception.getClass().newInstance();
+				e.fillInStackTrace();
+				e.initCause(exception);
+				throw e;
+			} catch (ReflectiveOperationException e) {
+				throw expectedException.cast(exception);
+			}
 		} else {
 			throw new RuntimeException("Unexpected exception.", exception);
 		}
