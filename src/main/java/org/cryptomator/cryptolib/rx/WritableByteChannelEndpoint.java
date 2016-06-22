@@ -27,17 +27,15 @@ public class WritableByteChannelEndpoint extends Endpoint<ByteBuffer> {
 
 	@Override
 	public void onCompleted() {
-		try {
-			channel.close();
-		} catch (IOException e) {
-			this.onError(e);
-		}
+		// no-op
 	}
 
 	@Override
 	public void onNext(ByteBuffer input) {
 		try {
-			channel.write(input);
+			if (channel.isOpen()) {
+				channel.write(input);
+			}
 		} catch (IOException e) {
 			this.onError(e);
 		}

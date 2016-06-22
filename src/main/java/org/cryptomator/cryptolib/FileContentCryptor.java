@@ -47,10 +47,14 @@ public class FileContentCryptor {
 			ByteBuffer headerBuf = FileHeaders.encryptHeader(header, headerKey, macKey);
 			ciphertext.truncate(0);
 			ciphertext.write(headerBuf);
-			// TODO decorate cleartext with random padding
 			FileContentEncryptor encryptor = new FileContentEncryptor(header, macKey, random);
-			encryptor.encrypt(cleartext, ciphertext, 0);
-			// TODO rewind, update header with unpadded content length, rewrite header
+			CountingReadableByteChannel counting = new CountingReadableByteChannel(cleartext);
+			// TODO decorate cleartext with random padding
+			encryptor.encrypt(counting, ciphertext, 0);
+			ciphertext.position(0);
+			header.getPayload().setFilesize(counting.getNumberOfBytesRead());
+			headerBuf = FileHeaders.encryptHeader(header, headerKey, macKey);
+			ciphertext.write(headerBuf);
 		} finally {
 			header.destroy();
 		}
@@ -74,9 +78,13 @@ public class FileContentCryptor {
 		headerBuf.flip();
 		FileHeader header = FileHeaders.decryptHeader(headerBuf, headerKey, macKey);
 		try {
-			// TODO decorate ciphertext with size-limiter
+			long cleartextSize = header.getPayload().getFilesize();
+			long numChunks = 1 + cleartextSize / Constants.PAYLOAD_SIZE;
+			long ciphertextSize = numChunks * Constants.CHUNK_SIZE;
+			ReadableByteChannel limitingIn = new LimitingReadableByteChannel(ciphertext, ciphertextSize);
+			WritableByteChannel limitingOut = new LimitingWritableByteChannel(cleartext, cleartextSize);
 			FileContentDecryptor decryptor = new FileContentDecryptor(header, macKey, authenticate);
-			decryptor.decrypt(ciphertext, cleartext, 0);
+			decryptor.decrypt(limitingIn, limitingOut, 0);
 		} finally {
 			header.destroy();
 		}

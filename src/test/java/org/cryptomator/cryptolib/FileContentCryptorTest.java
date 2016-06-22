@@ -51,16 +51,29 @@ public class FileContentCryptorTest {
 		SeekableByteChannel out = Files.newByteChannel(tmpPath, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 		fileContentCryptor.encryptFile(in, out);
 		byte[] ciphertext = Files.readAllBytes(tmpPath);
-		byte[] expected = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
-				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		byte[] expected = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 		Files.deleteIfExists(tmpPath);
 		Assert.assertArrayEquals(expected, ciphertext);
 	}
 
 	@Test
 	public void testDecryption() throws IOException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
-				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		WritableByteChannel out = Channels.newChannel(result);
+		fileContentCryptor.decryptFile(in, out, true);
+		byte[] cleartext = result.toByteArray();
+		byte[] expected = "hello world".getBytes(StandardCharsets.UTF_8);
+		Assert.assertArrayEquals(expected, cleartext);
+	}
+
+	@Test
+	public void testDecryptionWithRandomPadding() throws IOException {
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxlXBwKLpaM/JtOX+KdCbx53bCAFI63RFRPAhpViOkN4btnrI");
 		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		WritableByteChannel out = Channels.newChannel(result);
@@ -81,8 +94,8 @@ public class FileContentCryptorTest {
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithUnauthenticNonce() throws InterruptedException, IOException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
-				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAABAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		WritableByteChannel out = Channels.newChannel(result);
@@ -91,8 +104,8 @@ public class FileContentCryptorTest {
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithUnauthenticContent() throws InterruptedException, IOException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
-				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		WritableByteChannel out = Channels.newChannel(result);
@@ -101,8 +114,8 @@ public class FileContentCryptorTest {
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithUnauthenticMac() throws InterruptedException, IOException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
-				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
 		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		WritableByteChannel out = Channels.newChannel(result);
@@ -111,8 +124,8 @@ public class FileContentCryptorTest {
 
 	@Test
 	public void testDecryptionWithUnauthenticMacSkipAuth() throws InterruptedException, IOException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImJrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga25JY1dZ1HYYP8au"
-				+ "XAHhUw+4Gv+6jgbNgAkbVa7RHPe24AAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+				+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
 		ReadableByteChannel in = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		WritableByteChannel out = Channels.newChannel(result);
