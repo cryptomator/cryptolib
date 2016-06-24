@@ -46,7 +46,7 @@
  * // Decrypt file contents:
  * ReadableByteChannel ciphertextIn = ...;
  * WritableByteChannel cleartextOut = ...;
- * cryptor.fileContentCryptor().{@link org.cryptomator.cryptolib.FileContentCryptor#decryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.WritableByteChannel) decryptFile(ciphertextIn, cleartextOut)};
+ * cryptor.fileContentCryptor().{@link org.cryptomator.cryptolib.FileContentCryptor#decryptFile(java.nio.channels.ReadableByteChannel, java.nio.channels.WritableByteChannel, boolean) decryptFile(ciphertextIn, cleartextOut, true)};
  * </pre>
  */
 package org.cryptomator.cryptolib;
