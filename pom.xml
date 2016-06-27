@@ -17,6 +17,7 @@
 		<license>
 			<name>GNU General Public License (GPL)</name>
 			<url>http://www.gnu.org/licenses/gpl.txt</url>
+			<distribution>repo</distribution>
 		</license>
 	</licenses>
 
@@ -147,6 +148,16 @@
 		</profile>
 		<profile>
 			<id>release</id>
+			<distributionManagement>
+				<snapshotRepository>
+					<id>ossrh</id>
+					<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+				</snapshotRepository>
+				<repository>
+					<id>ossrh</id>
+					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+				</repository>
+			</distributionManagement>
 			<build>
 				<plugins>
 					<plugin>

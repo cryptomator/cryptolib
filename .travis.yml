@@ -1,6 +1,8 @@
 language: java
 sudo: false
 jdk:
+- oraclejdk8
+- oraclejdk7
 - openjdk7
 env:
   global:
@@ -11,7 +13,7 @@ env:
   - secure: lNc2PlTH35dbmZ5PPpXll3FZ9xdomNhUndCXh3y0KtAk6TJyPzVFiOrlJdNbyHEK+VdgLegh146cuGuvmfP0U/RAPfDA7Gn+6JxG2lHDNP6nDOzhwaY0NpC53Inv8Y6iBeeNoojVOkkwRJyonsjv8TMmbv+EfDXL1oDP6odeTsV9nRTiYn0RT6407v8hdEb3AOBoOZ0jrXfcD1PQVHvJElrEvfXf2cLS3iQvMa8B84tUIPF/vk9F3cPAJlqCt5PQ/pGQ7rQxQ+Jyi5HCshacAR7WBVHSiC9hu6v7yMO3ZhE3kPMSeIYQeE6Fd/AgYXIHlEjPCZVmO6CvGzPS1ThqOZplFbNjqGYCfRzuyGY4+avT06+9jysjpoJkgAXjc2IroWjJr/YGZIiXPKcfvSoIhYGDpX1nKkXNgUdiXAwF58nC3/oESZYPpwCsVadR6hO4b0weE3D9YFDvDaqkG3L5yR+v1lDTEjiqOIDoqLBzYxj3QRC7D/taIALzOrn08PlsBOtattSshmu4j4cU2euQdEFTS7MZ0HVrAUcsjCuEBUpbPG889c1rAPsFcPCiVmPNPrnnmr2XblfaOdIXeMa6s9bLLizS1bQ0TncLvri58vbEHAcFHysI0O6gYHWvF+hmczYWxlNbsG8LvG7EaE/PawFIqqIrdP0fhk7uhpgn4F4= # MAVEN_OSSRH_PASSWORD
 before_install:
 - gpg --import 34C80F11.gpg
-script: "mvn clean test jacoco:report coveralls:report -P coverage"
+script: "mvn clean install jacoco:report coveralls:report -P coverage"
 addons:
   coverity_scan:
     project:
@@ -24,7 +26,7 @@ addons:
 deploy:
   provider: script
   skip_cleanup: true
-  script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} && mvn deploy -DskipTests -P release --settings settings.xml
+  script: if [ -n "${TRAVIS_TAG}" ]; then mvn clean versions:set -DnewVersion=${TRAVIS_TAG}; fi && mvn deploy -DskipTests -P release --settings settings.xml
   on:
     repo: cryptomator/cryptolib
-    tags: true
+    jdk: openjdk7
