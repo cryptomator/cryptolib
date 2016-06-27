@@ -23,10 +23,19 @@ addons:
     build_command_prepend: "mvn clean"
     build_command: "mvn -DskipTests=true compile"
     branch_pattern: release.*
-deploy:
+deploy: # SNAPSHOTS
   provider: script
   skip_cleanup: true
-  script: if [ -n "${TRAVIS_TAG}" ]; then mvn clean versions:set -DnewVersion=${TRAVIS_TAG}; fi && mvn deploy -DskipTests -P release --settings settings.xml
+  script: mvn deploy -DskipTests -P release --settings settings.xml
   on:
     repo: cryptomator/cryptolib
+    branch: develop
+    condition: $TRAVIS_TAG = ''
+    jdk: openjdk7
+deploy: # RELEASES
+  provider: script
+  script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -P release --settings settings.xml
+  on:
+    repo: cryptomator/cryptolib
+    tags: true
     jdk: openjdk7
