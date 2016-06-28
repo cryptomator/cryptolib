@@ -25,8 +25,7 @@ addons:
     branch_pattern: release.*
 deploy:
 - provider: script # SNAPSHOTS
-  skip_cleanup: true
-  script: mvn deploy -DskipTests -P release --settings settings.xml
+  script: mvn clean deploy -DskipTests -P release --settings settings.xml
   on:
     repo: cryptomator/cryptolib
     branch: develop
