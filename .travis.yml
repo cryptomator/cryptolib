@@ -11,11 +11,10 @@ env:
   - secure: HCm8qbHtKBtVRamKeNd1VJ459jeSJtEBwuBsCQPcppy/CsVXSB6jvowMm0W6eXIHO7YWFUTRK5S65sF325eA9OJAwXqtz+Veaxbyz191GDInUBJ/wUTvYRfRCroSD2OT7fQkZeqPF1JuA5G+NthxYgkgLt1MyBhih7ak7y6v4nOl2BpsvKlD1XpoAWgXD5eAj9E/sy47/Ym0xfRDTdHGRYlwofWSgnDhiqEL4HmqMPeQMmETYrGqyaT3jPvqHaTdAFS7XhQPelcHHF8IOOHRNGw/HwjcynpnBmxzW77yZJ7TyJ4QcmasFIOlhMkcfxm9fNQvYP8p+MnXipF4cLigM6c9z088VpVPA++WTw0xMGsAZz2xnhsUXXMQPESnLaca6arvAA7/Z17P03aFWM6Z93I+svodIMAUOwcEoNvtrEwK2JOZuLh5MDCs6439+59wEAYVbv39VJGb/zCFx0cNFudTpQCK3CDadZBKm3ubMKMbykfJ2moMjpFEueuayce88CFolwzb1ZSflefS+BzZCZvgv+tJkMhB1s/ZmhQ7Frdn8l1Dg9q83lN//6aoRx66uL7V54+x9HxF6pwtnAEDitqiUjihnhVQyQej9jJh8Ddm4Ygc8fZtV5ZyI0eJMJE1spXztKSfbGlwmhewVX4r8nKmllLNzUAO6TtL1RniuZU= # MAVEN_GPG_PASSPHRASE
   - secure: MADwAHLSOTbnvW5cqxh9uG3nqG2ygRDGyCo3cf57D++b/LNRhiM3ajpGyp4ze0EVpPJ6b6BGYhLOoT8s4zIVcQavlIOmsLjjcbR0SymajpJLecsX43YmkbHGLU9Tx7Fhsharb8RacFogaUMKI/HnnsRVTzsQpnQ2QhXtQKoCcjSHPoswQrv0NoNAvJNRdOyQzpURJl2/2TNUy5ejau61pP+mhyJqTXGTlHXzIm46yLEUi01iHOzlWMMFUTDwyKRIrb2gxDdxgRzR969KnlU6MjlcHdI4Y7vWhQ1ZbP/YxXgyCzuhpgYR2/YIoEqHN8k1yUlmwoUOtc1jQPi7UxdqDpu5n7T1UyZg0Inf+1gHUJh96pZVgYgLmSQ7bY7Pc/cQv9n0k7hudArTImK/SQjAYwJesPtr2hWhirdzJ26YGsMUNXBa7OZxGaUwSwTspD+f5uJqIx0v0HW7HIas4m/iy/lBorAiuR+qv7qXWwrpt5NFIjnZeFnc76L0jdU+SGr1dJlJIutwI9FUOCU37SzdP+gVmWrVvK6bq83hPL1xRCqmcn1ojBnYWiFh0VjaKgxg6uJRZSEIu9MTtg4E/tsO9v0kmevdiU6oLb9Krv6wAlP+nmXOPQV1xPnBooBO7iNQh9bpZnl0UG6N2iZvecHEOTN7aZVld/BIQRy08ww1gAM= # MAVEN_OSSRH_USERNAME
   - secure: lNc2PlTH35dbmZ5PPpXll3FZ9xdomNhUndCXh3y0KtAk6TJyPzVFiOrlJdNbyHEK+VdgLegh146cuGuvmfP0U/RAPfDA7Gn+6JxG2lHDNP6nDOzhwaY0NpC53Inv8Y6iBeeNoojVOkkwRJyonsjv8TMmbv+EfDXL1oDP6odeTsV9nRTiYn0RT6407v8hdEb3AOBoOZ0jrXfcD1PQVHvJElrEvfXf2cLS3iQvMa8B84tUIPF/vk9F3cPAJlqCt5PQ/pGQ7rQxQ+Jyi5HCshacAR7WBVHSiC9hu6v7yMO3ZhE3kPMSeIYQeE6Fd/AgYXIHlEjPCZVmO6CvGzPS1ThqOZplFbNjqGYCfRzuyGY4+avT06+9jysjpoJkgAXjc2IroWjJr/YGZIiXPKcfvSoIhYGDpX1nKkXNgUdiXAwF58nC3/oESZYPpwCsVadR6hO4b0weE3D9YFDvDaqkG3L5yR+v1lDTEjiqOIDoqLBzYxj3QRC7D/taIALzOrn08PlsBOtattSshmu4j4cU2euQdEFTS7MZ0HVrAUcsjCuEBUpbPG889c1rAPsFcPCiVmPNPrnnmr2XblfaOdIXeMa6s9bLLizS1bQ0TncLvri58vbEHAcFHysI0O6gYHWvF+hmczYWxlNbsG8LvG7EaE/PawFIqqIrdP0fhk7uhpgn4F4= # MAVEN_OSSRH_PASSWORD
-before_install:
-- gpg --import 34C80F11.gpg
-script: mvn clean install jacoco:report coveralls:report -P coverage
+script: mvn clean test jacoco:report -P coverage
 after_success:
-- bash <(curl -s https://codecov.io/bash)
+- [${TRAVIS_JDK_VERSION} == 'openjdk7'] && mvn coveralls:report -P coverage
+- [${TRAVIS_JDK_VERSION} == 'openjdk7'] && bash <(curl -s https://codecov.io/bash)
 addons:
   coverity_scan:
     project:
@@ -25,6 +24,8 @@ addons:
     build_command_prepend: "mvn clean"
     build_command: "mvn -DskipTests=true compile"
     branch_pattern: release.*
+before_deploy:
+- gpg --import 34C80F11.gpg
 deploy:
 - provider: script # SNAPSHOTS
   script: mvn clean deploy -DskipTests -P release --settings settings.xml
