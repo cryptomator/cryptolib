@@ -48,8 +48,7 @@ public class FileContentCryptor {
 			ciphertext.truncate(0);
 			ciphertext.write(headerBuf);
 			FileContentEncryptor encryptor = new FileContentEncryptor(header, macKey, random);
-			CountingReadableByteChannel counting = new CountingReadableByteChannel(cleartext);
-			// TODO decorate cleartext with random padding
+			CountingReadableByteChannel counting = new GarbageAppendingReadableByteChannel(cleartext, random);
 			encryptor.encrypt(counting, ciphertext, 0);
 			ciphertext.position(0);
 			header.getPayload().setFilesize(counting.getNumberOfBytesRead());
