@@ -55,6 +55,14 @@ public class FileHeadersTest {
 		Assert.assertEquals(header.getPayload().getFilesize(), 42l);
 	}
 
+	@Test(expected = IllegalStateException.class)
+	public void testDecryptionWithTooShortHeader() throws AEADBadTagException {
+		byte[] ciphertext = new byte[7];
+		SecretKey encryptionKey = new SecretKeySpec(new byte[32], "AES");
+		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
+		FileHeaders.decryptHeader(ByteBuffer.wrap(ciphertext), encryptionKey, macKey);
+	}
+
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithInvalidMac1() throws AEADBadTagException {
 		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa==");
