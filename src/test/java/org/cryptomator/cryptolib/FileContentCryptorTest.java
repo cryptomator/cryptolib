@@ -32,14 +32,12 @@ import org.spongycastle.util.encoders.Base64;
 public class FileContentCryptorTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private SecretKey encKey;
-	private SecretKey macKey;
 	private FileContentCryptor fileContentCryptor;
 
 	@Before
 	public void setup() {
-		encKey = new SecretKeySpec(new byte[32], "AES");
-		macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
+		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
+		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
 		fileContentCryptor = new FileContentCryptor(encKey, macKey, RANDOM_MOCK);
 	}
 

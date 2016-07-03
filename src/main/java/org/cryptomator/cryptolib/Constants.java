@@ -10,9 +10,6 @@ package org.cryptomator.cryptolib;
 
 final class Constants {
 
-	private Constants() {
-	}
-
 	static final Integer CURRENT_VAULT_VERSION = 3;
 
 	static final String ENC_ALG = "AES";

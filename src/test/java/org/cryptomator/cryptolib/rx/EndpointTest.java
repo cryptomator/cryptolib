@@ -3,6 +3,7 @@ package org.cryptomator.cryptolib.rx;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import org.cryptomator.cryptolib.rx.Endpoint.UnexpectedException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class EndpointTest {
 
 		});
 		Endpoint<String> testEndpoint = new TestEndpointImpl<>(obs);
-		thrown.expect(RuntimeException.class);
+		thrown.expect(UnexpectedException.class);
 		thrown.expectCause(CoreMatchers.allOf(CoreMatchers.instanceOf(IOException.class), //
 				ThrowableMessageMatcher.hasMessage(CoreMatchers.containsString("i am your father"))));
 		testEndpoint.awaitTermination(IndexOutOfBoundsException.class);

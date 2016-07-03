@@ -64,12 +64,12 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 	 * @param expectedException The type of exception that can occur in this stream. Use any {@link RuntimeException}, if you don't expect exceptions.
 	 * @throws InterruptedException If the caller is interrupted while waiting for this streams termination.
 	 * @throws E If the expected exception has been thrown.
-	 * @throws RuntimeException If an unexpected exception has been thrown.
+	 * @throws UnexpectedException If an unexpected exception has been thrown.
 	 */
-	public <E extends Throwable> void awaitTermination(Class<E> expectedException) throws InterruptedException, E, RuntimeException {
+	public <E extends Throwable> void awaitTermination(Class<E> expectedException) throws InterruptedException, E, UnexpectedException {
 		cdl.await();
 		if (exception == null) {
-			// :-)
+			return; // :-)
 		} else if (expectedException.isInstance(exception)) {
 			try {
 				@SuppressWarnings("unchecked")
@@ -81,7 +81,13 @@ public abstract class Endpoint<T> extends Subscriber<T> {
 				throw expectedException.cast(exception);
 			}
 		} else {
-			throw new RuntimeException("Unexpected exception.", exception);
+			throw new UnexpectedException(exception);
+		}
+	}
+
+	public static class UnexpectedException extends RuntimeException {
+		private UnexpectedException(Throwable cause) {
+			super("Unexpected exception.", cause);
 		}
 	}
 
