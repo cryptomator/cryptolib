@@ -30,22 +30,28 @@ public class Cryptor implements Destroyable {
 	private final SecretKey macKey;
 	private final SecureRandom random;
 	private final FileContentCryptor fileContentCryptor;
+	private final FileHeaderCryptor fileHeaderCryptor;
 	private final FileNameCryptor fileNameCryptor;
 
 	/**
 	 * Package-private constructor.
 	 * Use {@link CryptorProvider#createNew()} or {@link CryptorProvider#createFromKeyFile(byte[], CharSequence)} to obtain a Cryptor instance.
 	 */
-	Cryptor(SecretKey encryptionKey, SecretKey macKey, SecureRandom random) {
-		this.encKey = encryptionKey;
+	Cryptor(SecretKey encKey, SecretKey macKey, SecureRandom random) {
+		this.encKey = encKey;
 		this.macKey = macKey;
 		this.random = random;
-		this.fileContentCryptor = new FileContentCryptor(encryptionKey, macKey, random);
-		this.fileNameCryptor = new FileNameCryptor(encryptionKey, macKey);
+		this.fileHeaderCryptor = new FileHeaderCryptor(encKey, macKey, random);
+		this.fileContentCryptor = new FileContentCryptor(macKey, random, fileHeaderCryptor);
+		this.fileNameCryptor = new FileNameCryptor(encKey, macKey);
 	}
 
 	public FileContentCryptor fileContentCryptor() {
 		return fileContentCryptor;
+	}
+
+	public FileHeaderCryptor fileHeaderCryptor() {
+		return fileHeaderCryptor;
 	}
 
 	public FileNameCryptor fileNameCryptor() {

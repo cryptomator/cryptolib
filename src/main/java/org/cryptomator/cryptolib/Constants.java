@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib;
 
-final class Constants {
+public final class Constants {
 
 	static final Integer CURRENT_VAULT_VERSION = 3;
 
@@ -20,11 +20,20 @@ final class Constants {
 	static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 14;
 	static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
 
+	static final int NONCE_SIZE = 16;
+	static final int MAC_SIZE = 32;
+
+	/**
+	 * Number of usable bytes per chunk.
+	 */
 	public static final int PAYLOAD_SIZE = 32 * 1024;
-	public static final int NONCE_SIZE = 16;
-	public static final int MAC_SIZE = 32;
+
+	/**
+	 * Number of bytes per chunk, including nonce and MAC.
+	 */
 	public static final int CHUNK_SIZE = NONCE_SIZE + PAYLOAD_SIZE + MAC_SIZE;
-	public static final int PADDING_LOWER_BOUND = 4 * 1024; // 4k
-	public static final int PADDING_UPPER_BOUND = 16 * 1024 * 1024; // 16M
+
+	static final int PADDING_LOWER_BOUND = 4 * 1024; // 4k
+	static final int PADDING_UPPER_BOUND = 16 * 1024 * 1024; // 16M
 
 }

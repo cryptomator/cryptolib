@@ -19,20 +19,31 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 
-final class FileHeaders {
+public class FileHeaderCryptor {
 
-	private FileHeaders() {
+	private final SecretKey headerKey;
+	private final SecretKey macKey;
+	private final SecureRandom random;
+
+	/**
+	 * Package-private constructor.
+	 * Use {@link Cryptor#fileHeaderCryptor()} to obtain a FileHeaderCryptor instance.
+	 */
+	FileHeaderCryptor(SecretKey headerKey, SecretKey macKey, SecureRandom random) {
+		this.headerKey = headerKey;
+		this.macKey = macKey;
+		this.random = random;
 	}
 
-	public static FileHeader create(SecureRandom randomSource) {
+	public FileHeader create() {
 		byte[] nonce = new byte[FileHeader.NONCE_LEN];
-		randomSource.nextBytes(nonce);
+		random.nextBytes(nonce);
 		byte[] contentKey = new byte[FileHeader.Payload.CONTENT_KEY_LEN];
-		randomSource.nextBytes(contentKey);
+		random.nextBytes(contentKey);
 		return new FileHeader(nonce, contentKey);
 	}
 
-	public static ByteBuffer encryptHeader(FileHeader header, SecretKey headerKey, SecretKey macKey) {
+	public ByteBuffer encryptHeader(FileHeader header) {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeader.Payload.SIZE);
 		payloadCleartextBuf.putLong(header.getPayload().getFilesize());
 		payloadCleartextBuf.put(header.getPayload().getContentKeyBytes());
@@ -61,7 +72,7 @@ final class FileHeaders {
 		}
 	}
 
-	public static FileHeader decryptHeader(ByteBuffer ciphertextHeaderBuf, SecretKey headerKey, SecretKey macKey) throws AuthenticationFailedException {
+	public FileHeader decryptHeader(ByteBuffer ciphertextHeaderBuf) throws AuthenticationFailedException {
 		if (ciphertextHeaderBuf.remaining() < FileHeader.SIZE) {
 			throw new IllegalStateException("Malformed ciphertext header");
 		}

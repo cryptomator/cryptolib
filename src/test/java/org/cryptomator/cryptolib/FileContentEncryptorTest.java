@@ -31,7 +31,7 @@ public class FileContentEncryptorTest {
 	@Before
 	public void setup() {
 		macKey = new SecretKeySpec(new byte[16], "HmacSHA256");
-		header = FileHeaders.create(RANDOM_MOCK);
+		header = new FileHeader(new byte[16], new byte[32]);
 	}
 
 	@Test

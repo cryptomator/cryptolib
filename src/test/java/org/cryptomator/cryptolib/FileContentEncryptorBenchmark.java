@@ -47,7 +47,7 @@ public class FileContentEncryptorBenchmark {
 
 	@Setup(Level.Iteration)
 	public void shuffleData() {
-		header = FileHeaders.create(RANDOM_MOCK);
+		header = new FileHeader(new byte[16], new byte[32]);
 	}
 
 	@Benchmark

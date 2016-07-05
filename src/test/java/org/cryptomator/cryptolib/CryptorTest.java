@@ -51,6 +51,12 @@ public class CryptorTest {
 	}
 
 	@Test
+	public void testGetFileHeaderCryptor() {
+		final Cryptor cryptor = new Cryptor(encKey, macKey, RANDOM_MOCK);
+		Assert.assertThat(cryptor.fileHeaderCryptor(), CoreMatchers.instanceOf(FileHeaderCryptor.class));
+	}
+
+	@Test
 	public void testGetFileNameCryptor() {
 		final Cryptor cryptor = new Cryptor(encKey, macKey, RANDOM_MOCK);
 		Assert.assertThat(cryptor.fileNameCryptor(), CoreMatchers.instanceOf(FileNameCryptor.class));

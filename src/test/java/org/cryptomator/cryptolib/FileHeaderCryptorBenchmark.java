@@ -35,28 +35,29 @@ import org.openjdk.jmh.annotations.Warmup;
 @Measurement(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @BenchmarkMode(value = {Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-public class FileHeadersBenchmark {
+public class FileHeaderCryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
 	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
 	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
+	private static final FileHeaderCryptor HEADER_CRYPTOR = new FileHeaderCryptor(ENC_KEY, MAC_KEY, RANDOM_MOCK);
 	private FileHeader header;
 	private ByteBuffer validHeaderCiphertextBuf;
 
 	@Setup(Level.Iteration)
 	public void shuffleData() {
-		header = FileHeaders.create(RANDOM_MOCK);
-		validHeaderCiphertextBuf = FileHeaders.encryptHeader(header, ENC_KEY, MAC_KEY);
+		header = HEADER_CRYPTOR.create();
+		validHeaderCiphertextBuf = HEADER_CRYPTOR.encryptHeader(header);
 	}
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		FileHeaders.encryptHeader(header, ENC_KEY, MAC_KEY);
+		HEADER_CRYPTOR.encryptHeader(header);
 	}
 
 	@Benchmark
 	public void benchmarkDecryption() throws AEADBadTagException {
-		FileHeaders.decryptHeader(validHeaderCiphertextBuf, ENC_KEY, MAC_KEY);
+		HEADER_CRYPTOR.decryptHeader(validHeaderCiphertextBuf);
 	}
 
 }

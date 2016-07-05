@@ -19,18 +19,33 @@ import javax.crypto.SecretKey;
 
 public class FileContentCryptor {
 
-	private final SecretKey headerKey;
 	private final SecretKey macKey;
 	private final SecureRandom random;
+	private final FileHeaderCryptor fileHeaderCryptor;
 
 	/**
 	 * Package-private constructor.
 	 * Use {@link Cryptor#fileContentCryptor()} to obtain a FileContentCryptor instance.
 	 */
-	FileContentCryptor(SecretKey encryptionKey, SecretKey macKey, SecureRandom random) {
-		this.headerKey = encryptionKey;
+	FileContentCryptor(SecretKey macKey, SecureRandom random, FileHeaderCryptor fileHeaderCryptor) {
 		this.macKey = macKey;
 		this.random = random;
+		this.fileHeaderCryptor = fileHeaderCryptor;
+	}
+
+	/**
+	 * Encrypts a single chunk of cleartext.
+	 * 
+	 * @param cleartextChunk Content to be encrypted
+	 * @param chunkNumber Number of the chunk to be encrypted
+	 * @param header Header of the file, this chunk belongs to
+	 * @return Encrypted content.
+	 */
+	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
+		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > Constants.PAYLOAD_SIZE) {
+			throw new IllegalArgumentException("Invalid chunk");
+		}
+		return FileContentChunks.encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, header.getNonce(), header.getPayload().getContentKey(), macKey, random);
 	}
 
 	/**
@@ -42,9 +57,9 @@ public class FileContentCryptor {
 	 * @throws IOException In case of exceptions that occur during read/write from the given channels.
 	 */
 	public void encryptFile(ReadableByteChannel cleartext, SeekableByteChannel ciphertext) throws IOException {
-		FileHeader header = FileHeaders.create(random);
+		FileHeader header = fileHeaderCryptor.create();
 		try {
-			ByteBuffer headerBuf = FileHeaders.encryptHeader(header, headerKey, macKey);
+			ByteBuffer headerBuf = fileHeaderCryptor.encryptHeader(header);
 			ciphertext.truncate(0);
 			ciphertext.write(headerBuf);
 			FileContentEncryptor encryptor = new FileContentEncryptor(header, macKey, random);
@@ -52,10 +67,31 @@ public class FileContentCryptor {
 			encryptor.encrypt(counting, ciphertext, 0);
 			ciphertext.position(0);
 			header.getPayload().setFilesize(counting.getNumberOfBytesRead());
-			headerBuf = FileHeaders.encryptHeader(header, headerKey, macKey);
+			headerBuf = fileHeaderCryptor.encryptHeader(header);
 			ciphertext.write(headerBuf);
 		} finally {
 			header.destroy();
+		}
+	}
+
+	/**
+	 * Decrypts a single chunk of ciphertext.
+	 * 
+	 * @param ciphertextChunk Content to be decrypted
+	 * @param chunkNumber Number of the chunk to be decrypted
+	 * @param header Header of the file, this chunk belongs to
+	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
+	 * @return Decrypted content.
+	 * @throws AuthenticationFailedException If authenticate is <code>true</code> and the given chunk does not match its MAC.
+	 */
+	public ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
+		if (ciphertextChunk.remaining() == 0 || ciphertextChunk.remaining() > Constants.CHUNK_SIZE) {
+			throw new IllegalArgumentException("Invalid chunk");
+		}
+		if (!authenticate || FileContentChunks.checkChunkMac(macKey, header.getNonce(), chunkNumber, ciphertextChunk.asReadOnlyBuffer())) {
+			return FileContentChunks.decryptChunk(ciphertextChunk.asReadOnlyBuffer(), header.getPayload().getContentKey());
+		} else {
+			throw new AuthenticationFailedException("Authentication of chunk " + chunkNumber + " failed.");
 		}
 	}
 
@@ -75,7 +111,7 @@ public class FileContentCryptor {
 			throw new IllegalArgumentException("Ciphertext shorter than header size.");
 		}
 		headerBuf.flip();
-		FileHeader header = FileHeaders.decryptHeader(headerBuf, headerKey, macKey);
+		FileHeader header = fileHeaderCryptor.decryptHeader(headerBuf);
 		try {
 			long cleartextSize = header.getPayload().getFilesize();
 			long numChunks = 1 + cleartextSize / Constants.PAYLOAD_SIZE;

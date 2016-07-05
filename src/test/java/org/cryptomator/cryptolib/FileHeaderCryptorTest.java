@@ -16,18 +16,27 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.spongycastle.util.encoders.Base64;
 
-public class FileHeadersTest {
+public class FileHeaderCryptorTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
+	private FileHeaderCryptor headerCryptor;
+
+	@Before
+	public void setup() {
+		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
+		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
+		headerCryptor = new FileHeaderCryptor(encKey, macKey, RANDOM_MOCK);
+	}
 
 	@Test
 	public void testEncryption() {
 		// set nonce to: AAAAAAAAAAAAAAAAAAAAAAAA
 		// set payload to: AAAAAAAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-		FileHeader header = FileHeaders.create(RANDOM_MOCK);
+		FileHeader header = headerCryptor.create();
 		header.getPayload().setFilesize(42l);
 		// encrypt payload:
 		// echo -n "AAAAAAAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode | openssl enc -aes-256-ctr -K 0000000000000000000000000000000000000000000000000000000000000000 -iv
@@ -39,9 +48,7 @@ public class FileHeadersTest {
 		// concat nonce + encrypted payload + mac:
 		final String expected = "AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==";
 
-		SecretKey encryptionKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		ByteBuffer result = FileHeaders.encryptHeader(header, encryptionKey, macKey);
+		ByteBuffer result = headerCryptor.encryptHeader(header);
 
 		Assert.assertArrayEquals(Base64.decode(expected), result.array());
 	}
@@ -49,34 +56,26 @@ public class FileHeadersTest {
 	@Test
 	public void testDecryption() throws AEADBadTagException {
 		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
-		SecretKey encryptionKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		FileHeader header = FileHeaders.decryptHeader(ByteBuffer.wrap(ciphertext), encryptionKey, macKey);
+		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 		Assert.assertEquals(header.getPayload().getFilesize(), 42l);
 	}
 
 	@Test(expected = IllegalStateException.class)
 	public void testDecryptionWithTooShortHeader() throws AEADBadTagException {
 		byte[] ciphertext = new byte[7];
-		SecretKey encryptionKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		FileHeaders.decryptHeader(ByteBuffer.wrap(ciphertext), encryptionKey, macKey);
+		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithInvalidMac1() throws AEADBadTagException {
 		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa==");
-		SecretKey encryptionKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		FileHeaders.decryptHeader(ByteBuffer.wrap(ciphertext), encryptionKey, macKey);
+		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithInvalidMac2() throws AEADBadTagException {
 		byte[] ciphertext = Base64.decode("aAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
-		SecretKey encryptionKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		FileHeaders.decryptHeader(ByteBuffer.wrap(ciphertext), encryptionKey, macKey);
+		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
 }

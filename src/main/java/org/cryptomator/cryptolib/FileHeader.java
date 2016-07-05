@@ -16,9 +16,9 @@ import javax.security.auth.Destroyable;
 
 /**
  * Contains file header data.
- * Use {@link FileHeaders} for construction.
+ * Use {@link FileHeaderCryptor} for construction.
  */
-class FileHeader implements Destroyable {
+public class FileHeader implements Destroyable {
 
 	static final int NONCE_POS = 0;
 	static final int NONCE_LEN = 16;
@@ -26,11 +26,15 @@ class FileHeader implements Destroyable {
 	static final int PAYLOAD_LEN = Payload.SIZE;
 	static final int MAC_POS = 56;
 	static final int MAC_LEN = 32;
-	static final int SIZE = NONCE_LEN + PAYLOAD_LEN + MAC_LEN;
+	public static final int SIZE = NONCE_LEN + PAYLOAD_LEN + MAC_LEN;
 
 	private final byte[] nonce;
 	private final Payload payload;
 
+	/**
+	 * Package-private constructor.
+	 * Use {@link FileHeaderCryptor} to obtain a FileHeader instance.
+	 */
 	FileHeader(byte[] nonce, byte[] contentKey) {
 		if (nonce.length != NONCE_LEN) {
 			throw new IllegalArgumentException("Invalid nonce length. (was: " + nonce.length + ", required: " + NONCE_LEN + ")");
@@ -86,11 +90,11 @@ class FileHeader implements Destroyable {
 			this.filesize = filesize;
 		}
 
-		public SecretKey getContentKey() {
+		SecretKey getContentKey() {
 			return contentKey;
 		}
 
-		public byte[] getContentKeyBytes() {
+		byte[] getContentKeyBytes() {
 			return contentKeyBytes;
 		}
 
