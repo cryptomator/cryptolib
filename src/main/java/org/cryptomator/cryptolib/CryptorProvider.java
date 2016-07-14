@@ -37,7 +37,7 @@ public class CryptorProvider {
 			this.encKeyGen = KeyGenerator.getInstance(ENC_ALG);
 			encKeyGen.init(KEY_LEN_BYTES * Byte.SIZE, random);
 			this.macKeyGen = KeyGenerator.getInstance(MAC_ALG);
-			encKeyGen.init(KEY_LEN_BYTES * Byte.SIZE, random);
+			macKeyGen.init(KEY_LEN_BYTES * Byte.SIZE, random);
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("Hard-coded algorithm doesn't exist.", e);
 		}
