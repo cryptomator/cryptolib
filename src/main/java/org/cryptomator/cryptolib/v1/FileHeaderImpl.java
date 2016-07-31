@@ -16,11 +16,7 @@ import javax.security.auth.Destroyable;
 
 import org.cryptomator.cryptolib.api.FileHeader;
 
-/**
- * Contains file header data.
- * Use {@link FileHeaderCryptorImpl} for construction.
- */
-public class FileHeaderImpl implements FileHeader, Destroyable {
+class FileHeaderImpl implements FileHeader, Destroyable {
 
 	static final int NONCE_POS = 0;
 	static final int NONCE_LEN = 16;
@@ -33,10 +29,6 @@ public class FileHeaderImpl implements FileHeader, Destroyable {
 	private final byte[] nonce;
 	private final Payload payload;
 
-	/**
-	 * Package-private constructor.
-	 * Use {@link FileHeaderCryptorImpl} to obtain a FileHeader instance.
-	 */
 	FileHeaderImpl(byte[] nonce, byte[] contentKey) {
 		if (nonce.length != NONCE_LEN) {
 			throw new IllegalArgumentException("Invalid nonce length. (was: " + nonce.length + ", required: " + NONCE_LEN + ")");

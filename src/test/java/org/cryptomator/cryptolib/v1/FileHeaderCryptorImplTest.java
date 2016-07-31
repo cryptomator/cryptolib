@@ -17,6 +17,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.util.encoders.Base64;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.FileHeader;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class FileHeaderCryptorImplTest {
 	public void testEncryption() {
 		// set nonce to: AAAAAAAAAAAAAAAAAAAAAAAA
 		// set payload to: AAAAAAAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-		FileHeaderImpl header = headerCryptor.create();
+		FileHeader header = headerCryptor.create();
 		header.setFilesize(42l);
 		// encrypt payload:
 		// echo -n "AAAAAAAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode | openssl enc -aes-256-ctr -K 0000000000000000000000000000000000000000000000000000000000000000 -iv
@@ -63,7 +64,7 @@ public class FileHeaderCryptorImplTest {
 	@Test
 	public void testDecryption() throws AEADBadTagException {
 		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
-		FileHeaderImpl header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 		Assert.assertEquals(header.getFilesize(), 42l);
 	}
 

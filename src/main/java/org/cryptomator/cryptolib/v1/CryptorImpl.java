@@ -29,7 +29,7 @@ import org.cryptomator.cryptolib.common.AesKeyWrap;
 import org.cryptomator.cryptolib.common.MacSupplier;
 import org.cryptomator.cryptolib.common.Scrypt;
 
-public class CryptorImpl implements Cryptor {
+class CryptorImpl implements Cryptor {
 
 	private final SecretKey encKey;
 	private final SecretKey macKey;

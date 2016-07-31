@@ -25,16 +25,12 @@ import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.MacSupplier;
 
-public class FileHeaderCryptorImpl implements FileHeaderCryptor {
+class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
 	private final SecretKey headerKey;
 	private final SecretKey macKey;
 	private final SecureRandom random;
 
-	/**
-	 * Package-private constructor.
-	 * Use {@link CryptorImpl#fileHeaderCryptor()} to obtain a FileHeaderCryptor instance.
-	 */
 	FileHeaderCryptorImpl(SecretKey headerKey, SecretKey macKey, SecureRandom random) {
 		this.headerKey = headerKey;
 		this.macKey = macKey;
@@ -42,7 +38,7 @@ public class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	}
 
 	@Override
-	public FileHeaderImpl create() {
+	public FileHeader create() {
 		byte[] nonce = new byte[FileHeaderImpl.NONCE_LEN];
 		random.nextBytes(nonce);
 		byte[] contentKey = new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN];
@@ -87,7 +83,7 @@ public class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	}
 
 	@Override
-	public FileHeaderImpl decryptHeader(ByteBuffer ciphertextHeaderBuf) throws AuthenticationFailedException {
+	public FileHeader decryptHeader(ByteBuffer ciphertextHeaderBuf) throws AuthenticationFailedException {
 		if (ciphertextHeaderBuf.remaining() < FileHeaderImpl.SIZE) {
 			throw new IllegalArgumentException("Malformed ciphertext header");
 		}

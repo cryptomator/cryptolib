@@ -16,8 +16,7 @@ import javax.crypto.AEADBadTagException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.cryptomator.cryptolib.v1.FileHeaderImpl;
-import org.cryptomator.cryptolib.v1.FileHeaderCryptorImpl;
+import org.cryptomator.cryptolib.api.FileHeader;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -43,7 +42,7 @@ public class FileHeaderCryptorBenchmark {
 	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
 	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
 	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
-	private FileHeaderImpl header;
+	private FileHeader header;
 	private ByteBuffer validHeaderCiphertextBuf;
 
 	@Setup(Level.Iteration)

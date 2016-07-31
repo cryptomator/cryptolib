@@ -8,27 +8,19 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-public final class Constants {
+final class Constants {
 
 	static final String ENC_ALG = "AES";
 	static final String MAC_ALG = "HmacSHA256";
 
 	static final int KEY_LEN_BYTES = 32;
 	static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
-	static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 14;
+	static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 14; // 2^14
 	static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
 
 	static final int NONCE_SIZE = 16;
-	static final int MAC_SIZE = 32;
-
-	/**
-	 * Number of usable bytes per chunk.
-	 */
 	static final int PAYLOAD_SIZE = 32 * 1024;
-
-	/**
-	 * Number of bytes per chunk, including nonce and MAC.
-	 */
+	static final int MAC_SIZE = 32;
 	static final int CHUNK_SIZE = NONCE_SIZE + PAYLOAD_SIZE + MAC_SIZE;
 
 	static final double PADDING_RATIO = 0.1; // 10% of normal file size

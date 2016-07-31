@@ -17,15 +17,11 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 
-public class FileContentCryptorImpl implements FileContentCryptor {
+class FileContentCryptorImpl implements FileContentCryptor {
 
 	private final SecretKey macKey;
 	private final SecureRandom random;
 
-	/**
-	 * Package-private constructor.
-	 * Use {@link CryptorImpl#fileContentCryptor()} to obtain a FileContentCryptor instance.
-	 */
 	FileContentCryptorImpl(SecretKey macKey, SecureRandom random) {
 		this.macKey = macKey;
 		this.random = random;
