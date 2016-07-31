@@ -16,13 +16,13 @@ public interface CryptorProvider {
 	public Cryptor createNew();
 
 	/**
-	 * @param keyFileContents The bytes from a keyfile
+	 * @param keyFile The parsed key file
 	 * @param passphrase The passphrase to use for decrypting the keyfile
 	 * @param expectedVaultVersion The vault version expected in this file
 	 * @return A new Cryptor instance using the keys from the supplied keyfile
 	 * @throws UnsupportedVaultFormatException If the vault has been created with a different version than <code>expectedVaultVersion</code>
 	 * @throws InvalidPassphraseException If the key derived from the passphrase could not be used to decrypt the keyfile.
 	 */
-	public Cryptor createFromKeyFile(byte[] keyFileContents, CharSequence passphrase, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException;
+	public Cryptor createFromKeyFile(KeyFile keyFile, CharSequence passphrase, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException;
 
 }

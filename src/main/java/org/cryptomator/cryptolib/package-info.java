@@ -33,13 +33,15 @@
  * // Create new cryptor and save to masterkey file:
  * String password = "dadada";
  * {@link org.cryptomator.cryptolib.api.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.Cryptors#version1(java.security.SecureRandom) Cryptors.version1(secRandom)}.{@link org.cryptomator.cryptolib.api.CryptorProvider#createNew() createNew()};
- * byte[] masterkeyFileContents = cryptor.{@link org.cryptomator.cryptolib.api.Cryptor#writeKeysToMasterkeyFile(CharSequence, int) writeKeysToMasterkeyFile(password, 42)};
+ * KeyFile keyFile = cryptor.{@link org.cryptomator.cryptolib.api.Cryptor#writeKeysToMasterkeyFile(CharSequence, int) writeKeysToMasterkeyFile(password, 42)};
+ * byte[] masterkeyFileContents = keyFile.{@link org.cryptomator.cryptolib.api.KeyFile#serialize() serialize()};
  * Files.write(pathToMasterkeyJsonFile, masterkeyFileContents, WRITE, CREATE, TRUNCATE_EXISTING);
  * 
  * // Create Cryptor from existing masterkey file:
  * byte[] masterkeyFileContents = Files.readAllBytes(pathToMasterkeyJsonFile);
  * String password = "dadada";
- * Cryptor cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#createFromKeyFile(byte[], CharSequence, int) CryptorProvider.createFromKeyFile(masterkeyFileContents, password, 42)};
+ * KeyFile keyFile = KeyFile.{@link org.cryptomator.cryptolib.api.KeyFile#parse(byte[]) parse(masterkeyFileContents)}
+ * Cryptor cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#createFromKeyFile(KeyFile, CharSequence, int) CryptorProvider.createFromKeyFile(keyFile, password, 42)};
  * 
  * // Encrypt and decrypt file name:
  * String uniqueIdOfDirectory = "87826cbd-344f-4df8-9c8d-af9bc769dfcf";

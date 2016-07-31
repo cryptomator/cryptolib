@@ -10,9 +10,6 @@ package org.cryptomator.cryptolib.v1;
 
 public final class Constants {
 
-	@Deprecated
-	static final Integer CURRENT_VAULT_VERSION = 3;
-
 	static final String ENC_ALG = "AES";
 	static final String MAC_ALG = "HmacSHA256";
 

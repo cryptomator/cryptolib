@@ -6,25 +6,27 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.api;
 
 import java.nio.charset.StandardCharsets;
 
-import org.cryptomator.cryptolib.v1.KeyFile;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.gson.annotations.Expose;
 
 public class KeyFileTest {
 
 	@Test
 	public void testParse() {
-		final String serialized = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
-				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
-				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
-				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
+		final String serialized = "{\"version\":42, \"foo\":\"AAAAAAAAAAA=\", \"hidden\": \"hello world\"}";
 		KeyFile keyFile = KeyFile.parse(serialized.getBytes());
-		Assert.assertEquals(3, keyFile.getVersion().intValue());
+		Assert.assertEquals(42, keyFile.getVersion());
+		KeyFileImpl keyFileImpl = keyFile.as(KeyFileImpl.class);
+		Assert.assertEquals(42, keyFileImpl.getVersion());
+		Assert.assertArrayEquals(new byte[8], keyFileImpl.foo);
+		Assert.assertNull(keyFileImpl.hidden);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -35,10 +37,19 @@ public class KeyFileTest {
 
 	@Test
 	public void testSerialize() {
-		KeyFile keyFile = new KeyFile();
-		keyFile.setScryptSalt(new byte[8]);
+		KeyFileImpl keyFile = new KeyFileImpl();
+		keyFile.foo = new byte[8];
+		keyFile.hidden = "hello world";
 		String serialized = new String(keyFile.serialize(), StandardCharsets.UTF_8);
-		Assert.assertThat(serialized, CoreMatchers.containsString("\"scryptSalt\":\"AAAAAAAAAAA=\""));
+		Assert.assertThat(serialized, CoreMatchers.containsString("\"foo\": \"AAAAAAAAAAA=\""));
+		Assert.assertThat(serialized, CoreMatchers.not(CoreMatchers.containsString("\"hidden\": \"hello world\"")));
+	}
+
+	private static class KeyFileImpl extends KeyFile {
+		@Expose
+		byte[] foo;
+
+		String hidden;
 	}
 
 }

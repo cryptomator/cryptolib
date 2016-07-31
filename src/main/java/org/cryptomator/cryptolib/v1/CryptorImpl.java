@@ -24,6 +24,7 @@ import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.common.AesKeyWrap;
 import org.cryptomator.cryptolib.common.MacSupplier;
 import org.cryptomator.cryptolib.common.Scrypt;
@@ -82,7 +83,7 @@ public class CryptorImpl implements Cryptor {
 	}
 
 	@Override
-	public byte[] writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion) {
+	public KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion) {
 		final byte[] scryptSalt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		random.nextBytes(scryptSalt);
 
@@ -100,15 +101,15 @@ public class CryptorImpl implements Cryptor {
 		final Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
 		final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
 
-		final KeyFile keyfile = new KeyFile();
+		final KeyFileImpl keyfile = new KeyFileImpl();
 		keyfile.setVersion(vaultVersion);
-		keyfile.setScryptSalt(scryptSalt);
-		keyfile.setScryptCostParam(DEFAULT_SCRYPT_COST_PARAM);
-		keyfile.setScryptBlockSize(DEFAULT_SCRYPT_BLOCK_SIZE);
-		keyfile.setEncryptionMasterKey(wrappedEncryptionKey);
-		keyfile.setMacMasterKey(wrappedMacKey);
-		keyfile.setVersionMac(versionMac);
-		return keyfile.serialize();
+		keyfile.scryptSalt = scryptSalt;
+		keyfile.scryptCostParam = DEFAULT_SCRYPT_COST_PARAM;
+		keyfile.scryptBlockSize = DEFAULT_SCRYPT_BLOCK_SIZE;
+		keyfile.encryptionMasterKey = wrappedEncryptionKey;
+		keyfile.macMasterKey = wrappedMacKey;
+		keyfile.versionMac = versionMac;
+		return keyfile;
 	}
 
 	private void destroyQuietly(SecretKey key) {

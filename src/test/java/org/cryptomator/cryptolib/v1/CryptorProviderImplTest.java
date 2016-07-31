@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import java.security.SecureRandom;
 
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
+import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
@@ -46,7 +47,8 @@ public class CryptorProviderImplTest {
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
-		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(testMasterKey.getBytes(), "asd", 3);
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
+		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
 		Assert.assertNotNull(cryptor);
 	}
 
@@ -56,7 +58,8 @@ public class CryptorProviderImplTest {
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
-		cryptorProvider.createFromKeyFile(testMasterKey.getBytes(), "qwe", 3);
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
+		cryptorProvider.createFromKeyFile(keyFile, "qwe", 3);
 	}
 
 	@Test
@@ -65,6 +68,7 @@ public class CryptorProviderImplTest {
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		thrown.expect(CoreMatchers.allOf(new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("isVaultOlderThanSoftware") {
 
 			@Override
@@ -90,7 +94,7 @@ public class CryptorProviderImplTest {
 				return item.getSupportedVersion() == 3;
 			}
 		}));
-		cryptorProvider.createFromKeyFile(testMasterKey.getBytes(), "asd", 3);
+		cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
 	}
 
 	@Test
@@ -98,6 +102,7 @@ public class CryptorProviderImplTest {
 		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"}";
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		thrown.expect(CoreMatchers.allOf(new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("not isVaultOlderThanSoftware") {
 
 			@Override
@@ -123,7 +128,7 @@ public class CryptorProviderImplTest {
 				return item.getSupportedVersion() == 3;
 			}
 		}));
-		cryptorProvider.createFromKeyFile(testMasterKey.getBytes(), "asd", 3);
+		cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
 	}
 
 	@Test
@@ -132,6 +137,7 @@ public class CryptorProviderImplTest {
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLa=\"}";
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		thrown.expect(CoreMatchers.allOf(new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("not isVaultOlderThanSoftware") {
 
 			@Override
@@ -157,7 +163,7 @@ public class CryptorProviderImplTest {
 				return item.getSupportedVersion() == 3;
 			}
 		}));
-		cryptorProvider.createFromKeyFile(testMasterKey.getBytes(), "asd", 3);
+		cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
 	}
 
 }

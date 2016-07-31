@@ -26,6 +26,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
+import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.common.AesKeyWrap;
 import org.cryptomator.cryptolib.common.MacSupplier;
@@ -57,32 +58,32 @@ public class CryptorProviderImpl implements CryptorProvider {
 	}
 
 	@Override
-	public CryptorImpl createFromKeyFile(byte[] keyFileContents, CharSequence passphrase, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException {
-		final KeyFile keyFile = KeyFile.parse(keyFileContents);
-		final byte[] kekBytes = Scrypt.scrypt(passphrase, keyFile.getScryptSalt(), keyFile.getScryptCostParam(), keyFile.getScryptBlockSize(), KEY_LEN_BYTES);
+	public CryptorImpl createFromKeyFile(KeyFile keyFile, CharSequence passphrase, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException {
+		final KeyFileImpl keyFileImpl = keyFile.as(KeyFileImpl.class);
+		final byte[] kekBytes = Scrypt.scrypt(passphrase, keyFileImpl.scryptSalt, keyFileImpl.scryptCostParam, keyFileImpl.scryptBlockSize, KEY_LEN_BYTES);
 		try {
 			SecretKey kek = new SecretKeySpec(kekBytes, ENC_ALG);
-			return createFromKeyFile(keyFile, kek, expectedVaultVersion);
+			return createFromKeyFile(keyFileImpl, kek, expectedVaultVersion);
 		} finally {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}
 	}
 
-	private CryptorImpl createFromKeyFile(KeyFile keyFile, SecretKey kek, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException {
+	private CryptorImpl createFromKeyFile(KeyFileImpl keyFile, SecretKey kek, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException {
 		// check version
 		if (expectedVaultVersion != keyFile.getVersion()) {
 			throw new UnsupportedVaultFormatException(keyFile.getVersion(), expectedVaultVersion);
 		}
 
 		try {
-			SecretKey macKey = AesKeyWrap.unwrap(kek, keyFile.getMacMasterKey(), MAC_ALG);
+			SecretKey macKey = AesKeyWrap.unwrap(kek, keyFile.macMasterKey, MAC_ALG);
 			Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
 			byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(expectedVaultVersion).array());
-			if (keyFile.getVersionMac() == null || !MessageDigest.isEqual(versionMac, keyFile.getVersionMac())) {
+			if (keyFile.versionMac == null || !MessageDigest.isEqual(versionMac, keyFile.versionMac)) {
 				// attempted downgrade attack: versionMac doesn't match version.
 				throw new UnsupportedVaultFormatException(Integer.MAX_VALUE, expectedVaultVersion);
 			}
-			SecretKey encKey = AesKeyWrap.unwrap(kek, keyFile.getEncryptionMasterKey(), ENC_ALG);
+			SecretKey encKey = AesKeyWrap.unwrap(kek, keyFile.encryptionMasterKey, ENC_ALG);
 			return new CryptorImpl(encKey, macKey, random);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();

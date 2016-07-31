@@ -8,6 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 import javax.crypto.SecretKey;
@@ -35,13 +36,16 @@ public class CryptorImplTest {
 
 	@Test
 	public void testMasterkeyEncryption() {
-		final String expectedMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":16384,\"scryptBlockSize\":8," //
-				+ "\"primaryMasterKey\":\"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\"," //
-				+ "\"hmacMasterKey\":\"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\"," //
-				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		final byte[] serialized = cryptor.writeKeysToMasterkeyFile("asd", 3);
-		Assert.assertArrayEquals(expectedMasterKey.getBytes(), serialized);
+		final byte[] serialized = cryptor.writeKeysToMasterkeyFile("asd", 3).serialize();
+		String serializedStr = new String(serialized, StandardCharsets.UTF_8);
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"version\": 3"));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptSalt\": \"AAAAAAAAAAA=\""));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptCostParam\": 16384"));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptBlockSize\": 8"));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"primaryMasterKey\": \"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\""));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"hmacMasterKey\": \"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\""));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"versionMac\": \"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\""));
 	}
 
 	@Test
@@ -78,20 +82,5 @@ public class CryptorImplTest {
 	private static interface DestroyableSecretKey extends SecretKey, Destroyable {
 		// In Java7 SecretKey doesn't implement Destroyable...
 	}
-
-	// @Test
-	// public void testGetFilenameAndFileContentCryptor() throws InterruptedException {
-	// final Cryptor cryptor = TestCryptorImplFactory.insecureCryptorImpl();
-	// cryptor.randomizeMasterkey();
-	//
-	// Assert.assertSame(cryptor.getFilenameCryptor(), cryptor.getFilenameCryptor());
-	// Assert.assertSame(cryptor.getFileContentCryptor(), cryptor.getFileContentCryptor());
-	// }
-	//
-	// @Test(expected = IllegalStateException.class)
-	// public void testGetFilenameAndFileContentCryptorWithoutKeys() throws InterruptedException {
-	// final Cryptor cryptor = TestCryptorImplFactory.insecureCryptorImpl();
-	// cryptor.getFilenameCryptor();
-	// }
 
 }

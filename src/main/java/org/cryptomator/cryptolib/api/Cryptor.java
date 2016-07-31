@@ -15,6 +15,6 @@ public interface Cryptor extends Destroyable {
 	 * @param vaultVersion Will be checked upon decryption of this masterkey.
 	 * @return Encrypted data that can be stored in insecure locations.
 	 */
-	public byte[] writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion);
+	public KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion);
 
 }
