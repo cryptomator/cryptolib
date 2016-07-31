@@ -39,17 +39,14 @@
 		<dependency>
 			<groupId>org.cryptomator</groupId>
 			<artifactId>siv-mode</artifactId>
-			<version>1.0.4</version>
+			<version>1.0.7</version>
 		</dependency>
 		<dependency>
-			<groupId>com.madgag.spongycastle</groupId>
-			<artifactId>core</artifactId>
-			<version>1.54.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>io.reactivex</groupId>
-			<artifactId>rxjava</artifactId>
-			<version>1.1.6</version>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>1.54</version>
+			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -119,6 +116,46 @@
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.4.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<minimizeJar>true</minimizeJar>
+							<keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<createSourcesJar>true</createSourcesJar>
+							<artifactSet>
+								<includes>
+									<include>org.bouncycastle:bcprov-jdk15on</include>
+								</includes>
+							</artifactSet>
+							<relocations>
+								<relocation>
+									<pattern>org.bouncycastle</pattern>
+									<shadedPattern>org.cryptomator.cryptolib.org.bouncycastle</shadedPattern>
+								</relocation>
+							</relocations>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

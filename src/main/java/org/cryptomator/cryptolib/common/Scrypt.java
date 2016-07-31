@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.Arrays;
 
-import org.spongycastle.crypto.generators.SCrypt;
+import org.bouncycastle.crypto.generators.SCrypt;
 
 public final class Scrypt {
 

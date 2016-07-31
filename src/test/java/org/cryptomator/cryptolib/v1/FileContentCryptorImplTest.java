@@ -22,6 +22,8 @@ import java.security.SecureRandom;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.util.Arrays;
+import org.bouncycastle.util.encoders.Base64;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.io.DecryptingReadableByteChannel;
@@ -32,8 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.spongycastle.util.Arrays;
-import org.spongycastle.util.encoders.Base64;
 
 import de.bechte.junit.runners.context.HierarchicalContextRunner;
 

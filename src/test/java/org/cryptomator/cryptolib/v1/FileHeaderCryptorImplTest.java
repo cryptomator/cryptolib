@@ -15,11 +15,11 @@ import javax.crypto.AEADBadTagException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.bouncycastle.util.encoders.Base64;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.spongycastle.util.encoders.Base64;
 
 public class FileHeaderCryptorImplTest {
 
