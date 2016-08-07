@@ -112,14 +112,16 @@ public abstract class KeyFile {
 
 	private static class ByteArrayJsonAdapter implements JsonSerializer<byte[]>, JsonDeserializer<byte[]> {
 
+		private static final Base64 BASE64 = new Base64();
+
 		@Override
 		public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return Base64.decodeBase64(json.getAsString());
+			return BASE64.decode(json.getAsString().getBytes(StandardCharsets.UTF_8));
 		}
 
 		@Override
 		public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
-			return new JsonPrimitive(Base64.encodeBase64String(src));
+			return new JsonPrimitive(new String(BASE64.encode(src), StandardCharsets.UTF_8));
 		}
 
 	}
