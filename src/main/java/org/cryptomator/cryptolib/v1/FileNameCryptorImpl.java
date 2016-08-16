@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import javax.crypto.AEADBadTagException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 
 import org.apache.commons.codec.binary.Base32;
@@ -59,8 +60,8 @@ class FileNameCryptorImpl implements FileNameCryptor {
 			byte[] encryptedBytes = BASE32.decode(ciphertextName);
 			byte[] cleartextBytes = AES_SIV.get().decrypt(encryptionKey, macKey, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
-		} catch (AEADBadTagException e) {
-			throw new AuthenticationFailedException("Authentication failed.", e);
+		} catch (AEADBadTagException | IllegalBlockSizeException e) {
+			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}
 	}
 
