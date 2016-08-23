@@ -23,8 +23,4 @@ final class Constants {
 	static final int MAC_SIZE = 32;
 	static final int CHUNK_SIZE = NONCE_SIZE + PAYLOAD_SIZE + MAC_SIZE;
 
-	static final double PADDING_RATIO = 0.1; // 10% of normal file size
-	static final int PADDING_LOWER_BOUND = 4 * 1024; // 4k
-	static final int PADDING_UPPER_BOUND = 16 * 1024 * 1024; // 16M
-
 }
