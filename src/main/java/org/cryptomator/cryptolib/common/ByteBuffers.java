@@ -10,10 +10,7 @@ package org.cryptomator.cryptolib.common;
 
 import java.nio.ByteBuffer;
 
-public final class ByteBuffers {
-
-	private ByteBuffers() {
-	}
+public class ByteBuffers {
 
 	/**
 	 * Copies as many bytes as possible from the given source to the destination buffer.

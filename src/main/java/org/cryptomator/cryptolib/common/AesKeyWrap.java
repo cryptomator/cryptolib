@@ -15,10 +15,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 
-public final class AesKeyWrap {
-
-	private AesKeyWrap() {
-	}
+public class AesKeyWrap {
 
 	/**
 	 * @param kek Key encrypting key
@@ -42,9 +39,14 @@ public final class AesKeyWrap {
 	 * @throws InvalidKeyException If unwrapping failed (i.e. wrong kek)
 	 */
 	public static SecretKey unwrap(SecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm) throws InvalidKeyException {
+		return unwrap(kek, wrappedKey, wrappedKeyAlgorithm, Cipher.SECRET_KEY);
+	}
+
+	// visible for testing
+	static SecretKey unwrap(SecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException {
 		final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forUnwrapping(kek);
 		try {
-			return (SecretKey) cipher.unwrap(wrappedKey, wrappedKeyAlgorithm, Cipher.SECRET_KEY);
+			return (SecretKey) cipher.unwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType);
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalArgumentException("Invalid algorithm: " + wrappedKeyAlgorithm, e);
 		}

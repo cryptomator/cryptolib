@@ -10,10 +10,6 @@ package org.cryptomator.cryptolib.api;
 
 public class AuthenticationFailedException extends CryptoException {
 
-	public AuthenticationFailedException() {
-		super();
-	}
-
 	public AuthenticationFailedException(String message) {
 		super(message);
 	}

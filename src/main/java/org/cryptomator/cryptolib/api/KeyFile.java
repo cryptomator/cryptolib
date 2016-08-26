@@ -98,13 +98,9 @@ public abstract class KeyFile {
 	 * @return New instance of the given class.
 	 */
 	public <T extends KeyFile> T as(Class<T> clazz) {
-		try {
-			T result = GSON.fromJson(jsonObj, clazz);
-			((KeyFile) result).jsonObj = jsonObj;
-			return result;
-		} catch (JsonParseException e) {
-			throw new IllegalArgumentException("Unable to parse key file.", e);
-		}
+		T result = GSON.fromJson(jsonObj, clazz);
+		((KeyFile) result).jsonObj = jsonObj;
+		return result;
 	}
 
 	private static class GenericKeyFile extends KeyFile {

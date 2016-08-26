@@ -10,11 +10,12 @@ package org.cryptomator.cryptolib.common;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.cryptomator.cryptolib.common.AesKeyWrap;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,6 +41,14 @@ public class AesKeyWrapTest {
 		SecretKey key = new SecretKeySpec(new byte[17], "AES");
 		thrown.expect(IllegalArgumentException.class);
 		AesKeyWrap.wrap(kek, key);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void unwrapWithInvalidKey() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
+		SecretKey key = new SecretKeySpec(new byte[32], "AES");
+		byte[] wrapped = AesKeyWrap.wrap(kek, key);
+		AesKeyWrap.unwrap(kek, wrapped, "FOO", Cipher.PRIVATE_KEY);
 	}
 
 }

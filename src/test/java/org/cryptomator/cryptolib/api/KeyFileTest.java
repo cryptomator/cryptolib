@@ -30,7 +30,7 @@ public class KeyFileTest {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testParseInvalid() {
+	public void testParseInvalid1() {
 		final String serialized = "{i don't know syntax}";
 		KeyFile.parse(serialized.getBytes());
 	}

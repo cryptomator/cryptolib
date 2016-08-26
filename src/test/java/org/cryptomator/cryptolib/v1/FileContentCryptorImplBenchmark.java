@@ -15,8 +15,6 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.cryptomator.cryptolib.v1.Constants;
-import org.cryptomator.cryptolib.v1.FileContentChunks;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -36,7 +34,7 @@ import org.openjdk.jmh.annotations.Warmup;
 @Measurement(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @BenchmarkMode(value = {Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-public class FileContentChunksBenchmark {
+public class FileContentCryptorImplBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
 	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
@@ -44,6 +42,7 @@ public class FileContentChunksBenchmark {
 	private final byte[] headerNonce = new byte[Constants.NONCE_SIZE];
 	private final ByteBuffer cleartextChunk = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
 	private final ByteBuffer ciphertextChunk = ByteBuffer.allocate(Constants.CHUNK_SIZE);
+	private final FileContentCryptorImpl fileContentCryptor = new FileContentCryptorImpl(MAC_KEY, RANDOM_MOCK);
 	private long chunkNumber;
 
 	@Setup(Level.Invocation)
@@ -58,17 +57,17 @@ public class FileContentChunksBenchmark {
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		FileContentChunks.encryptChunk(cleartextChunk, chunkNumber, headerNonce, ENC_KEY, MAC_KEY, RANDOM_MOCK);
+		fileContentCryptor.encryptChunk(cleartextChunk, chunkNumber, headerNonce, ENC_KEY);
 	}
 
 	@Benchmark
 	public void benchmarkAuthentication() {
-		FileContentChunks.checkChunkMac(MAC_KEY, headerNonce, chunkNumber, ciphertextChunk);
+		fileContentCryptor.checkChunkMac(headerNonce, chunkNumber, ciphertextChunk);
 	}
 
 	@Benchmark
 	public void benchmarkDecryption() {
-		FileContentChunks.decryptChunk(ciphertextChunk, ENC_KEY);
+		fileContentCryptor.decryptChunk(ciphertextChunk, ENC_KEY);
 	}
 
 }

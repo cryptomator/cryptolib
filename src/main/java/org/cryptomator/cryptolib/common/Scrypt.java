@@ -16,10 +16,7 @@ import java.util.Arrays;
 
 import org.bouncycastle.crypto.generators.SCrypt;
 
-public final class Scrypt {
-
-	private Scrypt() {
-	}
+public class Scrypt {
 
 	/**
 	 * Derives a key from the given passphrase.

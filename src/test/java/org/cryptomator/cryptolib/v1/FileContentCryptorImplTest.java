@@ -17,6 +17,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
 import javax.crypto.SecretKey;
@@ -54,6 +55,22 @@ public class FileContentCryptorImplTest {
 		cryptor = Mockito.mock(Cryptor.class);
 		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);
 		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);
+	}
+
+	@Test
+	public void testMacIsValidAfterEncryption() throws NoSuchAlgorithmException {
+		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
+		ByteBuffer result = fileContentCryptor.encryptChunk(ByteBuffer.wrap("asd".getBytes()), 42l, new byte[16], fileKey);
+		Assert.assertTrue(fileContentCryptor.checkChunkMac(new byte[16], 42l, result));
+		Assert.assertFalse(fileContentCryptor.checkChunkMac(new byte[16], 43l, result));
+	}
+
+	@Test
+	public void testDecryptedEncryptedEqualsPlaintext() throws NoSuchAlgorithmException {
+		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
+		ByteBuffer ciphertext = fileContentCryptor.encryptChunk(ByteBuffer.wrap("asd".getBytes()), 42l, new byte[16], fileKey);
+		ByteBuffer result = fileContentCryptor.decryptChunk(ciphertext, fileKey);
+		Assert.assertArrayEquals("asd".getBytes(), result.array());
 	}
 
 	public class Encryption {
