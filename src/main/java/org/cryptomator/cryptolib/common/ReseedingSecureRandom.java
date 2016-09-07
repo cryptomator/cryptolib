@@ -14,6 +14,7 @@ import java.security.SecureRandomSpi;
 /**
  * Wraps a fast CSPRNG, which gets reseeded automatically after a certain amount of bytes has been generated.<br>
  * 
+ * <p>
  * Java 8 Example:
  * 
  * <pre>
