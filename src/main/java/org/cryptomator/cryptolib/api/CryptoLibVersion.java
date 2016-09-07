@@ -18,7 +18,7 @@ import javax.inject.Qualifier;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CryptoLibVersion {
-	Version value() default Version.ONE;
+	Version value();
 
 	public enum Version {
 		ONE
