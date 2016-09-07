@@ -12,6 +12,12 @@
 		<developerConnection>scm:git:git@github.com:cryptomator/cryptolib.git</developerConnection>
 		<url>git@github.com:cryptomator/cryptolib.git</url>
 	</scm>
+	
+	<properties>
+		<java.version>1.7</java.version>
+		<dagger.version>2.6.1</dagger.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 
 	<licenses>
 		<license>
@@ -30,10 +36,6 @@
 			<organizationUrl>http://cryptomator.org</organizationUrl>
 		</developer>
 	</developers>
-
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
 
 	<dependencies>
 		<dependency>
@@ -57,6 +59,19 @@
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 			<version>[1.5,)</version>
+		</dependency>
+		
+		<!-- DI -->
+		<dependency>
+			<groupId>com.google.dagger</groupId>
+			<artifactId>dagger</artifactId>
+			<version>${dagger.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.dagger</groupId>
+			<artifactId>dagger-compiler</artifactId>
+			<version>${dagger.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- tests -->

@@ -14,12 +14,17 @@ import java.util.Collection;
 
 import org.cryptomator.cryptolib.Cryptors;
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
+import org.cryptomator.cryptolib.api.FileHeaderCryptor;
+import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class CryptorsTest {
 
@@ -28,8 +33,25 @@ public class CryptorsTest {
 
 	@Test
 	public void testVersion1() {
-		SecureRandom secRandom = Mockito.mock(SecureRandom.class);
-		Assert.assertTrue(Cryptors.version1(secRandom) instanceof org.cryptomator.cryptolib.v1.CryptorProviderImpl);
+		SecureRandom seeder = Mockito.mock(SecureRandom.class);
+		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(new Answer<byte[]>() {
+
+			@Override
+			public byte[] answer(InvocationOnMock invocation) throws Throwable {
+				return new byte[invocation.getArgumentAt(0, Integer.class)];
+			}
+
+		});
+		CryptorProvider cryptorProvider = Cryptors.version1(seeder);
+		Assert.assertNotNull(cryptorProvider);
+		Cryptor cryptor = cryptorProvider.createNew();
+		Assert.assertNotNull(cryptor);
+		FileContentCryptor fileContentCryptor = cryptor.fileContentCryptor();
+		FileHeaderCryptor fileHeaderCryptor = cryptor.fileHeaderCryptor();
+		FileNameCryptor fileNameCryptor = cryptor.fileNameCryptor();
+		Assert.assertNotNull(fileContentCryptor);
+		Assert.assertNotNull(fileHeaderCryptor);
+		Assert.assertNotNull(fileNameCryptor);
 	}
 
 	@Test

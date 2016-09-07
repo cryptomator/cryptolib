@@ -25,7 +25,7 @@ import java.security.SecureRandomSpi;
  * }
  * </pre>
  */
-public class ReseedingSecureRandom extends SecureRandom {
+class ReseedingSecureRandom extends SecureRandom {
 
 	/**
 	 * @param seeder RNG for high-quality random numbers. E.g. <code>SecureRandom.getInstanceStrong()</code> in Java 8 environments.

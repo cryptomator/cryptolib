@@ -13,16 +13,16 @@ import java.security.SecureRandom;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
+import org.cryptomator.cryptolib.common.SecureRandomModule;
 
 public final class Cryptors {
 
 	/**
-	 * @param secureRandom E.g. an {@link ReseedingSecureRandom} instance.
+	 * @param seeder A native (if possible) SecureRandom used to seed internal CSPRNGs.
 	 * @return A version 1 CryptorProvider
 	 */
-	public static CryptorProvider version1(SecureRandom secureRandom) {
-		return new org.cryptomator.cryptolib.v1.CryptorProviderImpl(secureRandom);
+	public static CryptorProvider version1(SecureRandom seeder) {
+		return DaggerCryptoLibComponent.builder().secureRandomModule(new SecureRandomModule(seeder)).build().version1();
 	}
 
 	/**

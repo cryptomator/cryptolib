@@ -32,7 +32,7 @@ import org.cryptomator.cryptolib.common.AesKeyWrap;
 import org.cryptomator.cryptolib.common.MacSupplier;
 import org.cryptomator.cryptolib.common.Scrypt;
 
-public class CryptorProviderImpl implements CryptorProvider {
+class CryptorProviderImpl implements CryptorProvider {
 
 	private final SecureRandom random;
 	private final KeyGenerator encKeyGen;
