@@ -46,19 +46,19 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>1.54</version>
+			<version>1.55</version>
 			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
 			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>[2.7,)</version>
+			<version>2.7</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>[1.5,)</version>
+			<version>1.10</version>
 		</dependency>
 
 		<!-- DI -->
