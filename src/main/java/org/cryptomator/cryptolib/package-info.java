@@ -25,7 +25,7 @@
  * SecureRandom secRandom;
  * try {
  * 	// NIST SP 800-90A Rev 1 (http://dx.doi.org/10.6028/NIST.SP.800-90Ar1) suggests 440 seed bits for up to 2^48 bytes between reseeds for SHA1/SHA2 PRNGs:
- * 	secRandom = new ReseedingSecureRandom(SecureRandom.getInstanceStrong(), SecureRandom.getInstance("SHA1PRNG"), 1 << 30, 55);
+ * 	secRandom = new ReseedingSecureRandom(SecureRandom.getInstanceStrong(), SecureRandom.getInstance("SHA1PRNG"), 1 &lt;&lt; 30, 55);
  * } catch (NoSuchAlgorithmException e) {
  * 	throw new IllegalStateException("Used RNGs must exist in every Java platform.", e);
  * }
