@@ -20,11 +20,18 @@ script:
 - mvn clean test jacoco:report verify -Pcoverage
 after_success:
 - "if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' ]]; then bash <(curl -s https://codecov.io/bash); fi"
-- "if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' && ${TRAVIS_BRANCH} =~ release.* ]]; then curl -s https://scan.coverity.com/scripts/travisci_build_coverity_scan.sh | COVERITY_SCAN_PROJECT_NAME=\"cryptomator/cryptolib\" COVERITY_SCAN_NOTIFICATION_EMAIL=\"sebastian.stenzel@cryptomator.org\" COVERITY_SCAN_BUILD_COMMAND=\"mvn clean compile -DskipTests\" COVERITY_SCAN_BRANCH_PATTERN=\"release.*\" bash; fi"
 cache:
   directories:
   - $HOME/.m2
   - /tmp/coverity-scan-analysis
+addons:
+  coverity_scan:
+    project:
+      name: "cryptomator/cryptolib"
+      description: "Build submitted via Travis CI"
+    notification_email: sebastian.stenzel@cryptomator.org
+    build_command: "mvn clean compile -DskipTests"
+    branch_pattern: release.*
 before_deploy:
 - gpg --import 34C80F11.gpg
 deploy:
