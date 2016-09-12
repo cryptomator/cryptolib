@@ -14,6 +14,7 @@ install:
 - mvn dependency:go-offline -Pdependency-check
 - mvn dependency:go-offline -Pcoverage
 - mvn dependency:go-offline -Prelease
+- "if [[ ${TRAVIS_BRANCH} =~ release.* ]]; then travis_wait 30 wget -O /tmp/cov-analysis-Linux.tgz https://scan.coverity.com/download/Linux; fi"
 before_script:
 - mvn dependency-check:check -Pdependency-check
 script:
@@ -23,6 +24,7 @@ after_success:
 cache:
   directories:
   - $HOME/.m2
+  - /tmp/coverity-scan-analysis
 addons:
   coverity_scan:
     project:
