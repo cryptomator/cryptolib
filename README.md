@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/cryptomator/cryptolib.svg?branch=master)](https://travis-ci.org/cryptomator/cryptolib)
-[![Coverage Status](https://coveralls.io/repos/github/cryptomator/cryptolib/badge.svg?branch=master)](https://coveralls.io/github/cryptomator/cryptolib?branch=master)
+[![codecov](https://codecov.io/gh/cryptomator/cryptolib/branch/develop/graph/badge.svg)](https://codecov.io/gh/cryptomator/cryptolib)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/9d736fe3e9e14dfb8a65949abbe8f712)](https://www.codacy.com/app/cryptomator/cryptolib)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/9169/badge.svg)](https://scan.coverity.com/projects/cryptomator-cryptolib)
 
 # Cryptomator Crypto Library
@@ -8,4 +9,4 @@ This library contains all cryptographic functions that are used by Cryptomator. 
 
 ## License
 
-This project is dual-licensed under the GPLv3 for FOSS projects as well as a commercial license derived from the LGPL for independent software vendors and resellers. If you want to use this library in applications, that are *not* licensed under the GPL, feel free to contact our [support team](https://cryptomator.org/help/).
+This project is dual-licensed under the AGPLv3 for FOSS projects as well as a commercial license derived from the LGPL for independent software vendors and resellers. If you want to use this library in applications, that are *not* licensed under the AGPL, feel free to contact our [support team](https://cryptomator.org/help/).
