@@ -14,25 +14,17 @@ install:
 - mvn dependency:go-offline -Pdependency-check
 - mvn dependency:go-offline -Pcoverage
 - mvn dependency:go-offline -Prelease
-- "if [[ ${TRAVIS_BRANCH} =~ release.* ]]; then travis_wait 30 wget -O /tmp/cov-analysis-Linux.tgz https://scan.coverity.com/download/Linux --post-data \"project=cryptomator/cryptolib&token=${COVERITY_SCAN_TOKEN}\"; fi"
 before_script:
 - mvn dependency-check:check -Pdependency-check
 script:
 - mvn clean test jacoco:report verify -Pcoverage
 after_success:
 - "if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' ]]; then bash <(curl -s https://codecov.io/bash); fi"
+- "if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' && ${TRAVIS_BRANCH} =~ release.* ]]; then travis-wait 30 curl -s https://scan.coverity.com/scripts/travisci_build_coverity_scan.sh | COVERITY_SCAN_PROJECT_NAME=\"cryptomator/cryptolib\" COVERITY_SCAN_NOTIFICATION_EMAIL=\"sebastian.stenzel@cryptomator.org\" COVERITY_SCAN_BUILD_COMMAND=\"mvn clean compile -DskipTests\" COVERITY_SCAN_BRANCH_PATTERN=\"release.*\" bash; fi"
 cache:
   directories:
   - $HOME/.m2
   - /tmp/coverity-scan-analysis
-addons:
-  coverity_scan:
-    project:
-      name: "cryptomator/cryptolib"
-      description: "Build submitted via Travis CI"
-    notification_email: sebastian.stenzel@cryptomator.org
-    build_command: "mvn clean compile -DskipTests"
-    branch_pattern: release.*
 before_deploy:
 - gpg --import 34C80F11.gpg
 deploy:
