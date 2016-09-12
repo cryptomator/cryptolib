@@ -20,7 +20,7 @@ script:
 - mvn clean test jacoco:report verify -Pcoverage
 after_success:
 - "if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' ]]; then bash <(curl -s https://codecov.io/bash); fi"
-- "travis-wait if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' && ${TRAVIS_BRANCH} =~ release.* ]]; then curl -s https://scan.coverity.com/scripts/travisci_build_coverity_scan.sh | COVERITY_SCAN_PROJECT_NAME=\"cryptomator/cryptolib\" COVERITY_SCAN_NOTIFICATION_EMAIL=\"sebastian.stenzel@cryptomator.org\" COVERITY_SCAN_BUILD_COMMAND=\"mvn clean compile -DskipTests\" COVERITY_SCAN_BRANCH_PATTERN=\"release.*\" bash; fi"
+- "if [[ ${TRAVIS_JDK_VERSION} == 'openjdk7' && ${TRAVIS_BRANCH} =~ release.* ]]; then curl -s https://scan.coverity.com/scripts/travisci_build_coverity_scan.sh | COVERITY_SCAN_PROJECT_NAME=\"cryptomator/cryptolib\" COVERITY_SCAN_NOTIFICATION_EMAIL=\"sebastian.stenzel@cryptomator.org\" COVERITY_SCAN_BUILD_COMMAND=\"mvn clean compile -DskipTests\" COVERITY_SCAN_BRANCH_PATTERN=\"release.*\" bash; fi"
 cache:
   directories:
   - $HOME/.m2
