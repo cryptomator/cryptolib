@@ -15,7 +15,7 @@ install:
 - mvn dependency:go-offline -Pcoverage
 - mvn dependency:go-offline -Prelease
 before_script:
-- mvn --update-snapshots dependency-check:check -Pdependency-check
+- mvn dependency-check:check -Pdependency-check
 script:
 - mvn clean test jacoco:report verify -Pcoverage
 after_success:
@@ -29,8 +29,7 @@ addons:
       name: "cryptomator/cryptolib"
       description: "Build submitted via Travis CI"
     notification_email: sebastian.stenzel@cryptomator.org
-    build_command_prepend: "mvn clean"
-    build_command: "mvn -DskipTests=true compile"
+    build_command: "mvn clean compile -DskipTests"
     branch_pattern: release.*
 before_deploy:
 - gpg --import 34C80F11.gpg
