@@ -29,6 +29,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
 
 /**
  * OOP-JSON interface for the masterkey file.<br>
@@ -40,6 +41,7 @@ public abstract class KeyFile {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting() //
 			.registerTypeHierarchyAdapter(byte[].class, new ByteArrayJsonAdapter()) //
+			.setLenient() //
 			.disableHtmlEscaping() //
 			.excludeFieldsWithoutExposeAnnotation().create();
 
@@ -73,7 +75,8 @@ public abstract class KeyFile {
 	public static KeyFile parse(byte[] serialized) {
 		try {
 			Reader reader = new InputStreamReader(new ByteArrayInputStream(serialized), StandardCharsets.UTF_8);
-			JsonObject jsonObj = new JsonParser().parse(reader).getAsJsonObject();
+			JsonReader jsonReader = GSON.newJsonReader(reader);
+			JsonObject jsonObj = new JsonParser().parse(jsonReader).getAsJsonObject();
 			KeyFile result = GSON.fromJson(jsonObj, GenericKeyFile.class);
 			result.jsonObj = jsonObj;
 			return result;

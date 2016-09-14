@@ -1,5 +1,5 @@
 language: java
-sudo: required
+sudo: false
 jdk:
 - oraclejdk8
 - openjdk7
@@ -23,7 +23,6 @@ after_success:
 cache:
   directories:
   - $HOME/.m2
-  - /tmp/coverity-scan-analysis
 addons:
   coverity_scan:
     project:
@@ -37,6 +36,7 @@ before_deploy:
 deploy:
 - provider: script # SNAPSHOTS
   script: mvn clean deploy -DskipTests -Prelease --settings settings.xml
+  skip_cleanup: true
   on:
     repo: cryptomator/cryptolib
     branch: develop
@@ -44,6 +44,7 @@ deploy:
     jdk: openjdk7
 - provider: script # RELEASES
   script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -Prelease --settings settings.xml
+  skip_cleanup: true
   on:
     repo: cryptomator/cryptolib
     tags: true

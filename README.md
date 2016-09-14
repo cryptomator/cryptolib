@@ -2,6 +2,8 @@
 [![codecov](https://codecov.io/gh/cryptomator/cryptolib/branch/develop/graph/badge.svg)](https://codecov.io/gh/cryptomator/cryptolib)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/9d736fe3e9e14dfb8a65949abbe8f712)](https://www.codacy.com/app/cryptomator/cryptolib)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/9169/badge.svg)](https://scan.coverity.com/projects/cryptomator-cryptolib)
+[![Maven Central](https://img.shields.io/maven-central/v/org.cryptomator/cryptolib.svg?maxAge=86400)](https://repo1.maven.org/maven2/org/cryptomator/cryptolib/)
+[![Javadocs](http://www.javadoc.io/badge/org.cryptomator/cryptolib.svg)](http://www.javadoc.io/doc/org.cryptomator/cryptolib)
 
 # Cryptomator Crypto Library
 
