@@ -59,21 +59,7 @@ public class DecryptingReadableByteChannelTest {
 	}
 
 	@Test
-	public void testDecryptionAndPaddingRemoval() throws IOException {
-		Mockito.when(header.getFilesize()).thenReturn(15l);
-		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("hhhhhTOPSECRET!TOPSECRET!PPPPPPPPPP".getBytes()));
-		ByteBuffer result = ByteBuffer.allocate(20);
-		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true)) {
-			int read1 = ch.read(result);
-			Assert.assertEquals(15, read1);
-			int read2 = ch.read(result);
-			Assert.assertEquals(-1, read2);
-			Assert.assertArrayEquals("topsecret!topse".getBytes(), Arrays.copyOfRange(result.array(), 0, read1));
-		}
-	}
-
-	@Test
-	public void testDecryptionWithPhysicalEOF() throws IOException {
+	public void testDecryption() throws IOException {
 		Mockito.when(header.getFilesize()).thenReturn(100l);
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("hhhhhTOPSECRET!TOPSECRET!".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(30);

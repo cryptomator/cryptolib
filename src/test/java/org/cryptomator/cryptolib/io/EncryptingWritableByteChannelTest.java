@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.Arrays;
 
 import org.cryptomator.cryptolib.api.Cryptor;
@@ -27,20 +26,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class EncryptingWritableByteChannelTest {
-
-	private static final SecureRandom RANDOM_MOCK = new SecureRandom() {
-
-		@Override
-		public synchronized void nextBytes(byte[] bytes) {
-			Arrays.fill(bytes, (byte) 'p');
-		};
-
-		@Override
-		public int nextInt(int n) {
-			return n;
-		};
-
-	};
 
 	private ByteBuffer dstFile;
 	private SeekableByteChannel dstFileChannel;
@@ -61,7 +46,7 @@ public class EncryptingWritableByteChannelTest {
 		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);
 		Mockito.when(contentCryptor.cleartextChunkSize()).thenReturn(10);
 		Mockito.when(headerCryptor.create()).thenReturn(header);
-		Mockito.when(headerCryptor.encryptHeader(header)).thenReturn(ByteBuffer.allocate(5));
+		Mockito.when(headerCryptor.encryptHeader(header)).thenReturn(ByteBuffer.wrap("hhhhh".getBytes()));
 		Mockito.when(contentCryptor.encryptChunk(Mockito.any(ByteBuffer.class), Mockito.anyLong(), Mockito.any(FileHeader.class))).thenAnswer(new Answer<ByteBuffer>() {
 
 			@Override
@@ -75,20 +60,13 @@ public class EncryptingWritableByteChannelTest {
 	}
 
 	@Test
-	public void testPadding() throws IOException {
-		try (EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(dstFileChannel, cryptor, RANDOM_MOCK, 0.0, 3, 3)) {
-
-		}
-		Assert.assertArrayEquals("PPP".getBytes(), Arrays.copyOfRange(dstFile.array(), 5, 8));
-	}
-
-	@Test
 	public void testEncryption() throws IOException {
 		try (EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(dstFileChannel, cryptor)) {
 			ch.write(StandardCharsets.UTF_8.encode("hello world 1"));
 			ch.write(StandardCharsets.UTF_8.encode("hello world 2"));
 		}
-		Assert.assertArrayEquals("HELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 5, 31));
+		dstFile.flip();
+		Assert.assertArrayEquals("hhhhhHELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
 	}
 
 }

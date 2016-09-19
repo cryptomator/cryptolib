@@ -50,7 +50,7 @@ public class FileContentEncryptorTest {
 			Assert.assertEquals(size, written);
 		}
 
-		ciphertextBuffer.position(0);
+		ciphertextBuffer.flip();
 
 		ByteBuffer result = ByteBuffer.allocate(size + 1);
 		try (ReadableByteChannel ch = new DecryptingReadableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor, true)) {
@@ -93,7 +93,7 @@ public class FileContentEncryptorTest {
 			Assert.assertEquals(size, written);
 		}
 
-		ciphertextBuffer.position(0);
+		ciphertextBuffer.flip();
 		int lastByteOfFirstChunk = FileHeaderImpl.SIZE + Constants.CHUNK_SIZE - 1; // inside chunk MAC
 		ciphertextBuffer.put(lastByteOfFirstChunk, (byte) ~ciphertextBuffer.get(lastByteOfFirstChunk));
 
