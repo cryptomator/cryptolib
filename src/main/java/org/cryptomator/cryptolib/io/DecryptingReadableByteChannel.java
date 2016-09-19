@@ -23,7 +23,6 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 	private final boolean authenticate;
 	private ByteBuffer cleartextChunk;
 	private FileHeader header;
-	private int read;
 	private boolean reachedEof = false;
 	private long chunk = 0;
 
@@ -47,19 +46,15 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 	@Override
 	public int read(ByteBuffer dst) throws IOException {
 		loadHeaderIfNecessary();
-		int remaining = (int) header.getFilesize() - read;
-		if (reachedEof || remaining <= 0) {
+		if (reachedEof) {
 			return -1;
 		} else {
-			ByteBuffer limitedDst = dst.duplicate();
-			limitedDst.limit(Math.min(limitedDst.limit(), limitedDst.position() + remaining));
-			return readInternal(limitedDst);
+			return readInternal(dst);
 		}
 	}
 
 	private int readInternal(ByteBuffer dst) throws IOException {
 		assert header != null : "header must be initialized";
-		assert read + dst.remaining() <= header.getFilesize() : "must not read more than filesize bytes";
 
 		int result = 0;
 		while (dst.hasRemaining() && !reachedEof) {
@@ -69,7 +64,6 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 				assert reachedEof : "no further cleartext available";
 			}
 		}
-		read += result;
 		return result;
 	}
 
