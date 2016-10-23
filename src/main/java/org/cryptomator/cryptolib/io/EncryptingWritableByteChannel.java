@@ -11,7 +11,6 @@ package org.cryptomator.cryptolib.io;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.security.SecureRandom;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
@@ -27,10 +26,6 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 	long chunkNumber = 0;
 
 	public EncryptingWritableByteChannel(WritableByteChannel destination, Cryptor cryptor) {
-		this(destination, cryptor, null, 0.0, 0, 0);
-	}
-
-	public EncryptingWritableByteChannel(WritableByteChannel destination, Cryptor cryptor, SecureRandom random, double preferredBloatFactor, int minLength, int maxLength) {
 		this.delegate = destination;
 		this.cryptor = cryptor;
 		this.header = cryptor.fileHeaderCryptor().create();
