@@ -19,9 +19,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.io.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.io.EncryptingWritableByteChannel;
-import org.cryptomator.cryptolib.io.SeekableByteChannelMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

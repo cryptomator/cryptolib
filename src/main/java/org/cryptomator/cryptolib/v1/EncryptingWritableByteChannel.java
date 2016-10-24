@@ -6,13 +6,11 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.io;
+package org.cryptomator.cryptolib.v1;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.security.SecureRandom;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
@@ -20,18 +18,14 @@ import org.cryptomator.cryptolib.common.ByteBuffers;
 
 public class EncryptingWritableByteChannel implements WritableByteChannel {
 
-	private final SeekableByteChannel delegate;
+	private final WritableByteChannel delegate;
 	private final Cryptor cryptor;
 	private final FileHeader header;
 	private final ByteBuffer cleartextBuffer;
 	long written = 0;
 	long chunkNumber = 0;
 
-	public EncryptingWritableByteChannel(SeekableByteChannel destination, Cryptor cryptor) {
-		this(destination, cryptor, null, 0.0, 0, 0);
-	}
-
-	public EncryptingWritableByteChannel(SeekableByteChannel destination, Cryptor cryptor, SecureRandom random, double preferredBloatFactor, int minLength, int maxLength) {
+	public EncryptingWritableByteChannel(WritableByteChannel destination, Cryptor cryptor) {
 		this.delegate = destination;
 		this.cryptor = cryptor;
 		this.header = cryptor.fileHeaderCryptor().create();

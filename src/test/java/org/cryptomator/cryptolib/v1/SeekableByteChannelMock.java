@@ -6,13 +6,13 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.io;
+package org.cryptomator.cryptolib.v1;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
-public class SeekableByteChannelMock implements SeekableByteChannel {
+class SeekableByteChannelMock implements SeekableByteChannel {
 
 	boolean open = true;
 	private final ByteBuffer buf;

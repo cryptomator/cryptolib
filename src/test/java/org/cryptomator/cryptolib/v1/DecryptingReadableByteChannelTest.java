@@ -6,7 +6,7 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.io;
+package org.cryptomator.cryptolib.v1;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,6 +20,7 @@ import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
+import org.cryptomator.cryptolib.v1.DecryptingReadableByteChannel;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
