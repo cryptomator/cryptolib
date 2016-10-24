@@ -6,11 +6,11 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.io;
+package org.cryptomator.cryptolib.v1;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -28,7 +28,7 @@ import org.mockito.stubbing.Answer;
 public class EncryptingWritableByteChannelTest {
 
 	private ByteBuffer dstFile;
-	private SeekableByteChannel dstFileChannel;
+	private WritableByteChannel dstFileChannel;
 	private Cryptor cryptor;
 	private FileContentCryptor contentCryptor;
 	private FileHeaderCryptor headerCryptor;

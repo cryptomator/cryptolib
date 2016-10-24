@@ -45,13 +45,13 @@
  * // Encrypt file contents:
  * ByteBuffer plaintext = ...;
  * SeekableByteChannel ciphertextOut = ...;
- * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.io.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
+ * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.v1.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
  * 	ch.write(plaintext);
  * }
  * 
  * // Decrypt file contents:
  * ReadableByteChannel ciphertextIn = ...;
- * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.io.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
+ * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.v1.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
  * 	ch.read(plaintext);
  * }
  * </pre>
