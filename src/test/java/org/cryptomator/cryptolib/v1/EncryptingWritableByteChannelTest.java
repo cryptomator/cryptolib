@@ -27,7 +27,7 @@ import org.mockito.stubbing.Answer;
 
 public class EncryptingWritableByteChannelTest {
 
-	private static final Charset UTF_8 = Charset.forName("UTF_8");
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	private ByteBuffer dstFile;
 	private WritableByteChannel dstFileChannel;
