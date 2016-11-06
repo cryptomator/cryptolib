@@ -13,14 +13,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.v1.DecryptingReadableByteChannel;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +28,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class DecryptingReadableByteChannelTest {
+
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	private Cryptor cryptor;
 	private FileContentCryptor contentCryptor;
@@ -52,8 +53,8 @@ public class DecryptingReadableByteChannelTest {
 			@Override
 			public ByteBuffer answer(InvocationOnMock invocation) throws Throwable {
 				ByteBuffer input = invocation.getArgumentAt(0, ByteBuffer.class);
-				String inStr = StandardCharsets.UTF_8.decode(input).toString();
-				return ByteBuffer.wrap(inStr.toLowerCase().getBytes(StandardCharsets.UTF_8));
+				String inStr = UTF_8.decode(input).toString();
+				return ByteBuffer.wrap(inStr.toLowerCase().getBytes(UTF_8));
 			}
 
 		});

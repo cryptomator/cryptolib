@@ -8,15 +8,16 @@ package org.cryptomator.cryptolib.common;
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import org.bouncycastle.crypto.generators.SCrypt;
 
 public class Scrypt {
+
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	/**
 	 * Derives a key from the given passphrase.

@@ -16,7 +16,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
@@ -38,6 +38,7 @@ import de.bechte.junit.runners.context.HierarchicalContextRunner;
 @RunWith(HierarchicalContextRunner.class)
 public class FileContentCryptorImplTest {
 
+	private static final Charset US_ASCII = Charset.forName("US-ASCII");
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private FileHeaderCryptorImpl headerCryptor;
 	private FileContentCryptorImpl fileContentCryptor;
@@ -86,7 +87,7 @@ public class FileContentCryptorImplTest {
 
 		@Test
 		public void testChunkEncryption() {
-			ByteBuffer cleartext = StandardCharsets.US_ASCII.encode(CharBuffer.wrap("hello world"));
+			ByteBuffer cleartext = US_ASCII.encode(CharBuffer.wrap("hello world"));
 			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, headerCryptor.create());
 			ByteBuffer expected = ByteBuffer.wrap(Base64.decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
 			Assert.assertArrayEquals(expected.array(), ciphertext.array());
@@ -97,7 +98,7 @@ public class FileContentCryptorImplTest {
 			ByteBuffer dst = ByteBuffer.allocate(200);
 			SeekableByteChannel dstCh = new SeekableByteChannelMock(dst);
 			try (WritableByteChannel ch = new EncryptingWritableByteChannel(dstCh, cryptor)) {
-				ch.write(StandardCharsets.US_ASCII.encode("hello world"));
+				ch.write(US_ASCII.encode("hello world"));
 			}
 			byte[] ciphertext = new byte[147];
 			dst.position(0);
@@ -127,7 +128,7 @@ public class FileContentCryptorImplTest {
 		public void testChunkDecryption() {
 			ByteBuffer ciphertext = ByteBuffer.wrap(Base64.decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
-			ByteBuffer expected = StandardCharsets.US_ASCII.encode(CharBuffer.wrap("hello world"));
+			ByteBuffer expected = US_ASCII.encode(CharBuffer.wrap("hello world"));
 			Assert.assertArrayEquals(expected.array(), cleartext.array());
 		}
 
@@ -141,7 +142,7 @@ public class FileContentCryptorImplTest {
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
 				int read = cleartextCh.read(result);
 				Assert.assertEquals(11, read);
-				byte[] expected = "hello world".getBytes(StandardCharsets.US_ASCII);
+				byte[] expected = "hello world".getBytes(US_ASCII);
 				Assert.assertArrayEquals(expected, Arrays.copyOfRange(result.array(), 0, read));
 			}
 		}
@@ -211,7 +212,7 @@ public class FileContentCryptorImplTest {
 		public void testChunkDecryptionWithUnauthenticMacSkipAuth() {
 			ByteBuffer ciphertext = ByteBuffer.wrap(Base64.decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG="));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), false);
-			ByteBuffer expected = StandardCharsets.US_ASCII.encode(CharBuffer.wrap("hello world"));
+			ByteBuffer expected = US_ASCII.encode(CharBuffer.wrap("hello world"));
 			Assert.assertArrayEquals(expected.array(), cleartext.array());
 		}
 
@@ -225,7 +226,7 @@ public class FileContentCryptorImplTest {
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, false)) {
 				int read = cleartextCh.read(result);
 				Assert.assertEquals(11, read);
-				byte[] expected = "hello world".getBytes(StandardCharsets.US_ASCII);
+				byte[] expected = "hello world".getBytes(US_ASCII);
 				Assert.assertArrayEquals(expected, Arrays.copyOfRange(result.array(), 0, read));
 			}
 		}

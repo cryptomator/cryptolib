@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
@@ -17,6 +17,8 @@ import org.junit.Test;
 import com.google.gson.annotations.Expose;
 
 public class KeyFileTest {
+
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	@Test
 	public void testParse() {
@@ -40,7 +42,7 @@ public class KeyFileTest {
 		KeyFileImpl keyFile = new KeyFileImpl();
 		keyFile.foo = new byte[8];
 		keyFile.hidden = "hello world";
-		String serialized = new String(keyFile.serialize(), StandardCharsets.UTF_8);
+		String serialized = new String(keyFile.serialize(), UTF_8);
 		Assert.assertThat(serialized, CoreMatchers.containsString("\"foo\": \"AAAAAAAAAAA=\""));
 		Assert.assertThat(serialized, CoreMatchers.not(CoreMatchers.containsString("\"hidden\": \"hello world\"")));
 	}
