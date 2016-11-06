@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.nio.charset.Charset;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.IllegalBlockSizeException;
@@ -23,6 +23,7 @@ import org.cryptomator.siv.SivMode;
 
 class FileNameCryptorImpl implements FileNameCryptor {
 
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final BaseNCodec BASE32 = new Base32();
 	private static final ThreadLocal<SivMode> AES_SIV = new ThreadLocal<SivMode>() {
 		@Override

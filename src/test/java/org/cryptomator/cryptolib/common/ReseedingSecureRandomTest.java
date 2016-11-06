@@ -10,7 +10,6 @@ package org.cryptomator.cryptolib.common;
 
 import java.security.SecureRandom;
 
-import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,7 +37,9 @@ public class ReseedingSecureRandomTest {
 	@Test
 	public void testReseedAfterLimitReached() {
 		SecureRandom rand = new ReseedingSecureRandom(seeder, csprng, 10, 1);
+		Mockito.verify(seeder, Mockito.never()).generateSeed(1);
 		rand.nextBytes(new byte[4]);
+		Mockito.verify(seeder, Mockito.times(1)).generateSeed(1);
 		rand.nextBytes(new byte[4]);
 		Mockito.verify(seeder, Mockito.times(1)).generateSeed(1);
 		rand.nextBytes(new byte[4]);

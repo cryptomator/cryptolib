@@ -12,7 +12,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -39,6 +39,7 @@ import com.google.gson.stream.JsonReader;
  */
 public abstract class KeyFile {
 
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting() //
 			.registerTypeHierarchyAdapter(byte[].class, new ByteArrayJsonAdapter()) //
 			.setLenient() //
@@ -74,7 +75,7 @@ public abstract class KeyFile {
 	 */
 	public static KeyFile parse(byte[] serialized) {
 		try {
-			Reader reader = new InputStreamReader(new ByteArrayInputStream(serialized), StandardCharsets.UTF_8);
+			Reader reader = new InputStreamReader(new ByteArrayInputStream(serialized), UTF_8);
 			JsonReader jsonReader = GSON.newJsonReader(reader);
 			JsonObject jsonObj = new JsonParser().parse(jsonReader).getAsJsonObject();
 			KeyFile result = GSON.fromJson(jsonObj, GenericKeyFile.class);
@@ -91,7 +92,7 @@ public abstract class KeyFile {
 	 * @return UTF-8-encoded byte array of the JSON representation.
 	 */
 	public byte[] serialize() {
-		return GSON.toJson(this).getBytes(StandardCharsets.UTF_8);
+		return GSON.toJson(this).getBytes(UTF_8);
 	}
 
 	/**
@@ -115,12 +116,12 @@ public abstract class KeyFile {
 
 		@Override
 		public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return BASE64.decode(json.getAsString().getBytes(StandardCharsets.UTF_8));
+			return BASE64.decode(json.getAsString().getBytes(UTF_8));
 		}
 
 		@Override
 		public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
-			return new JsonPrimitive(new String(BASE64.encode(src), StandardCharsets.UTF_8));
+			return new JsonPrimitive(new String(BASE64.encode(src), UTF_8));
 		}
 
 	}

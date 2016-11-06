@@ -61,7 +61,7 @@ class ReseedingSecureRandom extends SecureRandom {
 			this.csprng = csprng;
 			this.reseedAfter = reseedAfter;
 			this.seedLength = seedLength;
-			reseed();
+			this.counter = reseedAfter; // trigger reseed during first "engineNextBytes(...)"
 		}
 
 		@Override

@@ -11,7 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import org.cryptomator.cryptolib.api.Cryptor;
@@ -26,6 +26,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class EncryptingWritableByteChannelTest {
+
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	private ByteBuffer dstFile;
 	private WritableByteChannel dstFileChannel;
@@ -52,8 +54,8 @@ public class EncryptingWritableByteChannelTest {
 			@Override
 			public ByteBuffer answer(InvocationOnMock invocation) throws Throwable {
 				ByteBuffer input = invocation.getArgumentAt(0, ByteBuffer.class);
-				String inStr = StandardCharsets.UTF_8.decode(input).toString();
-				return ByteBuffer.wrap(inStr.toUpperCase().getBytes(StandardCharsets.UTF_8));
+				String inStr = UTF_8.decode(input).toString();
+				return ByteBuffer.wrap(inStr.toUpperCase().getBytes(UTF_8));
 			}
 
 		});
@@ -62,8 +64,8 @@ public class EncryptingWritableByteChannelTest {
 	@Test
 	public void testEncryption() throws IOException {
 		try (EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(dstFileChannel, cryptor)) {
-			ch.write(StandardCharsets.UTF_8.encode("hello world 1"));
-			ch.write(StandardCharsets.UTF_8.encode("hello world 2"));
+			ch.write(UTF_8.encode("hello world 1"));
+			ch.write(UTF_8.encode("hello world 2"));
 		}
 		dstFile.flip();
 		Assert.assertArrayEquals("hhhhhHELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));

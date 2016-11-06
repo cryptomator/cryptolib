@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.security.SecureRandom;
 
 import javax.crypto.SecretKey;
@@ -24,6 +24,7 @@ import org.mockito.Mockito;
 
 public class CryptorImplTest {
 
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private SecretKey encKey;
 	private SecretKey macKey;
@@ -38,7 +39,7 @@ public class CryptorImplTest {
 	public void testMasterkeyEncryption() {
 		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
 		final byte[] serialized = cryptor.writeKeysToMasterkeyFile("asd", 3).serialize();
-		String serializedStr = new String(serialized, StandardCharsets.UTF_8);
+		String serializedStr = new String(serialized, UTF_8);
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"version\": 3"));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptSalt\": \"AAAAAAAAAAA=\""));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptCostParam\": 16384"));

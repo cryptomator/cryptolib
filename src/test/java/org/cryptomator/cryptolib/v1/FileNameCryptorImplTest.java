@@ -8,20 +8,20 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.v1.FileNameCryptorImpl;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class FileNameCryptorImplTest {
+
+	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	@Test
 	public void testDeterministicEncryptionOfFilenames() throws IOException {
