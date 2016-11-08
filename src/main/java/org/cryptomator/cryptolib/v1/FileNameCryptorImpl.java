@@ -10,7 +10,6 @@ package org.cryptomator.cryptolib.v1;
 
 import java.nio.charset.Charset;
 
-import javax.crypto.AEADBadTagException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 
@@ -20,6 +19,7 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.siv.SivMode;
+import org.cryptomator.siv.UnauthenticCiphertextException;
 
 class FileNameCryptorImpl implements FileNameCryptor {
 
@@ -61,7 +61,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 			byte[] encryptedBytes = BASE32.decode(ciphertextName);
 			byte[] cleartextBytes = AES_SIV.get().decrypt(encryptionKey, macKey, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
-		} catch (AEADBadTagException | IllegalBlockSizeException e) {
+		} catch (UnauthenticCiphertextException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}
 	}
