@@ -36,14 +36,14 @@ public class ReseedingSecureRandomTest {
 
 	@Test
 	public void testReseedAfterLimitReached() {
-		SecureRandom rand = new ReseedingSecureRandom(seeder, csprng, 10, 1);
-		Mockito.verify(seeder, Mockito.never()).generateSeed(1);
+		SecureRandom rand = new ReseedingSecureRandom(seeder, csprng, 10, 3);
+		Mockito.verify(seeder, Mockito.never()).generateSeed(3);
 		rand.nextBytes(new byte[4]);
-		Mockito.verify(seeder, Mockito.times(1)).generateSeed(1);
+		Mockito.verify(seeder, Mockito.times(1)).generateSeed(3);
 		rand.nextBytes(new byte[4]);
-		Mockito.verify(seeder, Mockito.times(1)).generateSeed(1);
+		Mockito.verify(seeder, Mockito.times(1)).generateSeed(3);
 		rand.nextBytes(new byte[4]);
-		Mockito.verify(seeder, Mockito.times(2)).generateSeed(1);
+		Mockito.verify(seeder, Mockito.times(2)).generateSeed(3);
 	}
 
 }
