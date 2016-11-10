@@ -12,6 +12,9 @@ import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.SecureRandomSpi;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Wraps a fast CSPRNG, which gets reseeded automatically after a certain amount of bytes has been generated.<br>
  * 
@@ -29,6 +32,7 @@ import java.security.SecureRandomSpi;
  */
 class ReseedingSecureRandom extends SecureRandom {
 
+	private static final Logger LOG = LoggerFactory.getLogger(ReseedingSecureRandom.class);
 	private static final Provider PROVIDER = new ReseedingSecureRandomProvider();
 
 	/**
@@ -80,7 +84,12 @@ class ReseedingSecureRandom extends SecureRandom {
 
 		@Override
 		protected byte[] engineGenerateSeed(int numBytes) {
-			return seeder.generateSeed(seedLength);
+			try {
+				LOG.info("Seeding CSPRNG with {} bytes...", numBytes);
+				return seeder.generateSeed(numBytes);
+			} finally {
+				LOG.info("Seeded CSPRNG.");
+			}
 		}
 
 		private void reseed() {
