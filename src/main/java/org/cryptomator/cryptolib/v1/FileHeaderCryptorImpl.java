@@ -13,7 +13,9 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
@@ -64,7 +66,8 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
 			// encrypt payload:
 			Cipher cipher = CipherSupplier.AES_CTR.forEncryption(headerKey, new IvParameterSpec(headerImpl.getNonce()));
-			cipher.update(payloadCleartextBuf, result);
+			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
+			assert encrypted == FileHeaderImpl.Payload.SIZE;
 
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertextBuf = result.duplicate();
@@ -77,6 +80,8 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			return result;
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Result buffer too small for encrypted header payload.", e);
+		} catch (IllegalBlockSizeException | BadPaddingException e) {
+			throw new IllegalStateException("Unexpected exception for CTR ciphers.", e);
 		} finally {
 			Arrays.fill(payloadCleartextBuf.array(), (byte) 0x00);
 		}
@@ -108,25 +113,28 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			throw new AuthenticationFailedException("Header MAC doesn't match.");
 		}
 
-		// decrypt payload:
-		Cipher cipher = CipherSupplier.AES_CTR.forDecryption(headerKey, new IvParameterSpec(nonce));
-		byte[] plaintextPayload = cipher.update(ciphertextPayload);
-		if (plaintextPayload == null) {
-			throw new IllegalStateException("Stream cipher returned null, even though this is only specified for block ciphers.");
-		}
+		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
 		try {
-			ByteBuffer plaintextBuf = ByteBuffer.wrap(plaintextPayload);
-			plaintextBuf.position(FileHeaderImpl.Payload.FILESIZE_POS);
-			long fileSize = plaintextBuf.getLong();
-			plaintextBuf.position(FileHeaderImpl.Payload.CONTENT_KEY_POS);
+			// decrypt payload:
+			Cipher cipher = CipherSupplier.AES_CTR.forDecryption(headerKey, new IvParameterSpec(nonce));
+			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
+			assert decrypted == FileHeaderImpl.Payload.SIZE;
+
+			payloadCleartextBuf.position(FileHeaderImpl.Payload.FILESIZE_POS);
+			long fileSize = payloadCleartextBuf.getLong();
+			payloadCleartextBuf.position(FileHeaderImpl.Payload.CONTENT_KEY_POS);
 			byte[] contentKey = new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN];
-			plaintextBuf.get(contentKey);
+			payloadCleartextBuf.get(contentKey);
 
 			final FileHeaderImpl header = new FileHeaderImpl(nonce, contentKey);
 			header.setFilesize(fileSize);
 			return header;
+		} catch (ShortBufferException e) {
+			throw new IllegalStateException("Result buffer too small for decrypted header payload.", e);
+		} catch (IllegalBlockSizeException | BadPaddingException e) {
+			throw new IllegalStateException("Unexpected exception for CTR ciphers.", e);
 		} finally {
-			Arrays.fill(plaintextPayload, (byte) 0x00);
+			Arrays.fill(payloadCleartextBuf.array(), (byte) 0x00);
 		}
 	}
 
