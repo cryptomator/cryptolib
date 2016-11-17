@@ -10,8 +10,18 @@ package org.cryptomator.cryptolib.api;
 
 public interface FileHeader {
 
+	/**
+	 * @deprecated No longer supported since vault version 5. Use {@link org.cryptomator.cryptolib.Cryptors#cleartextSize(long, Cryptor)} to calculate the cleartext size from the ciphertext size
+	 * @return file size stored in file header
+	 */
+	@Deprecated
 	long getFilesize();
 
+	/**
+	 * @deprecated No longer used since vault version 5. Data stored in the header might get a different purpose in future versions.
+	 * @param filesize
+	 */
+	@Deprecated
 	void setFilesize(long filesize);
 
 }

@@ -44,9 +44,9 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 	}
 
 	@Override
+
 	public int write(ByteBuffer src) throws IOException {
 		if (written == 0) {
-			header.setFilesize(-1l);
 			delegate.write(cryptor.fileHeaderCryptor().encryptHeader(header));
 		}
 		int result = 0;

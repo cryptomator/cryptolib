@@ -57,7 +57,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	public ByteBuffer encryptHeader(FileHeader header) {
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
-		payloadCleartextBuf.putLong(header.getFilesize());
+		payloadCleartextBuf.putLong(-1l);
 		payloadCleartextBuf.put(headerImpl.getPayload().getContentKeyBytes());
 		payloadCleartextBuf.flip();
 		try {

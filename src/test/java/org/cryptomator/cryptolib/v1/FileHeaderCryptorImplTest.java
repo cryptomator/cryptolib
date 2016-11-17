@@ -36,19 +36,19 @@ public class FileHeaderCryptorImplTest {
 
 	@Test
 	public void testEncryption() {
-		// set nonce to: AAAAAAAAAAAAAAAAAAAAAAAA
-		// set payload to: AAAAAAAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+		// set nonce to: AAAAAAAAAAAAAAAAAAAAAA==
+		// set payload to: //////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
 		FileHeader header = headerCryptor.create();
-		header.setFilesize(42l);
 		// encrypt payload:
-		// echo -n "AAAAAAAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode | openssl enc -aes-256-ctr -K 0000000000000000000000000000000000000000000000000000000000000000 -iv
-		// -> 3JXAeKJAiaOtSKIUkoQgh1MPivvHRTa5qWO08cTLc4vOp0A9TWBrbg==
+		// echo -n "//////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode \
+		// | openssl enc -aes-256-ctr -K 0000000000000000000000000000000000000000000000000000000000000000 -iv 00000000000000000000000000000000 | base64
+		// -> I2o/h12/dnatSKIUkoQgh1MPivvHRTa5qWO08cTLc4vOp0A9TWBrbg==
 
 		// mac nonce + encrypted payload:
 		// (openssl dgst -sha256 -mac HMAC -macopt hexkey:0000000000000000000000000000000000000000000000000000000000000000 -binary)
 
 		// concat nonce + encrypted payload + mac:
-		final String expected = "AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==";
+		final String expected = "AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfMdzvHF3f9EE0LSnRLSsu6ps3IRcJg==";
 
 		ByteBuffer result = headerCryptor.encryptHeader(header);
 
@@ -62,10 +62,11 @@ public class FileHeaderCryptorImplTest {
 	}
 
 	@Test
+	@SuppressWarnings("deprecation")
 	public void testDecryption() throws AEADBadTagException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
+		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfMdzvHF3f9EE0LSnRLSsu6ps3IRcJg==");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
-		Assert.assertEquals(header.getFilesize(), 42l);
+		Assert.assertEquals(header.getFilesize(), -1l);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
