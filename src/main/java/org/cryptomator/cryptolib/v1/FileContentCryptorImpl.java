@@ -16,7 +16,9 @@ import java.nio.ByteOrder;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
@@ -81,7 +83,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fileKey, new IvParameterSpec(nonce));
 			final ByteBuffer outBuf = ByteBuffer.allocate(NONCE_SIZE + cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE);
 			outBuf.put(nonce);
-			int bytesEncrypted = cipher.update(cleartextChunk, outBuf);
+			int bytesEncrypted = cipher.doFinal(cleartextChunk, outBuf);
 
 			// mac:
 			final ByteBuffer ciphertextBuf = outBuf.asReadOnlyBuffer();
@@ -95,6 +97,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			return outBuf;
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
+		} catch (IllegalBlockSizeException | BadPaddingException e) {
+			throw new IllegalStateException("Unexpected exception for CTR ciphers.", e);
 		}
 	}
 
@@ -114,13 +118,15 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			// payload:
 			final Cipher cipher = CipherSupplier.AES_CTR.forDecryption(fileKey, new IvParameterSpec(nonce));
 			final ByteBuffer outBuf = ByteBuffer.allocate(cipher.getOutputSize(payloadBuf.remaining()));
-			cipher.update(payloadBuf, outBuf);
+			cipher.doFinal(payloadBuf, outBuf);
 
 			// flip and return:
 			outBuf.flip();
 			return outBuf;
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
+		} catch (IllegalBlockSizeException | BadPaddingException e) {
+			throw new IllegalStateException("Unexpected exception for CTR ciphers.", e);
 		}
 	}
 
