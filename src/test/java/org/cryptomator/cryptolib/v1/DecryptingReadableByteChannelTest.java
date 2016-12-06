@@ -62,7 +62,6 @@ public class DecryptingReadableByteChannelTest {
 
 	@Test
 	public void testDecryption() throws IOException {
-		Mockito.when(header.getFilesize()).thenReturn(100l);
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("hhhhhTOPSECRET!TOPSECRET!".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(30);
 		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true)) {
