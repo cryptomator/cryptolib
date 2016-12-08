@@ -82,7 +82,7 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 		static final int SIZE = FILESIZE_LEN + CONTENT_KEY_LEN;
 		private static final byte[] EMPTY_CONTENT_KEY = new byte[CONTENT_KEY_LEN];
 
-		private long filesize;
+		private long filesize = -1L;
 		private final byte[] contentKeyBytes;
 		private final SecretKey contentKey;
 
