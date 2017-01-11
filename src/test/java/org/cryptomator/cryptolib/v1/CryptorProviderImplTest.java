@@ -63,6 +63,27 @@ public class CryptorProviderImplTest {
 	}
 
 	@Test
+	public void testCreateFromKeyWithPepper() {
+		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
+				+ "\"primaryMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
+				+ "\"hmacMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
+				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
+		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x01}, 3);
+		Assert.assertNotNull(cryptor);
+	}
+
+	@Test(expected = InvalidPassphraseException.class)
+	public void testCreateFromKeyWithWrongPepper() {
+		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
+				+ "\"primaryMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
+				+ "\"hmacMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
+				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
+		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
+		cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x02}, 3);
+	}
+
+	@Test
 	public void testCreateFromKeyWithWrongVaultFormat() {
 		final String testMasterKey = "{\"version\":-1,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //

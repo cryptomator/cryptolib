@@ -8,6 +8,9 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNot.not;
+
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
 
@@ -36,7 +39,7 @@ public class CryptorImplTest {
 	}
 
 	@Test
-	public void testMasterkeyEncryption() {
+	public void testWriteKeysToMasterkeyFile() {
 		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
 		final byte[] serialized = cryptor.writeKeysToMasterkeyFile("asd", 3).serialize();
 		String serializedStr = new String(serialized, UTF_8);
@@ -47,6 +50,16 @@ public class CryptorImplTest {
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"primaryMasterKey\": \"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\""));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"hmacMasterKey\": \"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\""));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"versionMac\": \"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\""));
+	}
+
+	@Test
+	public void testWriteKeysToMasterkeyFileWithPepper() {
+		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
+		final byte[] serialized1 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x01}, 3).serialize();
+		final byte[] serialized2 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x02}, 3).serialize();
+		Assert.assertThat(serialized1, not(equalTo(serialized2)));
+		System.out.println(new String(serialized1));
+		System.out.println(new String(serialized2));
 	}
 
 	@Test
