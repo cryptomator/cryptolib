@@ -6,7 +6,7 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptlib;
+package org.cryptomator.cryptolib;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
