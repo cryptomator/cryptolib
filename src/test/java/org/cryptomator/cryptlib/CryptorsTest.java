@@ -18,7 +18,9 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
+import org.cryptomator.cryptolib.api.KeyFile;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -31,9 +33,10 @@ public class CryptorsTest {
 	@Rule
 	public final ExpectedException thrown = ExpectedException.none();
 
-	@Test
-	public void testVersion1() {
-		SecureRandom seeder = Mockito.mock(SecureRandom.class);
+	private final SecureRandom seeder = Mockito.mock(SecureRandom.class);
+
+	@Before
+	public void setup() {
 		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(new Answer<byte[]>() {
 
 			@Override
@@ -42,6 +45,10 @@ public class CryptorsTest {
 			}
 
 		});
+	}
+
+	@Test
+	public void testVersion1() {
 		CryptorProvider cryptorProvider = Cryptors.version1(seeder);
 		Assert.assertNotNull(cryptorProvider);
 		Cryptor cryptor = cryptorProvider.createNew();
@@ -109,6 +116,16 @@ public class CryptorsTest {
 		Assert.assertEquals(79l, Cryptors.ciphertextSize(63l, c));
 		Assert.assertEquals(80l, Cryptors.ciphertextSize(64l, c));
 		Assert.assertEquals(89l, Cryptors.ciphertextSize(65l, c));
+	}
+
+	@Test
+	public void testChangePassphrase() {
+		CryptorProvider cryptorProvider = Cryptors.version1(seeder);
+		Cryptor cryptor1 = cryptorProvider.createNew();
+		byte[] origMasterkey = cryptor1.writeKeysToMasterkeyFile("password", 42).serialize();
+		byte[] newMasterkey = Cryptors.changePassphrase(cryptorProvider, origMasterkey, "password", "betterPassw0rd!");
+		Cryptor cryptor2 = cryptorProvider.createFromKeyFile(KeyFile.parse(newMasterkey), "betterPassw0rd!", 42);
+		Assert.assertNotNull(cryptor2);
 	}
 
 }
