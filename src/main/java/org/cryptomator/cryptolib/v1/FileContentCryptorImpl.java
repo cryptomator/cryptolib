@@ -8,8 +8,10 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
+import static org.cryptomator.cryptolib.v1.Constants.CHUNK_SIZE;
 import static org.cryptomator.cryptolib.v1.Constants.MAC_SIZE;
 import static org.cryptomator.cryptolib.v1.Constants.NONCE_SIZE;
+import static org.cryptomator.cryptolib.v1.Constants.PAYLOAD_SIZE;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -42,17 +44,17 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public int cleartextChunkSize() {
-		return Constants.PAYLOAD_SIZE;
+		return PAYLOAD_SIZE;
 	}
 
 	@Override
 	public int ciphertextChunkSize() {
-		return Constants.CHUNK_SIZE;
+		return CHUNK_SIZE;
 	}
 
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
-		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > Constants.PAYLOAD_SIZE) {
+		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
 			throw new IllegalArgumentException("Invalid chunk");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
@@ -61,8 +63,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
-		if (ciphertextChunk.remaining() == 0 || ciphertextChunk.remaining() > Constants.CHUNK_SIZE) {
-			throw new IllegalArgumentException("Invalid chunk");
+		if (ciphertextChunk.remaining() < NONCE_SIZE + MAC_SIZE || ciphertextChunk.remaining() > CHUNK_SIZE) {
+			throw new IllegalArgumentException("Invalid chunk size: " + ciphertextChunk.remaining() + ", expected range [" + (NONCE_SIZE + MAC_SIZE) + ", " + CHUNK_SIZE + "]");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
 		if (authenticate && !checkChunkMac(headerImpl.getNonce(), chunkNumber, ciphertextChunk.asReadOnlyBuffer())) {
@@ -104,6 +106,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	// visible for testing
 	ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, SecretKey fileKey) {
+		assert ciphertextChunk.remaining() >= NONCE_SIZE + MAC_SIZE;
+
 		try {
 			// nonce:
 			final byte[] nonce = new byte[NONCE_SIZE];
@@ -132,6 +136,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	// visible for testing
 	boolean checkChunkMac(byte[] headerNonce, long chunkNumber, ByteBuffer chunkBuf) {
+		assert chunkBuf.remaining() >= NONCE_SIZE + MAC_SIZE;
+
 		// get three components: nonce + payload + mac
 		final ByteBuffer chunkNonceBuf = chunkBuf.asReadOnlyBuffer();
 		chunkNonceBuf.position(0).limit(NONCE_SIZE);
