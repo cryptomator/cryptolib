@@ -27,7 +27,7 @@ public class ReseedingSecureRandomTest {
 		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(new Answer<byte[]>() {
 			@Override
 			public byte[] answer(InvocationOnMock invocation) throws Throwable {
-				int num = invocation.getArgumentAt(0, Integer.class);
+				int num = invocation.getArgument(0);
 				return new byte[num];
 			}
 		});

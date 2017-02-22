@@ -52,7 +52,7 @@ public class DecryptingReadableByteChannelTest {
 
 			@Override
 			public ByteBuffer answer(InvocationOnMock invocation) throws Throwable {
-				ByteBuffer input = invocation.getArgumentAt(0, ByteBuffer.class);
+				ByteBuffer input = invocation.getArgument(0);
 				String inStr = UTF_8.decode(input).toString();
 				return ByteBuffer.wrap(inStr.toLowerCase().getBytes(UTF_8));
 			}

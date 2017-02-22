@@ -12,7 +12,6 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
 
-import org.cryptomator.cryptolib.Cryptors;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
@@ -41,7 +40,7 @@ public class CryptorsTest {
 
 			@Override
 			public byte[] answer(InvocationOnMock invocation) throws Throwable {
-				return new byte[invocation.getArgumentAt(0, Integer.class)];
+				return new byte[invocation.getArgument(0)];
 			}
 
 		});
