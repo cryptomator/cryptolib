@@ -58,8 +58,6 @@ public class CryptorImplTest {
 		final byte[] serialized1 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x01}, 3).serialize();
 		final byte[] serialized2 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x02}, 3).serialize();
 		Assert.assertThat(serialized1, not(equalTo(serialized2)));
-		System.out.println(new String(serialized1));
-		System.out.println(new String(serialized2));
 	}
 
 	@Test
