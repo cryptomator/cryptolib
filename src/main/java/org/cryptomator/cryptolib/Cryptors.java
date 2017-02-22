@@ -13,6 +13,8 @@ import java.security.SecureRandom;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.InvalidPassphraseException;
+import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.common.SecureRandomModule;
 
 public final class Cryptors {
@@ -60,6 +62,27 @@ public final class Cryptors {
 		long additionalCiphertextBytes = (additionalCleartextBytes == 0) ? 0 : additionalCleartextBytes + overheadPerChunk;
 		assert additionalCiphertextBytes >= 0;
 		return ciphertextChunkSize * numFullChunks + additionalCiphertextBytes;
+	}
+
+	/**
+	 * Reencrypts a masterkey with a new passphrase.
+	 * 
+	 * @param cryptoProvider A suitable CryptorProvider instance, i.e. same version as the original masterkey has been created with.
+	 * @param masterkey The original JSON representation of the masterkey
+	 * @param oldPassphrase The old passphrase
+	 * @param newPassphrase The new passphrase
+	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
+	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
+	 * @since 1.1.0
+	 */
+	public static byte[] changePassphrase(CryptorProvider cryptoProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
+		final KeyFile keyFile = KeyFile.parse(masterkey);
+		final Cryptor cryptor = cryptoProvider.createFromKeyFile(keyFile, oldPassphrase, keyFile.getVersion());
+		try {
+			return cryptor.writeKeysToMasterkeyFile(newPassphrase, keyFile.getVersion()).serialize();
+		} finally {
+			cryptor.destroy();
+		}
 	}
 
 }

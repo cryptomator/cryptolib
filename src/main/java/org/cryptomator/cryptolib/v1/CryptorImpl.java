@@ -84,10 +84,18 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion) {
-		final byte[] scryptSalt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
-		random.nextBytes(scryptSalt);
+		return writeKeysToMasterkeyFile(passphrase, new byte[0], vaultVersion);
+	}
 
-		final byte[] kekBytes = Scrypt.scrypt(passphrase, scryptSalt, DEFAULT_SCRYPT_COST_PARAM, DEFAULT_SCRYPT_BLOCK_SIZE, KEY_LEN_BYTES);
+	@Override
+	public KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, byte[] pepper, int vaultVersion) {
+		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
+		random.nextBytes(salt);
+		final byte[] saltAndPepper = new byte[salt.length + pepper.length];
+		System.arraycopy(salt, 0, saltAndPepper, 0, salt.length);
+		System.arraycopy(pepper, 0, saltAndPepper, salt.length, pepper.length);
+
+		final byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, DEFAULT_SCRYPT_COST_PARAM, DEFAULT_SCRYPT_BLOCK_SIZE, KEY_LEN_BYTES);
 		final byte[] wrappedEncryptionKey;
 		final byte[] wrappedMacKey;
 		try {
@@ -103,7 +111,7 @@ class CryptorImpl implements Cryptor {
 
 		final KeyFileImpl keyfile = new KeyFileImpl();
 		keyfile.setVersion(vaultVersion);
-		keyfile.scryptSalt = scryptSalt;
+		keyfile.scryptSalt = salt;
 		keyfile.scryptCostParam = DEFAULT_SCRYPT_COST_PARAM;
 		keyfile.scryptBlockSize = DEFAULT_SCRYPT_BLOCK_SIZE;
 		keyfile.encryptionMasterKey = wrappedEncryptionKey;

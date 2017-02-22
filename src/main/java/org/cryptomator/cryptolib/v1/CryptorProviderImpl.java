@@ -59,8 +59,17 @@ class CryptorProviderImpl implements CryptorProvider {
 
 	@Override
 	public CryptorImpl createFromKeyFile(KeyFile keyFile, CharSequence passphrase, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException {
+		return createFromKeyFile(keyFile, passphrase, new byte[0], expectedVaultVersion);
+	}
+
+	@Override
+	public CryptorImpl createFromKeyFile(KeyFile keyFile, CharSequence passphrase, byte[] pepper, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException {
 		final KeyFileImpl keyFileImpl = keyFile.as(KeyFileImpl.class);
-		final byte[] kekBytes = Scrypt.scrypt(passphrase, keyFileImpl.scryptSalt, keyFileImpl.scryptCostParam, keyFileImpl.scryptBlockSize, KEY_LEN_BYTES);
+		final byte[] salt = keyFileImpl.scryptSalt;
+		final byte[] saltAndPepper = new byte[salt.length + pepper.length];
+		System.arraycopy(salt, 0, saltAndPepper, 0, salt.length);
+		System.arraycopy(pepper, 0, saltAndPepper, salt.length, pepper.length);
+		final byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, keyFileImpl.scryptCostParam, keyFileImpl.scryptBlockSize, KEY_LEN_BYTES);
 		try {
 			SecretKey kek = new SecretKeySpec(kekBytes, ENC_ALG);
 			return createFromKeyFile(keyFileImpl, kek, expectedVaultVersion);

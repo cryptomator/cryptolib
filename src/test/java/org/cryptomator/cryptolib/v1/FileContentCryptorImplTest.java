@@ -120,7 +120,13 @@ public class FileContentCryptorImplTest {
 
 		@Test(expected = IllegalArgumentException.class)
 		public void testChunkDecryptionWithInvalidChunk2() {
-			ByteBuffer ciphertext = ByteBuffer.allocate(40000);
+			ByteBuffer ciphertext = ByteBuffer.allocate(Constants.NONCE_SIZE + Constants.MAC_SIZE - 1);
+			fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
+		}
+
+		@Test(expected = IllegalArgumentException.class)
+		public void testChunkDecryptionWithInvalidChunk3() {
+			ByteBuffer ciphertext = ByteBuffer.allocate(Constants.CHUNK_SIZE + 1);
 			fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
 		}
 

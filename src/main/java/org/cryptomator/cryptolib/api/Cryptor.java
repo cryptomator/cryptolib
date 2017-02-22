@@ -12,18 +12,29 @@ import javax.security.auth.Destroyable;
 
 public interface Cryptor extends Destroyable {
 
-	public FileContentCryptor fileContentCryptor();
+	FileContentCryptor fileContentCryptor();
 
-	public FileHeaderCryptor fileHeaderCryptor();
+	FileHeaderCryptor fileHeaderCryptor();
 
-	public FileNameCryptor fileNameCryptor();
+	FileNameCryptor fileNameCryptor();
 
 	/**
+	 * Shortcut for {@link #writeKeysToMasterkeyFile(CharSequence, byte[], int)} with en empty pepper.
+	 * 
 	 * @param passphrase The passphrase used to encrypt the key material.
 	 * @param vaultVersion Will be checked upon decryption of this masterkey.
 	 * @return Encrypted data that can be stored in insecure locations.
 	 */
-	public KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion);
+	KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion);
+
+	/**
+	 * @param passphrase The passphrase used to encrypt the key material.
+	 * @param pepper An application-specific pepper added to the salt during key-derivation (if applicable)
+	 * @param vaultVersion Will be checked upon decryption of this masterkey.
+	 * @return Encrypted data that can be stored in insecure locations.
+	 * @since 1.1.0
+	 */
+	KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, byte[] pepper, int vaultVersion);
 
 	@Override
 	void destroy();
