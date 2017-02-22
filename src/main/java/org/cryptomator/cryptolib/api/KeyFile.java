@@ -9,6 +9,8 @@
 package org.cryptomator.cryptolib.api;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Type;
@@ -74,14 +76,14 @@ public abstract class KeyFile {
 	 * @return A new KeyFile instance.
 	 */
 	public static KeyFile parse(byte[] serialized) {
-		try {
-			Reader reader = new InputStreamReader(new ByteArrayInputStream(serialized), UTF_8);
-			JsonReader jsonReader = GSON.newJsonReader(reader);
+		try (InputStream in = new ByteArrayInputStream(serialized); //
+				Reader reader = new InputStreamReader(in, UTF_8); //
+				JsonReader jsonReader = GSON.newJsonReader(reader)) {
 			JsonObject jsonObj = new JsonParser().parse(jsonReader).getAsJsonObject();
 			KeyFile result = GSON.fromJson(jsonObj, GenericKeyFile.class);
 			result.jsonObj = jsonObj;
 			return result;
-		} catch (JsonParseException e) {
+		} catch (IOException | JsonParseException e) {
 			throw new IllegalArgumentException("Unable to parse key file.", e);
 		}
 	}
