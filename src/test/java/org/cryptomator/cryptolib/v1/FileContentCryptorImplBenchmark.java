@@ -40,6 +40,7 @@ public class FileContentCryptorImplBenchmark {
 	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
 	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
 	private final byte[] headerNonce = new byte[Constants.NONCE_SIZE];
+	private final byte[] chunkNonce = new byte[Constants.NONCE_SIZE];
 	private final ByteBuffer cleartextChunk = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
 	private final ByteBuffer ciphertextChunk = ByteBuffer.allocate(Constants.CHUNK_SIZE);
 	private final FileContentCryptorImpl fileContentCryptor = new FileContentCryptorImpl(MAC_KEY, RANDOM_MOCK);
@@ -51,13 +52,14 @@ public class FileContentCryptorImplBenchmark {
 		cleartextChunk.rewind();
 		ciphertextChunk.rewind();
 		RANDOM_MOCK.nextBytes(headerNonce);
+		RANDOM_MOCK.nextBytes(chunkNonce);
 		RANDOM_MOCK.nextBytes(cleartextChunk.array());
 		RANDOM_MOCK.nextBytes(ciphertextChunk.array());
 	}
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		fileContentCryptor.encryptChunk(cleartextChunk, chunkNumber, headerNonce, ENC_KEY);
+		fileContentCryptor.encryptChunk(cleartextChunk, chunkNumber, headerNonce, chunkNonce, ENC_KEY);
 	}
 
 	@Benchmark
