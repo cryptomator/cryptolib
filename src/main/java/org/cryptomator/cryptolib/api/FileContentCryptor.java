@@ -33,6 +33,17 @@ public interface FileContentCryptor {
 	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header);
 
 	/**
+	 * Encrypts a single chunk of cleartext.
+	 *
+	 * @param cleartextChunk Content to be encrypted
+	 * @param chunkNumber Number of the chunk to be encrypted
+	 * @param header Header of the file, this chunk belongs to
+	 * @param chunkNonce Nonce for this chunk
+	 * @return Encrypted content.
+	 */
+	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce);
+
+	/**
 	 * Decrypts a single chunk of ciphertext.
 	 * 
 	 * @param ciphertextChunk Content to be decrypted

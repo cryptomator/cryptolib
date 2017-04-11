@@ -54,11 +54,18 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
+		byte[] chunkNonce = new byte[NONCE_SIZE];
+		random.nextBytes(chunkNonce);
+		return encryptChunk(cleartextChunk, chunkNumber, header, chunkNonce);
+	}
+
+	@Override
+	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce) {
 		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
 			throw new IllegalArgumentException("Invalid chunk");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		return encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
+		return encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), chunkNonce, headerImpl.getPayload().getContentKey());
 	}
 
 	@Override
@@ -75,22 +82,18 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	// visible for testing
-	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
+	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, byte[] chunkNonce, SecretKey fileKey) {
 		try {
-			// nonce:
-			byte[] nonce = new byte[NONCE_SIZE];
-			random.nextBytes(nonce);
-
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fileKey, new IvParameterSpec(nonce));
+			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fileKey, new IvParameterSpec(chunkNonce));
 			final ByteBuffer outBuf = ByteBuffer.allocate(NONCE_SIZE + cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE);
-			outBuf.put(nonce);
+			outBuf.put(chunkNonce);
 			int bytesEncrypted = cipher.doFinal(cleartextChunk, outBuf);
 
 			// mac:
 			final ByteBuffer ciphertextBuf = outBuf.asReadOnlyBuffer();
 			ciphertextBuf.position(NONCE_SIZE).limit(NONCE_SIZE + bytesEncrypted);
-			byte[] authenticationCode = calcChunkMac(macKey, headerNonce, chunkNumber, nonce, ciphertextBuf);
+			byte[] authenticationCode = calcChunkMac(macKey, headerNonce, chunkNumber, chunkNonce, ciphertextBuf);
 			assert authenticationCode.length == MAC_SIZE;
 			outBuf.put(authenticationCode);
 
