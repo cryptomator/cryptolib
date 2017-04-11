@@ -54,18 +54,18 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
-		byte[] nonce = new byte[NONCE_SIZE];
-		random.nextBytes(nonce);
-		return encryptChunk(cleartextChunk, chunkNumber, header, nonce);
+		byte[] chunkNonce = new byte[NONCE_SIZE];
+		random.nextBytes(chunkNonce);
+		return encryptChunk(cleartextChunk, chunkNumber, header, chunkNonce);
 	}
 
 	@Override
-	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] nonce) {
+	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce) {
 		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
 			throw new IllegalArgumentException("Invalid chunk");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		return encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), nonce, headerImpl.getPayload().getContentKey());
+		return encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), chunkNonce, headerImpl.getPayload().getContentKey());
 	}
 
 	@Override
