@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.cryptomator</groupId>
+	<groupId>ch.iterate.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
 	<version>1.2.0-SNAPSHOT</version>
 	<name>Cryptomator Crypto Library</name>
@@ -8,10 +8,22 @@
 	<url>https://github.com/cryptomator/cryptolib</url>
 
 	<scm>
-		<connection>scm:git:git@github.com:cryptomator/cryptolib.git</connection>
-		<developerConnection>scm:git:git@github.com:cryptomator/cryptolib.git</developerConnection>
-		<url>git@github.com:cryptomator/cryptolib.git</url>
+		<connection>scm:git:https://github.com/iterate-ch/cryptolib.git</connection>
+		<developerConnection>scm:git:https://github.com/iterate-ch/cryptolib.git</developerConnection>
+		<url>https://github.com/iterate-ch/cryptolib.git</url>
 	</scm>
+
+	<distributionManagement>
+		<repository>
+			<id>maven.cyberduck.io-release</id>
+			<url>s3://repo.maven.cyberduck.io/releases/</url>
+			<layout>default</layout>
+		</repository>
+		<snapshotRepository>
+			<id>maven.cyberduck.io-snapshot</id>
+			<url>s3://repo.maven.cyberduck.io/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 
 	<properties>
 		<java.version>1.7</java.version>
@@ -131,6 +143,13 @@
 	</dependencies>
 
 	<build>
+		<extensions>
+			<extension>
+				<groupId>org.springframework.build</groupId>
+				<artifactId>aws-maven</artifactId>
+				<version>5.0.0.RELEASE</version>
+			</extension>
+		</extensions>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -269,16 +288,6 @@
 
 		<profile>
 			<id>release</id>
-			<distributionManagement>
-				<snapshotRepository>
-					<id>ossrh</id>
-					<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-				</snapshotRepository>
-				<repository>
-					<id>ossrh</id>
-					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-				</repository>
-			</distributionManagement>
 			<build>
 				<plugins>
 					<plugin>
