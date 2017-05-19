@@ -17,9 +17,9 @@ install:
 before_script:
 - "if [[ ${TRAVIS_BRANCH} == 'develop' && ${TRAVIS_PULL_REQUEST} == 'false' ]]; then mvn dependency-check:check -Pdependency-check; fi"
 script:
-- mvn clean test jacoco:report -Pcoverage
+- mvn clean test
 after_success:
-- "if [[ ${TRAVIS_JDK_VERSION} == 'oraclejdk8' ]]; then mvn verify -Pcoverage; fi"
+- "if [[ ${TRAVIS_JDK_VERSION} == 'oraclejdk8' ]]; then mvn test jacoco:report verify -Pcoverage; fi"
 cache:
   directories:
   - $HOME/.m2
