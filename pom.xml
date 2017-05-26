@@ -72,12 +72,6 @@
 			<artifactId>dagger</artifactId>
 			<version>${dagger.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>com.google.dagger</groupId>
-			<artifactId>dagger-compiler</artifactId>
-			<version>${dagger.version}</version>
-			<scope>provided</scope>
-		</dependency>
 
 		<!-- Logging -->
 		<dependency>
@@ -142,6 +136,13 @@
 					<target>${java.version}</target>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>com.google.dagger</groupId>
+							<artifactId>dagger-compiler</artifactId>
+							<version>${dagger.version}</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>
