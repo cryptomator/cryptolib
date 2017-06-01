@@ -40,8 +40,10 @@ public class CryptorImplTest {
 
 	@Test
 	public void testWriteKeysToMasterkeyFile() {
-		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		final byte[] serialized = cryptor.writeKeysToMasterkeyFile("asd", 3).serialize();
+		final byte[] serialized;
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			serialized = cryptor.writeKeysToMasterkeyFile("asd", 3).serialize();
+		}
 		String serializedStr = new String(serialized, UTF_8);
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"version\": 3"));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptSalt\": \"AAAAAAAAAAA=\""));
@@ -54,41 +56,57 @@ public class CryptorImplTest {
 
 	@Test
 	public void testWriteKeysToMasterkeyFileWithPepper() {
-		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		final byte[] serialized1 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x01}, 3).serialize();
-		final byte[] serialized2 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x02}, 3).serialize();
-		Assert.assertThat(serialized1, not(equalTo(serialized2)));
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			byte[] serialized1 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x01}, 3).serialize();
+			byte[] serialized2 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x02}, 3).serialize();
+			Assert.assertThat(serialized1, not(equalTo(serialized2)));
+		}
 	}
 
 	@Test
 	public void testGetFileContentCryptor() {
-		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		Assert.assertThat(cryptor.fileContentCryptor(), CoreMatchers.instanceOf(FileContentCryptorImpl.class));
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			Assert.assertThat(cryptor.fileContentCryptor(), CoreMatchers.instanceOf(FileContentCryptorImpl.class));
+		}
 	}
 
 	@Test
 	public void testGetFileHeaderCryptor() {
-		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		Assert.assertThat(cryptor.fileHeaderCryptor(), CoreMatchers.instanceOf(FileHeaderCryptorImpl.class));
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			Assert.assertThat(cryptor.fileHeaderCryptor(), CoreMatchers.instanceOf(FileHeaderCryptorImpl.class));
+		}
 	}
 
 	@Test
 	public void testGetFileNameCryptor() {
-		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		Assert.assertThat(cryptor.fileNameCryptor(), CoreMatchers.instanceOf(FileNameCryptorImpl.class));
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			Assert.assertThat(cryptor.fileNameCryptor(), CoreMatchers.instanceOf(FileNameCryptorImpl.class));
+		}
 	}
 
 	@Test
-	public void testDestruction() throws DestroyFailedException {
+	public void testExplicitDestruction() throws DestroyFailedException {
 		DestroyableSecretKey encKey = Mockito.mock(DestroyableSecretKey.class);
 		DestroyableSecretKey macKey = Mockito.mock(DestroyableSecretKey.class);
-		final CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK);
-		cryptor.destroy();
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			cryptor.destroy();
+			Mockito.verify(encKey).destroy();
+			Mockito.verify(macKey).destroy();
+			Mockito.when(encKey.isDestroyed()).thenReturn(true);
+			Mockito.when(macKey.isDestroyed()).thenReturn(true);
+			Assert.assertTrue(cryptor.isDestroyed());
+		}
+	}
+
+	@Test
+	public void testImplicitDestruction() throws DestroyFailedException {
+		DestroyableSecretKey encKey = Mockito.mock(DestroyableSecretKey.class);
+		DestroyableSecretKey macKey = Mockito.mock(DestroyableSecretKey.class);
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			Assert.assertFalse(cryptor.isDestroyed());
+		}
 		Mockito.verify(encKey).destroy();
 		Mockito.verify(macKey).destroy();
-		Mockito.when(encKey.isDestroyed()).thenReturn(true);
-		Mockito.when(macKey.isDestroyed()).thenReturn(true);
-		Assert.assertTrue(cryptor.isDestroyed());
 	}
 
 	private static interface DestroyableSecretKey extends SecretKey, Destroyable {

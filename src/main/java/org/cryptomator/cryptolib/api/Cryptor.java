@@ -10,7 +10,7 @@ package org.cryptomator.cryptolib.api;
 
 import javax.security.auth.Destroyable;
 
-public interface Cryptor extends Destroyable {
+public interface Cryptor extends Destroyable, AutoCloseable {
 
 	FileContentCryptor fileContentCryptor();
 
@@ -38,5 +38,11 @@ public interface Cryptor extends Destroyable {
 
 	@Override
 	void destroy();
+
+	/**
+	 * Calls {@link #destroy()}.
+	 */
+	@Override
+	void close();
 
 }

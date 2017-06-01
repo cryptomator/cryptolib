@@ -53,16 +53,19 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public FileContentCryptorImpl fileContentCryptor() {
+		assertNotDestroyed();
 		return fileContentCryptor;
 	}
 
 	@Override
 	public FileHeaderCryptorImpl fileHeaderCryptor() {
+		assertNotDestroyed();
 		return fileHeaderCryptor;
 	}
 
 	@Override
 	public FileNameCryptorImpl fileNameCryptor() {
+		assertNotDestroyed();
 		return fileNameCryptor;
 	}
 
@@ -70,10 +73,15 @@ class CryptorImpl implements Cryptor {
 	public boolean isDestroyed() {
 		// SecretKey did not implement Destroyable in Java 7:
 		if (encKey instanceof Destroyable && macKey instanceof Destroyable) {
-			return ((Destroyable) encKey).isDestroyed() && ((Destroyable) macKey).isDestroyed();
+			return ((Destroyable) encKey).isDestroyed() || ((Destroyable) macKey).isDestroyed();
 		} else {
 			return false;
 		}
+	}
+
+	@Override
+	public void close() {
+		destroy();
 	}
 
 	@Override
@@ -89,6 +97,7 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, byte[] pepper, int vaultVersion) {
+		assertNotDestroyed();
 		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		random.nextBytes(salt);
 		final byte[] saltAndPepper = new byte[salt.length + pepper.length];
@@ -122,11 +131,17 @@ class CryptorImpl implements Cryptor {
 
 	private void destroyQuietly(SecretKey key) {
 		try {
-			if (key instanceof Destroyable) {
+			if (key instanceof Destroyable && !((Destroyable) key).isDestroyed()) {
 				((Destroyable) key).destroy();
 			}
 		} catch (DestroyFailedException e) {
 			// ignore
+		}
+	}
+
+	private void assertNotDestroyed() {
+		if (isDestroyed()) {
+			throw new IllegalStateException("Cryptor destroyed.");
 		}
 	}
 
