@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>1.1.1</version>
+	<version>1.1.2</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -16,10 +16,11 @@
 	<properties>
 		<java.version>1.7</java.version>
 		<commons.codec.version>1.10</commons.codec.version>
-		<dagger.version>2.6.1</dagger.version>
+		<dagger.version>2.7</dagger.version>
 		<gson.version>2.8.0</gson.version>
-		<siv-mode.version>1.2.0</siv-mode.version>
-		<slf4j.version>1.7.24</slf4j.version>
+		<siv-mode.version>1.2.1</siv-mode.version>
+		<bouncycastle.version>1.57</bouncycastle.version>
+		<slf4j.version>1.7.25</slf4j.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
@@ -50,7 +51,7 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>1.56</version>
+			<version>${bouncycastle.version}</version>
 			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
 			<optional>true</optional>
 		</dependency>
@@ -70,12 +71,6 @@
 			<groupId>com.google.dagger</groupId>
 			<artifactId>dagger</artifactId>
 			<version>${dagger.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.dagger</groupId>
-			<artifactId>dagger-compiler</artifactId>
-			<version>${dagger.version}</version>
-			<scope>provided</scope>
 		</dependency>
 
 		<!-- Logging -->
@@ -107,7 +102,7 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>2.7.12</version>
+			<version>2.8.9</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -119,13 +114,13 @@
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>
-			<version>1.17.5</version>
+			<version>1.19</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>1.17.5</version>
+			<version>1.19</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -141,6 +136,13 @@
 					<target>${java.version}</target>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>com.google.dagger</groupId>
+							<artifactId>dagger-compiler</artifactId>
+							<version>${dagger.version}</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -216,7 +218,7 @@
 				<dependency>
 					<groupId>com.codacy</groupId>
 					<artifactId>codacy-coverage-reporter</artifactId>
-					<version>1.0.13</version>
+					<version>2.0.0</version>
 					<classifier>assembly</classifier>
 					<exclusions>
 						<exclusion>
@@ -244,7 +246,7 @@
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
-						<version>1.5.0</version>
+						<version>1.6.0</version>
 						<executions>
 							<execution>
 								<phase>verify</phase>
@@ -307,7 +309,7 @@
 					</plugin>
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
-						<version>3.0.0</version>
+						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>generate-dependency-list</id>

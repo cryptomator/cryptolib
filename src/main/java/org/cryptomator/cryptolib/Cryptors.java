@@ -77,11 +77,8 @@ public final class Cryptors {
 	 */
 	public static byte[] changePassphrase(CryptorProvider cryptoProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
 		final KeyFile keyFile = KeyFile.parse(masterkey);
-		final Cryptor cryptor = cryptoProvider.createFromKeyFile(keyFile, oldPassphrase, keyFile.getVersion());
-		try {
+		try (Cryptor cryptor = cryptoProvider.createFromKeyFile(keyFile, oldPassphrase, keyFile.getVersion())) {
 			return cryptor.writeKeysToMasterkeyFile(newPassphrase, keyFile.getVersion()).serialize();
-		} finally {
-			cryptor.destroy();
 		}
 	}
 
