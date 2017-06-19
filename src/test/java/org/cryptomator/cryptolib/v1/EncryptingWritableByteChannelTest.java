@@ -71,4 +71,13 @@ public class EncryptingWritableByteChannelTest {
 		Assert.assertArrayEquals("hhhhhHELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
 	}
 
+	@Test
+	public void testEncryptionOfEmptyFile() throws IOException {
+		try (EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(dstFileChannel, cryptor)) {
+			// empty, so write nothing
+		}
+		dstFile.flip();
+		Assert.assertArrayEquals("hhhhh".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
+	}
+
 }

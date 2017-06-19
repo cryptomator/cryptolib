@@ -22,8 +22,9 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 	private final Cryptor cryptor;
 	private final FileHeader header;
 	private final ByteBuffer cleartextBuffer;
-	long written = 0;
-	long chunkNumber = 0;
+
+	private boolean firstWrite = true;
+	private long chunkNumber = 0;
 
 	public EncryptingWritableByteChannel(WritableByteChannel destination, Cryptor cryptor) {
 		this.delegate = destination;
@@ -39,28 +40,33 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 
 	@Override
 	public void close() throws IOException {
-		encryptAndflushBuffer();
+		writeHeaderOnFirstWrite();
+		encryptAndFlushBuffer();
 		delegate.close();
 	}
 
 	@Override
 
 	public int write(ByteBuffer src) throws IOException {
-		if (written == 0) {
-			delegate.write(cryptor.fileHeaderCryptor().encryptHeader(header));
-		}
+		writeHeaderOnFirstWrite();
 		int result = 0;
 		while (src.hasRemaining()) {
 			result += ByteBuffers.copy(src, cleartextBuffer);
 			if (!cleartextBuffer.hasRemaining()) {
-				encryptAndflushBuffer();
+				encryptAndFlushBuffer();
 			}
 		}
-		written += result;
 		return result;
 	}
 
-	private void encryptAndflushBuffer() throws IOException {
+	private void writeHeaderOnFirstWrite() throws IOException {
+		if (firstWrite) {
+			delegate.write(cryptor.fileHeaderCryptor().encryptHeader(header));
+		}
+		firstWrite = false;
+	}
+
+	private void encryptAndFlushBuffer() throws IOException {
 		cleartextBuffer.flip();
 		if (cleartextBuffer.hasRemaining()) {
 			ByteBuffer ciphertextBuffer = cryptor.fileContentCryptor().encryptChunk(cleartextBuffer, chunkNumber++, header);
