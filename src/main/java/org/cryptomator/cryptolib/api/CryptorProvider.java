@@ -24,6 +24,7 @@ public interface CryptorProvider {
 	 * @return A new Cryptor instance using the keys from the supplied keyfile
 	 * @throws UnsupportedVaultFormatException If the vault has been created with a different version than <code>expectedVaultVersion</code>
 	 * @throws InvalidPassphraseException If the key derived from the passphrase could not be used to decrypt the keyfile.
+	 * @see #createFromKeyFile(KeyFile, CharSequence, byte[], int)
 	 */
 	Cryptor createFromKeyFile(KeyFile keyFile, CharSequence passphrase, int expectedVaultVersion) throws UnsupportedVaultFormatException, InvalidPassphraseException;
 
