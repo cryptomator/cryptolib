@@ -44,7 +44,7 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 	}
 
 	@Override
-	public int read(ByteBuffer dst) throws IOException {
+	public synchronized int read(ByteBuffer dst) throws IOException {
 		loadHeaderIfNecessary();
 		if (reachedEof) {
 			return -1;

@@ -39,15 +39,14 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public synchronized void close() throws IOException {
 		writeHeaderOnFirstWrite();
 		encryptAndFlushBuffer();
 		delegate.close();
 	}
 
 	@Override
-
-	public int write(ByteBuffer src) throws IOException {
+	public synchronized int write(ByteBuffer src) throws IOException {
 		writeHeaderOnFirstWrite();
 		int result = 0;
 		while (src.hasRemaining()) {
