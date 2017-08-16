@@ -16,8 +16,7 @@ import java.io.Reader;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 
-import org.apache.commons.codec.binary.Base64;
-
+import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -114,16 +113,16 @@ public abstract class KeyFile {
 
 	private static class ByteArrayJsonAdapter implements JsonSerializer<byte[]>, JsonDeserializer<byte[]> {
 
-		private static final Base64 BASE64 = new Base64();
+		private static final BaseEncoding BASE64 = BaseEncoding.base64();
 
 		@Override
 		public byte[] deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return BASE64.decode(json.getAsString().getBytes(UTF_8));
+			return BASE64.decode(json.getAsString());
 		}
 
 		@Override
 		public JsonElement serialize(byte[] src, Type typeOfSrc, JsonSerializationContext context) {
-			return new JsonPrimitive(new String(BASE64.encode(src), UTF_8));
+			return new JsonPrimitive(BASE64.encode(src));
 		}
 
 	}
