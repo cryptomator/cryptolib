@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file lists false positives found by org.owasp:dependency-check-maven build plugin -->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.1.xsd">
+	<suppress>
+		<notes><![CDATA[ Suppresses CVE-2014-4555 in jar used by dagger-compiler only during compilation.]]></notes>
+		<gav>com.google.googlejavaformat:google-java-format:1.0</gav>
+		<cve>CVE-2014-4555</cve>
+	</suppress>
+</suppressions>
