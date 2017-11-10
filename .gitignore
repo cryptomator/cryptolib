@@ -16,4 +16,5 @@ test-output/
 .idea/
 out/
 .idea_modules/
+*.iml
 *.iws

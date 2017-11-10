@@ -40,7 +40,7 @@ public class CryptorsTest {
 
 			@Override
 			public byte[] answer(InvocationOnMock invocation) throws Throwable {
-				return new byte[invocation.getArgument(0)];
+				return new byte[(int) invocation.getArgument(0)];
 			}
 
 		});

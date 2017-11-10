@@ -15,12 +15,13 @@ import javax.crypto.AEADBadTagException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.util.encoders.Base64;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.io.BaseEncoding;
 
 public class FileHeaderCryptorImplTest {
 
@@ -52,7 +53,7 @@ public class FileHeaderCryptorImplTest {
 
 		ByteBuffer result = headerCryptor.encryptHeader(header);
 
-		Assert.assertArrayEquals(Base64.decode(expected), result.array());
+		Assert.assertArrayEquals(BaseEncoding.base64().decode(expected), result.array());
 	}
 
 	@Test
@@ -64,7 +65,7 @@ public class FileHeaderCryptorImplTest {
 	@Test
 	@SuppressWarnings("deprecation")
 	public void testDecryption() throws AEADBadTagException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfMdzvHF3f9EE0LSnRLSsu6ps3IRcJg==");
+		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfMdzvHF3f9EE0LSnRLSsu6ps3IRcJg==");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 		Assert.assertEquals(header.getFilesize(), -1l);
 	}
@@ -77,13 +78,13 @@ public class FileHeaderCryptorImplTest {
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithInvalidMac1() throws AEADBadTagException {
-		byte[] ciphertext = Base64.decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa==");
+		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa==");
 		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
 	@Test(expected = AuthenticationFailedException.class)
 	public void testDecryptionWithInvalidMac2() throws AEADBadTagException {
-		byte[] ciphertext = Base64.decode("aAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
+		byte[] ciphertext = BaseEncoding.base64().decode("aAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
 		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
