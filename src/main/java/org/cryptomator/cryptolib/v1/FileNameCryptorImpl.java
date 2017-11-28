@@ -13,18 +13,18 @@ import java.nio.charset.Charset;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 
-import org.apache.commons.codec.binary.Base32;
-import org.apache.commons.codec.binary.BaseNCodec;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
+import com.google.common.io.BaseEncoding;
+
 class FileNameCryptorImpl implements FileNameCryptor {
 
 	private static final Charset UTF_8 = Charset.forName("UTF-8");
-	private static final BaseNCodec BASE32 = new Base32();
+	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final ThreadLocal<SivMode> AES_SIV = new ThreadLocal<SivMode>() {
 		@Override
 		protected SivMode initialValue() {
@@ -45,14 +45,14 @@ class FileNameCryptorImpl implements FileNameCryptor {
 		byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
 		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes);
 		byte[] hashedBytes = MessageDigestSupplier.SHA1.get().digest(encryptedBytes);
-		return BASE32.encodeAsString(hashedBytes);
+		return BASE32.encode(hashedBytes);
 	}
 
 	@Override
 	public String encryptFilename(String cleartextName, byte[]... associatedData) {
 		byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
 		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes, associatedData);
-		return BASE32.encodeAsString(encryptedBytes);
+		return BASE32.encode(encryptedBytes);
 	}
 
 	@Override

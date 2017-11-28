@@ -74,14 +74,28 @@ public final class Cryptors {
 	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
 	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
 	 * @since 1.1.0
+	 * @see #changePassphrase(CryptorProvider, byte[], byte[], CharSequence, CharSequence)
 	 */
 	public static byte[] changePassphrase(CryptorProvider cryptoProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
+		return changePassphrase(cryptoProvider, masterkey, new byte[0], oldPassphrase, newPassphrase);
+	}
+
+	/**
+	 * Reencrypts a masterkey with a new passphrase.
+	 * 
+	 * @param cryptoProvider A suitable CryptorProvider instance, i.e. same version as the original masterkey has been created with.
+	 * @param masterkey The original JSON representation of the masterkey
+	 * @param pepper An application-specific pepper added to the salt during key-derivation (if applicable)
+	 * @param oldPassphrase The old passphrase
+	 * @param newPassphrase The new passphrase
+	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
+	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
+	 * @since 1.1.4
+	 */
+	public static byte[] changePassphrase(CryptorProvider cryptoProvider, byte[] masterkey, byte[] pepper, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
 		final KeyFile keyFile = KeyFile.parse(masterkey);
-		final Cryptor cryptor = cryptoProvider.createFromKeyFile(keyFile, oldPassphrase, keyFile.getVersion());
-		try {
-			return cryptor.writeKeysToMasterkeyFile(newPassphrase, keyFile.getVersion()).serialize();
-		} finally {
-			cryptor.destroy();
+		try (Cryptor cryptor = cryptoProvider.createFromKeyFile(keyFile, oldPassphrase, pepper, keyFile.getVersion())) {
+			return cryptor.writeKeysToMasterkeyFile(newPassphrase, pepper, keyFile.getVersion()).serialize();
 		}
 	}
 

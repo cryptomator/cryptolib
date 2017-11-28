@@ -10,7 +10,7 @@ package org.cryptomator.cryptolib.api;
 
 import javax.security.auth.Destroyable;
 
-public interface Cryptor extends Destroyable {
+public interface Cryptor extends Destroyable, AutoCloseable {
 
 	FileContentCryptor fileContentCryptor();
 
@@ -24,6 +24,7 @@ public interface Cryptor extends Destroyable {
 	 * @param passphrase The passphrase used to encrypt the key material.
 	 * @param vaultVersion Will be checked upon decryption of this masterkey.
 	 * @return Encrypted data that can be stored in insecure locations.
+	 * @see #writeKeysToMasterkeyFile(CharSequence, byte[], int)
 	 */
 	KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion);
 
@@ -38,5 +39,11 @@ public interface Cryptor extends Destroyable {
 
 	@Override
 	void destroy();
+
+	/**
+	 * Calls {@link #destroy()}.
+	 */
+	@Override
+	void close();
 
 }
