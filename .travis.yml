@@ -1,8 +1,7 @@
 language: java
 sudo: false
 jdk:
-- oraclejdk8
-- openjdk7
+- oraclejdk9
 env:
   global:
   - secure: EKWTN92R2QwWdSoWpbWuH7s97+G/ev8eVQFDJYyPDukaY7PxgYm1gJamBxqpYWwzAThSW190K2ZiBfsvvJ1BfxNZt2OJi7U3lWrFx7iosBnv19zayaj99+CJMJz4w9+lJO911wJrk9B7fFljLKPGtj5ARSNDAfWJjMnQJScx0b35G+vn6k+5370TCzr6MSQbhRaf3/smVih1x+e5V3rrs5sdE1nsQ4X3uxWAnftl73LInxTeDVVQJLBfw/g3CJdWT5BP+VgY8dtkD//bPJCMZnd5+G+GDM0swbhPmaRqCA8J4xk4juH91V8S465JLRvfJH3rkzu6c3BCtjqBqLVoWeq0b6AXBrQMp3WBib9ylEpnkQT8KU92VEoueXjHu1bFIzvhigyLM7Le944jK/7g3HeUNZOLD2kKcS34w+pxfttRy/pBXdIf4GvRZvgKJkj1wUo24kXkRbOqkryIIonUPi4kbZ/7SmVXhbCvNDCX/yf+coVsJAln2ZSCMTUVohLL3/Ry5f28U0RiowG2gB5fq/dzbdzF76chLHcuap4oHLOCRqrnduG2FWkeSgxVKKKxVc4g5ZT8UCwdMmqoSZF5BLgj/NwtQ+kxI0fX9FPjttymfoQ8pZ6bKT9kOBkUfdxjv6CfvaAppUAnNBx2AvPtepBDzc4JSuPqcRe2lDLQFFY= # COVERITY_SCAN_TOKEN
@@ -11,15 +10,15 @@ env:
   - secure: lNc2PlTH35dbmZ5PPpXll3FZ9xdomNhUndCXh3y0KtAk6TJyPzVFiOrlJdNbyHEK+VdgLegh146cuGuvmfP0U/RAPfDA7Gn+6JxG2lHDNP6nDOzhwaY0NpC53Inv8Y6iBeeNoojVOkkwRJyonsjv8TMmbv+EfDXL1oDP6odeTsV9nRTiYn0RT6407v8hdEb3AOBoOZ0jrXfcD1PQVHvJElrEvfXf2cLS3iQvMa8B84tUIPF/vk9F3cPAJlqCt5PQ/pGQ7rQxQ+Jyi5HCshacAR7WBVHSiC9hu6v7yMO3ZhE3kPMSeIYQeE6Fd/AgYXIHlEjPCZVmO6CvGzPS1ThqOZplFbNjqGYCfRzuyGY4+avT06+9jysjpoJkgAXjc2IroWjJr/YGZIiXPKcfvSoIhYGDpX1nKkXNgUdiXAwF58nC3/oESZYPpwCsVadR6hO4b0weE3D9YFDvDaqkG3L5yR+v1lDTEjiqOIDoqLBzYxj3QRC7D/taIALzOrn08PlsBOtattSshmu4j4cU2euQdEFTS7MZ0HVrAUcsjCuEBUpbPG889c1rAPsFcPCiVmPNPrnnmr2XblfaOdIXeMa6s9bLLizS1bQ0TncLvri58vbEHAcFHysI0O6gYHWvF+hmczYWxlNbsG8LvG7EaE/PawFIqqIrdP0fhk7uhpgn4F4= # MAVEN_OSSRH_PASSWORD
   - secure: I/yCjGHCtNMBezO2ylpKKXU1m/deYj3l7yBx/epXVFv9pPixzgMUaGaOxJrz3s82ZuigwYgcRUDgjx0lmKJCKJCM1IGESjxfDvJPvY+yAbQz1PUd9O+buHtNU1nZRHGrPSSlv9aeCzYCcOtcP3GPlrVAGXalOnpTNeA8tfjjFXRYRSFgybP9ENVyRuVdI4gL3wfJV1OEXQ+87WsgTSmaadQymJilphGRdbTgxP6rilZVc7OJOgFmfyE38oJObSUDo7rzU4pPYHQI8DPGOo6Q9il0HEcJ6Zrz77JLTbrjcVhe4jK1MV57AdB15YGpw8gWa6Mzr2sEKwDw+iJ5ONGgCgwJM4OrJI3swdZtDbttV2GGnMot8gVn/l9Et6SMn7s+GoLRdfltie2SWZy/Zej2VnAxSUQ9Ty2FlrpExPSPgUAkDpgWEe+HYh/wMCsOQyX0dPQdsyOeYMJHyHqooR0IkHq2JIhfxb90x3mplRCAi0CXT2MXHAVh1ymNcI56BIY6y1NWsToAgElFGGAh6ntqND82+SnEqZYs7eA0RQsYfd8E7utHVPeEi14sen/j+hV8pnkUwju5n/3oqaPoecuuR7vXAI6pm2m9XmZoxeDC5REmGNnLWc6AxkHzh6LNemni+1RCvNmX2ypQmy0WUt1iovxi7yXc+9gdpEWIbgQu5do= #CODACY_PROJECT_TOKEN
 install:
-- mvn dependency:go-offline -Pdependency-check
-- mvn dependency:go-offline -Pcoverage
-- mvn dependency:go-offline -Prelease
+- mvn dependency:go-offline -Pdependency-check,coverage,release
 before_script:
 - "if [[ ${TRAVIS_BRANCH} == 'develop' && ${TRAVIS_PULL_REQUEST} == 'false' ]]; then mvn dependency-check:check -Pdependency-check; fi"
 script:
-- mvn clean test
+- mvn clean test jacoco:report verify -Pcoverage
 after_success:
-- "if [[ ${TRAVIS_JDK_VERSION} == 'oraclejdk8' ]]; then mvn test jacoco:report verify -Pcoverage; fi"
+- jdk_switcher use oraclejdk8
+- curl -o ~/codacy-coverage-reporter-assembly-latest.jar https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/2.0.1/codacy-coverage-reporter-2.0.1-assembly.jar
+- $JAVA_HOME/bin/java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r target/site/jacoco/jacoco.xml
 cache:
   directories:
   - $HOME/.m2
