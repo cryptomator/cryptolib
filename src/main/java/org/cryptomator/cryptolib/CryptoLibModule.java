@@ -18,6 +18,6 @@ import dagger.Module;
  * A module that, when included, allows to inject a {@link CryptorProvider} using the {@link CryptoLibVersion} qualifier.
  */
 @Module(includes = {Version1CryptorModule.class})
-public class CryptoLibModule {
+class CryptoLibModule {
 
 }
