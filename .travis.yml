@@ -32,6 +32,7 @@ addons:
     build_command: "mvn compile -DskipTests=true"
     branch_pattern: release.*
 before_deploy:
+- jdk_switcher use oraclejdk9
 - gpg --import 34C80F11.gpg
 deploy:
 - provider: script # SNAPSHOTS
