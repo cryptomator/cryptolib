@@ -41,11 +41,9 @@ deploy:
     repo: cryptomator/cryptolib
     branch: develop
     condition: $TRAVIS_TAG = ''
-    jdk: openjdk7
 - provider: script # RELEASES
   script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -Prelease --settings settings.xml
   skip_cleanup: true
   on:
     repo: cryptomator/cryptolib
     tags: true
-    jdk: openjdk7
