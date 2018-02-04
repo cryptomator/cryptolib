@@ -15,7 +15,7 @@ final class Constants {
 
 	static final int KEY_LEN_BYTES = 32;
 	static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
-	static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 14; // 2^14
+	static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
 	static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
 
 	static final int NONCE_SIZE = 16;

@@ -15,7 +15,7 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
 import dagger.Component;
 
 @Component(modules = {CryptoLibModule.class})
-public interface CryptoLibComponent {
+interface CryptoLibComponent {
 
 	@CryptoLibVersion(Version.ONE)
 	CryptorProvider version1();
