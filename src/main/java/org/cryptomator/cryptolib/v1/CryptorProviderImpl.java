@@ -66,11 +66,11 @@ public class CryptorProviderImpl implements CryptorProvider {
 	// visible for testing
 	private static boolean isRequiredKeyLengthAllowed() {
 		try {
-			int requiredKeyLengthBits = Constants.KEY_LEN_BYTES * Byte.SIZE;
-			int allowedKeyLengthBits = Cipher.getMaxAllowedKeyLength(Constants.ENC_ALG);
+			int requiredKeyLengthBits = KEY_LEN_BYTES * Byte.SIZE;
+			int allowedKeyLengthBits = Cipher.getMaxAllowedKeyLength(ENC_ALG);
 			return allowedKeyLengthBits >= requiredKeyLengthBits;
 		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("Hard-coded algorithm \"" + Constants.ENC_ALG + "\" not supported.", e);
+			throw new IllegalStateException("Hard-coded algorithm \"" + ENC_ALG + "\" not supported.", e);
 		}
 	}
 
