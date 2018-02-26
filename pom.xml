@@ -58,19 +58,6 @@
 			<version>${guava.version}</version>
 		</dependency>
 
-		<!-- DI -->
-		<dependency>
-			<groupId>com.google.dagger</groupId>
-			<artifactId>dagger</artifactId>
-			<version>${dagger.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.dagger</groupId>
-			<artifactId>dagger-compiler</artifactId>
-			<version>${dagger.version}</version>
-			<optional>true</optional>
-		</dependency>
-
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -223,16 +210,6 @@
 								<goals>
 									<goal>jar</goal>
 								</goals>
-								<configuration>
-									<additionalDependencies>
-										<additionalDependency>
-											<!-- javax.annotation.Generated used by Dagger -->
-											<groupId>javax.annotation</groupId>
-											<artifactId>jsr250-api</artifactId>
-											<version>1.0</version>
-										</additionalDependency>
-									</additionalDependencies>
-								</configuration>
 							</execution>
 						</executions>
 					</plugin>
