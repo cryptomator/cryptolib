@@ -15,7 +15,8 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
-import org.cryptomator.cryptolib.common.SecureRandomModule;
+import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
+import org.cryptomator.cryptolib.v1.CryptorProviderImpl;
 
 public final class Cryptors {
 
@@ -24,13 +25,15 @@ public final class Cryptors {
 	 * @return A version 1 CryptorProvider
 	 */
 	public static CryptorProvider version1(SecureRandom seeder) {
-		return DaggerCryptoLibComponent.builder().secureRandomModule(new SecureRandomModule(seeder)).build().version1();
+		SecureRandom csprng = ReseedingSecureRandom.create(seeder);
+		return new CryptorProviderImpl(csprng);
 	}
 
 	/**
 	 * Calculates the size of the cleartext resulting from the given ciphertext decrypted with the given cryptor.
 	 * 
-	 * @param ciphertextSize Pure payload ciphertext. Not including the {@link FileHeader#getFilesize() length of the header}.
+	 * @param ciphertextSize Length of encrypted payload. Not including the {@link FileHeader#getFilesize() length of the header}.
+	 * @param cryptor The cryptor which defines the cleartext/ciphertext ratio
 	 * @return Cleartext length of a <code>ciphertextSize</code>-sized ciphertext decrypted with <code>cryptor</code>.
 	 */
 	public static long cleartextSize(long ciphertextSize, Cryptor cryptor) {
@@ -49,7 +52,10 @@ public final class Cryptors {
 
 	/**
 	 * Calculates the size of the ciphertext resulting from the given cleartext encrypted with the given cryptor.
-	 * 
+	 *
+	 * @param cleartextSize Length of a unencrypted payload.
+	 * @param cryptor The cryptor which defines the cleartext/ciphertext ratio
+
 	 * @return Ciphertext length of a <code>cleartextSize</code>-sized cleartext encrypted with <code>cryptor</code>.
 	 *         Not including the {@link FileHeader#getFilesize() length of the header}.
 	 */

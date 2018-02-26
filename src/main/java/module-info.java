@@ -7,8 +7,6 @@ module org.cryptomator.cryptolib {
 	opens org.cryptomator.cryptolib.v1 to gson;
 
 	requires org.cryptomator.siv;
-	requires dagger;
-	requires javax.inject;
 	requires java.sql;
 	requires gson;
 	requires com.google.common;

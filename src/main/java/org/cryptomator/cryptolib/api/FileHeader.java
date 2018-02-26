@@ -19,7 +19,7 @@ public interface FileHeader {
 
 	/**
 	 * @deprecated No longer used since vault version 5. Data stored in the header might get a different purpose in future versions.
-	 * @param filesize
+	 * @param filesize number of bytes
 	 */
 	@Deprecated
 	void setFilesize(long filesize);

@@ -17,6 +17,7 @@ package org.cryptomator.cryptolib.api;
 public interface FileNameCryptor {
 
 	/**
+	 * @param cleartextDirectoryId an arbitrary directory id to be passed to one-way hash function
 	 * @return constant length string, that is unlikely to collide with any other name.
 	 */
 	public String hashDirectoryId(String cleartextDirectoryId);
