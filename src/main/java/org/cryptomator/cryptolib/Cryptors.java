@@ -18,6 +18,8 @@ import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.cryptomator.cryptolib.v1.CryptorProviderImpl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public final class Cryptors {
 
 	/**
@@ -37,6 +39,7 @@ public final class Cryptors {
 	 * @return Cleartext length of a <code>ciphertextSize</code>-sized ciphertext decrypted with <code>cryptor</code>.
 	 */
 	public static long cleartextSize(long ciphertextSize, Cryptor cryptor) {
+		checkArgument(ciphertextSize >= 0, "expected ciphertextSize to be positive, but was %s", ciphertextSize);
 		long cleartextChunkSize = cryptor.fileContentCryptor().cleartextChunkSize();
 		long ciphertextChunkSize = cryptor.fileContentCryptor().ciphertextChunkSize();
 		long overheadPerChunk = ciphertextChunkSize - cleartextChunkSize;
@@ -60,6 +63,7 @@ public final class Cryptors {
 	 *         Not including the {@link FileHeader#getFilesize() length of the header}.
 	 */
 	public static long ciphertextSize(long cleartextSize, Cryptor cryptor) {
+		checkArgument(cleartextSize >= 0, "expected cleartextSize to be positive, but was %s", cleartextSize);
 		long cleartextChunkSize = cryptor.fileContentCryptor().cleartextChunkSize();
 		long ciphertextChunkSize = cryptor.fileContentCryptor().ciphertextChunkSize();
 		long overheadPerChunk = ciphertextChunkSize - cleartextChunkSize;

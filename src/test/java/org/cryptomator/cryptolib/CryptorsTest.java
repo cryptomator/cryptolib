@@ -79,6 +79,12 @@ public class CryptorsTest {
 		Assert.assertEquals(65l, Cryptors.cleartextSize(89l, c));
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testCleartextSizeWithNegativeCiphertextSize() {
+		Cryptor c = Mockito.mock(Cryptor.class);
+		Cryptors.cleartextSize(-1, c);
+	}
+
 	@Test
 	public void testCleartextSizeWithInvalidCiphertextSize() {
 		Cryptor c = Mockito.mock(Cryptor.class);
@@ -115,6 +121,12 @@ public class CryptorsTest {
 		Assert.assertEquals(79l, Cryptors.ciphertextSize(63l, c));
 		Assert.assertEquals(80l, Cryptors.ciphertextSize(64l, c));
 		Assert.assertEquals(89l, Cryptors.ciphertextSize(65l, c));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testCiphertextSizehNegativeCleartextSize() {
+		Cryptor c = Mockito.mock(Cryptor.class);
+		Cryptors.ciphertextSize(-1, c);
 	}
 
 	@Test
