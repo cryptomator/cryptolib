@@ -100,6 +100,7 @@ public abstract class KeyFile {
 	 * Creates a new version-specific KeyFile instance from this instance.
 	 * 
 	 * @param clazz Version-specific subclass of KeyFile.
+	 * @param <T> Specific KeyFile implementation type.
 	 * @return New instance of the given class.
 	 */
 	public <T extends KeyFile> T as(Class<T> clazz) {

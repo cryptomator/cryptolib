@@ -47,10 +47,10 @@ public class CryptorImplTest {
 		String serializedStr = new String(serialized, UTF_8);
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"version\": 3"));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptSalt\": \"AAAAAAAAAAA=\""));
-		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptCostParam\": 16384"));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptCostParam\": 32768"));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptBlockSize\": 8"));
-		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"primaryMasterKey\": \"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\""));
-		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"hmacMasterKey\": \"BJPIq5pvhN24iDtPJLMFPLaVJWdGog9k4n0P03j4ru+ivbWY9OaRGQ==\""));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"primaryMasterKey\": \"bOuDTfSpTHJrM4G321gts1QL+TFAZ3I6S/QHwim39pz+t+/K9IYy6g==\""));
+		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"hmacMasterKey\": \"bOuDTfSpTHJrM4G321gts1QL+TFAZ3I6S/QHwim39pz+t+/K9IYy6g==\""));
 		Assert.assertThat(serializedStr, CoreMatchers.containsString("\"versionMac\": \"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\""));
 	}
 
