@@ -6,51 +6,58 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v2;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Random;
 
-import javax.crypto.AEADBadTagException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.io.BaseEncoding;
+import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
+import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 public class FileHeaderCryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
+	private static final SecureRandom ANTI_REUSE_PRNG = SecureRandomMock.cycle((byte) 0x13, (byte) 0x37);
+
 	private FileHeaderCryptorImpl headerCryptor;
 
 	@Before
 	public void setup() {
 		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		headerCryptor = new FileHeaderCryptorImpl(encKey, macKey, RANDOM_MOCK);
+		headerCryptor = new FileHeaderCryptorImpl(encKey, RANDOM_MOCK);
+
+		// init cipher with distinct IV to avoid cipher-internal anti-reuse checking
+		byte[] nonce = new byte[GCM_NONCE_SIZE];
+		ANTI_REUSE_PRNG.nextBytes(nonce);
+		CipherSupplier.AES_GCM.forEncryption(encKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 	}
 
 	@Test
 	public void testEncryption() {
-		// set nonce to: AAAAAAAAAAAAAAAAAAAAAA==
+		// set nonce to: AAAAAAAAAAAAAAAA
 		// set payload to: //////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-		FileHeader header = headerCryptor.create();
+		FileHeader header = new FileHeaderImpl(new byte[12], new byte[32]);
 		// encrypt payload:
 		// echo -n "//////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode \
-		// | openssl enc -aes-256-ctr -K 0 -iv 0 -a
-		// -> I2o/h12/dnatSKIUkoQgh1MPivvHRTa5qWO08cTLc4vOp0A9TWBrbg==
+		// | openssl enc -aes-256-gcm -K 0000000000000000000000000000000000000000000000000000000000000000 -iv 00000000000000000000000000000000 -a
+		// -> MVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhew==
 
-		// mac nonce + encrypted payload:
-		// (openssl dgst -sha256 -mac HMAC -macopt hexkey:0000000000000000000000000000000000000000000000000000000000000000 -binary)
-
-		// concat nonce + encrypted payload + mac:
-		final String expected = "AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfMdzvHF3f9EE0LSnRLSsu6ps3IRcJg==";
+		// the following string contains nonce + ciphertext + tag. The tag is not produced by openssl, though.
+		final String expected = "AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjU0=";
 
 		ByteBuffer result = headerCryptor.encryptHeader(header);
 
@@ -59,14 +66,14 @@ public class FileHeaderCryptorImplTest {
 
 	@Test
 	public void testHeaderSize() {
-		Assert.assertEquals(FileHeaderImpl.SIZE, headerCryptor.headerSize());
-		Assert.assertEquals(FileHeaderImpl.SIZE, headerCryptor.encryptHeader(headerCryptor.create()).limit());
+		Assert.assertEquals(org.cryptomator.cryptolib.v2.FileHeaderImpl.SIZE, headerCryptor.headerSize());
+		Assert.assertEquals(org.cryptomator.cryptolib.v2.FileHeaderImpl.SIZE, headerCryptor.encryptHeader(headerCryptor.create()).limit());
 	}
 
 	@Test
 	@SuppressWarnings("deprecation")
-	public void testDecryption() throws AEADBadTagException {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfMdzvHF3f9EE0LSnRLSsu6ps3IRcJg==");
+	public void testDecryption() {
+		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjU0=");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 		Assert.assertEquals(header.getFilesize(), -1l);
 	}
@@ -78,14 +85,14 @@ public class FileHeaderCryptorImplTest {
 	}
 
 	@Test(expected = AuthenticationFailedException.class)
-	public void testDecryptionWithInvalidMac1() throws AEADBadTagException {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa==");
+	public void testDecryptionWithInvalidTag1() {
+		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA=");
 		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
 	@Test(expected = AuthenticationFailedException.class)
-	public void testDecryptionWithInvalidMac2() throws AEADBadTagException {
-		byte[] ciphertext = BaseEncoding.base64().decode("aAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
+	public void testDecryptionWithInvalidTag2() {
+		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUa=");
 		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 	}
 
