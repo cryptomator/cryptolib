@@ -1,24 +1,22 @@
 language: java
 sudo: false
 jdk:
-- oraclejdk9
+- oraclejdk10
 env:
   global:
-  - secure: EKWTN92R2QwWdSoWpbWuH7s97+G/ev8eVQFDJYyPDukaY7PxgYm1gJamBxqpYWwzAThSW190K2ZiBfsvvJ1BfxNZt2OJi7U3lWrFx7iosBnv19zayaj99+CJMJz4w9+lJO911wJrk9B7fFljLKPGtj5ARSNDAfWJjMnQJScx0b35G+vn6k+5370TCzr6MSQbhRaf3/smVih1x+e5V3rrs5sdE1nsQ4X3uxWAnftl73LInxTeDVVQJLBfw/g3CJdWT5BP+VgY8dtkD//bPJCMZnd5+G+GDM0swbhPmaRqCA8J4xk4juH91V8S465JLRvfJH3rkzu6c3BCtjqBqLVoWeq0b6AXBrQMp3WBib9ylEpnkQT8KU92VEoueXjHu1bFIzvhigyLM7Le944jK/7g3HeUNZOLD2kKcS34w+pxfttRy/pBXdIf4GvRZvgKJkj1wUo24kXkRbOqkryIIonUPi4kbZ/7SmVXhbCvNDCX/yf+coVsJAln2ZSCMTUVohLL3/Ry5f28U0RiowG2gB5fq/dzbdzF76chLHcuap4oHLOCRqrnduG2FWkeSgxVKKKxVc4g5ZT8UCwdMmqoSZF5BLgj/NwtQ+kxI0fX9FPjttymfoQ8pZ6bKT9kOBkUfdxjv6CfvaAppUAnNBx2AvPtepBDzc4JSuPqcRe2lDLQFFY= # COVERITY_SCAN_TOKEN
-  - secure: HCm8qbHtKBtVRamKeNd1VJ459jeSJtEBwuBsCQPcppy/CsVXSB6jvowMm0W6eXIHO7YWFUTRK5S65sF325eA9OJAwXqtz+Veaxbyz191GDInUBJ/wUTvYRfRCroSD2OT7fQkZeqPF1JuA5G+NthxYgkgLt1MyBhih7ak7y6v4nOl2BpsvKlD1XpoAWgXD5eAj9E/sy47/Ym0xfRDTdHGRYlwofWSgnDhiqEL4HmqMPeQMmETYrGqyaT3jPvqHaTdAFS7XhQPelcHHF8IOOHRNGw/HwjcynpnBmxzW77yZJ7TyJ4QcmasFIOlhMkcfxm9fNQvYP8p+MnXipF4cLigM6c9z088VpVPA++WTw0xMGsAZz2xnhsUXXMQPESnLaca6arvAA7/Z17P03aFWM6Z93I+svodIMAUOwcEoNvtrEwK2JOZuLh5MDCs6439+59wEAYVbv39VJGb/zCFx0cNFudTpQCK3CDadZBKm3ubMKMbykfJ2moMjpFEueuayce88CFolwzb1ZSflefS+BzZCZvgv+tJkMhB1s/ZmhQ7Frdn8l1Dg9q83lN//6aoRx66uL7V54+x9HxF6pwtnAEDitqiUjihnhVQyQej9jJh8Ddm4Ygc8fZtV5ZyI0eJMJE1spXztKSfbGlwmhewVX4r8nKmllLNzUAO6TtL1RniuZU= # MAVEN_GPG_PASSPHRASE
-  - secure: MADwAHLSOTbnvW5cqxh9uG3nqG2ygRDGyCo3cf57D++b/LNRhiM3ajpGyp4ze0EVpPJ6b6BGYhLOoT8s4zIVcQavlIOmsLjjcbR0SymajpJLecsX43YmkbHGLU9Tx7Fhsharb8RacFogaUMKI/HnnsRVTzsQpnQ2QhXtQKoCcjSHPoswQrv0NoNAvJNRdOyQzpURJl2/2TNUy5ejau61pP+mhyJqTXGTlHXzIm46yLEUi01iHOzlWMMFUTDwyKRIrb2gxDdxgRzR969KnlU6MjlcHdI4Y7vWhQ1ZbP/YxXgyCzuhpgYR2/YIoEqHN8k1yUlmwoUOtc1jQPi7UxdqDpu5n7T1UyZg0Inf+1gHUJh96pZVgYgLmSQ7bY7Pc/cQv9n0k7hudArTImK/SQjAYwJesPtr2hWhirdzJ26YGsMUNXBa7OZxGaUwSwTspD+f5uJqIx0v0HW7HIas4m/iy/lBorAiuR+qv7qXWwrpt5NFIjnZeFnc76L0jdU+SGr1dJlJIutwI9FUOCU37SzdP+gVmWrVvK6bq83hPL1xRCqmcn1ojBnYWiFh0VjaKgxg6uJRZSEIu9MTtg4E/tsO9v0kmevdiU6oLb9Krv6wAlP+nmXOPQV1xPnBooBO7iNQh9bpZnl0UG6N2iZvecHEOTN7aZVld/BIQRy08ww1gAM= # MAVEN_OSSRH_USERNAME
-  - secure: lNc2PlTH35dbmZ5PPpXll3FZ9xdomNhUndCXh3y0KtAk6TJyPzVFiOrlJdNbyHEK+VdgLegh146cuGuvmfP0U/RAPfDA7Gn+6JxG2lHDNP6nDOzhwaY0NpC53Inv8Y6iBeeNoojVOkkwRJyonsjv8TMmbv+EfDXL1oDP6odeTsV9nRTiYn0RT6407v8hdEb3AOBoOZ0jrXfcD1PQVHvJElrEvfXf2cLS3iQvMa8B84tUIPF/vk9F3cPAJlqCt5PQ/pGQ7rQxQ+Jyi5HCshacAR7WBVHSiC9hu6v7yMO3ZhE3kPMSeIYQeE6Fd/AgYXIHlEjPCZVmO6CvGzPS1ThqOZplFbNjqGYCfRzuyGY4+avT06+9jysjpoJkgAXjc2IroWjJr/YGZIiXPKcfvSoIhYGDpX1nKkXNgUdiXAwF58nC3/oESZYPpwCsVadR6hO4b0weE3D9YFDvDaqkG3L5yR+v1lDTEjiqOIDoqLBzYxj3QRC7D/taIALzOrn08PlsBOtattSshmu4j4cU2euQdEFTS7MZ0HVrAUcsjCuEBUpbPG889c1rAPsFcPCiVmPNPrnnmr2XblfaOdIXeMa6s9bLLizS1bQ0TncLvri58vbEHAcFHysI0O6gYHWvF+hmczYWxlNbsG8LvG7EaE/PawFIqqIrdP0fhk7uhpgn4F4= # MAVEN_OSSRH_PASSWORD
-  - secure: I/yCjGHCtNMBezO2ylpKKXU1m/deYj3l7yBx/epXVFv9pPixzgMUaGaOxJrz3s82ZuigwYgcRUDgjx0lmKJCKJCM1IGESjxfDvJPvY+yAbQz1PUd9O+buHtNU1nZRHGrPSSlv9aeCzYCcOtcP3GPlrVAGXalOnpTNeA8tfjjFXRYRSFgybP9ENVyRuVdI4gL3wfJV1OEXQ+87WsgTSmaadQymJilphGRdbTgxP6rilZVc7OJOgFmfyE38oJObSUDo7rzU4pPYHQI8DPGOo6Q9il0HEcJ6Zrz77JLTbrjcVhe4jK1MV57AdB15YGpw8gWa6Mzr2sEKwDw+iJ5ONGgCgwJM4OrJI3swdZtDbttV2GGnMot8gVn/l9Et6SMn7s+GoLRdfltie2SWZy/Zej2VnAxSUQ9Ty2FlrpExPSPgUAkDpgWEe+HYh/wMCsOQyX0dPQdsyOeYMJHyHqooR0IkHq2JIhfxb90x3mplRCAi0CXT2MXHAVh1ymNcI56BIY6y1NWsToAgElFGGAh6ntqND82+SnEqZYs7eA0RQsYfd8E7utHVPeEi14sen/j+hV8pnkUwju5n/3oqaPoecuuR7vXAI6pm2m9XmZoxeDC5REmGNnLWc6AxkHzh6LNemni+1RCvNmX2ypQmy0WUt1iovxi7yXc+9gdpEWIbgQu5do= #CODACY_PROJECT_TOKEN
+  - secure: "EKWTN92R2QwWdSoWpbWuH7s97+G/ev8eVQFDJYyPDukaY7PxgYm1gJamBxqpYWwzAThSW190K2ZiBfsvvJ1BfxNZt2OJi7U3lWrFx7iosBnv19zayaj99+CJMJz4w9+lJO911wJrk9B7fFljLKPGtj5ARSNDAfWJjMnQJScx0b35G+vn6k+5370TCzr6MSQbhRaf3/smVih1x+e5V3rrs5sdE1nsQ4X3uxWAnftl73LInxTeDVVQJLBfw/g3CJdWT5BP+VgY8dtkD//bPJCMZnd5+G+GDM0swbhPmaRqCA8J4xk4juH91V8S465JLRvfJH3rkzu6c3BCtjqBqLVoWeq0b6AXBrQMp3WBib9ylEpnkQT8KU92VEoueXjHu1bFIzvhigyLM7Le944jK/7g3HeUNZOLD2kKcS34w+pxfttRy/pBXdIf4GvRZvgKJkj1wUo24kXkRbOqkryIIonUPi4kbZ/7SmVXhbCvNDCX/yf+coVsJAln2ZSCMTUVohLL3/Ry5f28U0RiowG2gB5fq/dzbdzF76chLHcuap4oHLOCRqrnduG2FWkeSgxVKKKxVc4g5ZT8UCwdMmqoSZF5BLgj/NwtQ+kxI0fX9FPjttymfoQ8pZ6bKT9kOBkUfdxjv6CfvaAppUAnNBx2AvPtepBDzc4JSuPqcRe2lDLQFFY=" # COVERITY_SCAN_TOKEN
+  - secure: "I/yCjGHCtNMBezO2ylpKKXU1m/deYj3l7yBx/epXVFv9pPixzgMUaGaOxJrz3s82ZuigwYgcRUDgjx0lmKJCKJCM1IGESjxfDvJPvY+yAbQz1PUd9O+buHtNU1nZRHGrPSSlv9aeCzYCcOtcP3GPlrVAGXalOnpTNeA8tfjjFXRYRSFgybP9ENVyRuVdI4gL3wfJV1OEXQ+87WsgTSmaadQymJilphGRdbTgxP6rilZVc7OJOgFmfyE38oJObSUDo7rzU4pPYHQI8DPGOo6Q9il0HEcJ6Zrz77JLTbrjcVhe4jK1MV57AdB15YGpw8gWa6Mzr2sEKwDw+iJ5ONGgCgwJM4OrJI3swdZtDbttV2GGnMot8gVn/l9Et6SMn7s+GoLRdfltie2SWZy/Zej2VnAxSUQ9Ty2FlrpExPSPgUAkDpgWEe+HYh/wMCsOQyX0dPQdsyOeYMJHyHqooR0IkHq2JIhfxb90x3mplRCAi0CXT2MXHAVh1ymNcI56BIY6y1NWsToAgElFGGAh6ntqND82+SnEqZYs7eA0RQsYfd8E7utHVPeEi14sen/j+hV8pnkUwju5n/3oqaPoecuuR7vXAI6pm2m9XmZoxeDC5REmGNnLWc6AxkHzh6LNemni+1RCvNmX2ypQmy0WUt1iovxi7yXc+9gdpEWIbgQu5do=" # CODACY_PROJECT_TOKEN
+  - secure: "R5EatN/ll02QWxDRRY4g4o9v3u2XlUN7M+A6fewclghZN7xCqhRauW07aWBKV7dUvLkl4R4tL1e8ze+lEGfR3PtbkoLe2DliV+hEFlQAW7/s8b2operP43nK9jaiA9cMsyjVufc1lnlui2kFjnpEoc0TcDyHsArjo7NTTwoddp0L1q+/NzMXka5ED8xCKxqou/YOSuQi7Snu8XTSDfAFIorJSmhshE6hC/r9UOh/lNRbuQzfkgzeUQwVImmBRgxBVh45b7mgkRHnDOlalA9H1MQHepwPOZcAGefmLYQBqsU4EN6pW/C4WSvd0rHPvsczw1a5bkbj/ps8bH6JPepcra8eZjdm7w+TatvpZO+gHDWGjDIdMb7AfR1ZRFtHJRDkqhX/hZrVgZKnbBKga186BHphsWjW2Wq1hzBoegJ80jCxq8BrwJQJIzJ2UZQ2jAIl86FfycqIcdpsZL/VyF6B27C0TEvgWVvELRcRaOvV2sm4lbz4ZGquUhBPYh8/cQF30be6jzBdPFE5rQE86tILndY7JqLy2Rrp3TCjGo7lKiAysSpaHDOQ38kJW36RC3ZgDQNcP7rVaGMhhOTU6NZTU1NB0TSfbf7+T8/NFhBWyUzJeC0hvTZ4rwEQQIh7FYiikcAmUTgL9DkrGcGkbLHJ5jkbYpQJGVO5+a5JORgGFnc=" # BINTRAY_API_KEY
 install:
+- curl -o $HOME/.m2/settings.xml https://gist.githubusercontent.com/cryptobot/cf5fbd909c4782aaeeeb7c7f4a1a43da/raw/e60ee486e34ee0c79f89f947abe2c83b4290c6bb/settings.xml
 - mvn dependency:go-offline -Pdependency-check,coverage,release
 before_script:
-- "if [[ ${TRAVIS_BRANCH} == 'develop' && ${TRAVIS_PULL_REQUEST} == 'false' ]]; then mvn dependency-check:check -Pdependency-check; fi"
+- mvn --update-snapshots dependency-check:check -Pdependency-check
 script:
 - mvn clean test jacoco:report verify -Pcoverage -Dorg.slf4j.simpleLogger.defaultLogLevel=debug
 after_success:
-- jdk_switcher use oraclejdk8
-- curl -o ~/codacy-coverage-reporter-assembly-latest.jar https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/2.0.1/codacy-coverage-reporter-2.0.1-assembly.jar
-- $JAVA_HOME/bin/java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r target/site/jacoco/jacoco.xml
+- curl -o ~/codacy-coverage-reporter.jar https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/4.0.3/codacy-coverage-reporter-4.0.3-assembly.jar
+- $JAVA_HOME/bin/java -jar ~/codacy-coverage-reporter.jar report -l Java -r target/site/jacoco/jacoco.xml
 cache:
   directories:
   - $HOME/.m2
@@ -31,20 +29,12 @@ addons:
     build_command_prepend: "mvn clean"
     build_command: "mvn compile -DskipTests=true"
     branch_pattern: release.*
-before_deploy:
-- jdk_switcher use oraclejdk9
-- gpg --import 34C80F11.gpg
 deploy:
-- provider: script # SNAPSHOTS
-  script: mvn clean deploy -DskipTests -Prelease --settings settings.xml
-  skip_cleanup: true
-  on:
-    repo: cryptomator/cryptolib
-    branch: develop
-    condition: $TRAVIS_TAG = ''
-- provider: script # RELEASES
+- provider: script
   script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -Prelease --settings settings.xml
   skip_cleanup: true
   on:
     repo: cryptomator/cryptolib
     tags: true
+after_deploy:
+  - "echo '{\"close\": \"1\"}' | curl -v -X POST -u cryptobot:${BINTRAY_API_KEY} https://api.bintray.com/maven_central_sync/cryptomator/maven/cryptolib/versions/${TRAVIS_TAG}"
