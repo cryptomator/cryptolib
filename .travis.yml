@@ -9,7 +9,7 @@ env:
   - secure: "R5EatN/ll02QWxDRRY4g4o9v3u2XlUN7M+A6fewclghZN7xCqhRauW07aWBKV7dUvLkl4R4tL1e8ze+lEGfR3PtbkoLe2DliV+hEFlQAW7/s8b2operP43nK9jaiA9cMsyjVufc1lnlui2kFjnpEoc0TcDyHsArjo7NTTwoddp0L1q+/NzMXka5ED8xCKxqou/YOSuQi7Snu8XTSDfAFIorJSmhshE6hC/r9UOh/lNRbuQzfkgzeUQwVImmBRgxBVh45b7mgkRHnDOlalA9H1MQHepwPOZcAGefmLYQBqsU4EN6pW/C4WSvd0rHPvsczw1a5bkbj/ps8bH6JPepcra8eZjdm7w+TatvpZO+gHDWGjDIdMb7AfR1ZRFtHJRDkqhX/hZrVgZKnbBKga186BHphsWjW2Wq1hzBoegJ80jCxq8BrwJQJIzJ2UZQ2jAIl86FfycqIcdpsZL/VyF6B27C0TEvgWVvELRcRaOvV2sm4lbz4ZGquUhBPYh8/cQF30be6jzBdPFE5rQE86tILndY7JqLy2Rrp3TCjGo7lKiAysSpaHDOQ38kJW36RC3ZgDQNcP7rVaGMhhOTU6NZTU1NB0TSfbf7+T8/NFhBWyUzJeC0hvTZ4rwEQQIh7FYiikcAmUTgL9DkrGcGkbLHJ5jkbYpQJGVO5+a5JORgGFnc=" # BINTRAY_API_KEY
 install:
 - curl -o $HOME/.m2/settings.xml https://gist.githubusercontent.com/cryptobot/cf5fbd909c4782aaeeeb7c7f4a1a43da/raw/e60ee486e34ee0c79f89f947abe2c83b4290c6bb/settings.xml
-- mvn dependency:go-offline -Pdependency-check,coverage,release
+- mvn source:help javadoc:help dependency:go-offline -Pdependency-check,coverage,release
 before_script:
 - mvn --update-snapshots dependency-check:check -Pdependency-check
 script:
