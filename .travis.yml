@@ -31,7 +31,7 @@ addons:
     branch_pattern: release.*
 deploy:
 - provider: script
-  script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -Prelease --settings settings.xml
+  script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -Prelease
   skip_cleanup: true
   on:
     repo: cryptomator/cryptolib
