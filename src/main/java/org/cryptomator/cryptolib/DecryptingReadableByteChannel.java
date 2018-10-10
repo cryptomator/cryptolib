@@ -6,7 +6,7 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

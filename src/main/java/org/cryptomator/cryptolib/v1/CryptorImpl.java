@@ -40,7 +40,7 @@ class CryptorImpl implements Cryptor {
 
 	/**
 	 * Package-private constructor.
-	 * Use {@link CryptorProviderImpl#createNew()} or {@link CryptorProviderImpl#createFromKeyFile(byte[], CharSequence)} to obtain a Cryptor instance.
+	 * Use {@link CryptorProviderImpl#createNew()} or {@link CryptorProviderImpl#createFromKeyFile(KeyFile, CharSequence, int)} to obtain a Cryptor instance.
 	 */
 	CryptorImpl(SecretKey encKey, SecretKey macKey, SecureRandom random) {
 		this.encKey = encKey;
