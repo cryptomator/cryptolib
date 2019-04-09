@@ -8,23 +8,21 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 public class EncryptingWritableByteChannelTest {
 
@@ -37,7 +35,7 @@ public class EncryptingWritableByteChannelTest {
 	private FileHeaderCryptor headerCryptor;
 	private FileHeader header;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		dstFile = ByteBuffer.allocate(100);
 		dstFileChannel = new SeekableByteChannelMock(dstFile);
@@ -50,15 +48,10 @@ public class EncryptingWritableByteChannelTest {
 		Mockito.when(contentCryptor.cleartextChunkSize()).thenReturn(10);
 		Mockito.when(headerCryptor.create()).thenReturn(header);
 		Mockito.when(headerCryptor.encryptHeader(header)).thenReturn(ByteBuffer.wrap("hhhhh".getBytes()));
-		Mockito.when(contentCryptor.encryptChunk(Mockito.any(ByteBuffer.class), Mockito.anyLong(), Mockito.any(FileHeader.class))).thenAnswer(new Answer<ByteBuffer>() {
-
-			@Override
-			public ByteBuffer answer(InvocationOnMock invocation) throws Throwable {
-				ByteBuffer input = invocation.getArgument(0);
-				String inStr = UTF_8.decode(input).toString();
-				return ByteBuffer.wrap(inStr.toUpperCase().getBytes(UTF_8));
-			}
-
+		Mockito.when(contentCryptor.encryptChunk(Mockito.any(ByteBuffer.class), Mockito.anyLong(), Mockito.any(FileHeader.class))).thenAnswer(invocation -> {
+			ByteBuffer input = invocation.getArgument(0);
+			String inStr = UTF_8.decode(input).toString();
+			return ByteBuffer.wrap(inStr.toUpperCase().getBytes(UTF_8));
 		});
 	}
 
@@ -69,7 +62,7 @@ public class EncryptingWritableByteChannelTest {
 			ch.write(UTF_8.encode("hello world 2"));
 		}
 		dstFile.flip();
-		Assert.assertArrayEquals("hhhhhHELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
+		Assertions.assertArrayEquals("hhhhhHELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
 	}
 
 	@Test
@@ -78,7 +71,7 @@ public class EncryptingWritableByteChannelTest {
 			// empty, so write nothing
 		}
 		dstFile.flip();
-		Assert.assertArrayEquals("hhhhh".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
+		Assertions.assertArrayEquals("hhhhh".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
 	}
 
 }

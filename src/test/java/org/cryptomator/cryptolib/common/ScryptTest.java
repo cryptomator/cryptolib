@@ -1,9 +1,9 @@
 package org.cryptomator.cryptolib.common;
 
-import java.nio.charset.Charset;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.nio.charset.Charset;
 
 /**
  * Tests from https://tools.ietf.org/html/rfc7914#section-12
@@ -25,7 +25,7 @@ public class ScryptTest {
 				(byte) 0xe8, (byte) 0xd3, (byte) 0xe0, (byte) 0xfb, (byte) 0x2e, (byte) 0x0d, (byte) 0x36, (byte) 0x28, //
 				(byte) 0xcf, (byte) 0x35, (byte) 0xe2, (byte) 0x0c, (byte) 0x38, (byte) 0xd1, (byte) 0x89, (byte) 0x06 //
 		};
-		Assert.assertArrayEquals(expected, key);
+		Assertions.assertArrayEquals(expected, key);
 	}
 
 	@Test
@@ -41,7 +41,7 @@ public class ScryptTest {
 				(byte) 0xe6, (byte) 0x1e, (byte) 0x85, (byte) 0xdc, (byte) 0x0d, (byte) 0x65, (byte) 0x1e, (byte) 0x40, //
 				(byte) 0xdf, (byte) 0xcf, (byte) 0x01, (byte) 0x7b, (byte) 0x45, (byte) 0x57, (byte) 0x58, (byte) 0x87 //
 		};
-		Assert.assertArrayEquals(expected, key);
+		Assertions.assertArrayEquals(expected, key);
 	}
 
 }

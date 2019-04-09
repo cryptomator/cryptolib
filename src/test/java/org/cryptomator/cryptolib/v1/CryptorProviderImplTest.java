@@ -8,29 +8,22 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.security.SecureRandom;
-
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.CustomTypeSafeMatcher;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.security.SecureRandom;
 
 public class CryptorProviderImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-
-	@Rule
-	public final ExpectedException thrown = ExpectedException.none();
-
+	
 	private CryptorProviderImpl cryptorProvider;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		cryptorProvider = new CryptorProviderImpl(RANDOM_MOCK);
 	}
@@ -38,7 +31,7 @@ public class CryptorProviderImplTest {
 	@Test
 	public void testCreateNew() {
 		CryptorImpl cryptor = cryptorProvider.createNew();
-		Assert.assertNotNull(cryptor);
+		Assertions.assertNotNull(cryptor);
 	}
 
 	@Test
@@ -49,17 +42,19 @@ public class CryptorProviderImplTest {
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
-		Assert.assertNotNull(cryptor);
+		Assertions.assertNotNull(cryptor);
 	}
 
-	@Test(expected = InvalidPassphraseException.class)
+	@Test
 	public void testCreateFromKeyWithWrongPassphrase() {
 		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		cryptorProvider.createFromKeyFile(keyFile, "qwe", 3);
+		Assertions.assertThrows(InvalidPassphraseException.class, () -> {
+			cryptorProvider.createFromKeyFile(keyFile, "qwe", 3);
+		});
 	}
 
 	@Test
@@ -70,17 +65,19 @@ public class CryptorProviderImplTest {
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x01}, 3);
-		Assert.assertNotNull(cryptor);
+		Assertions.assertNotNull(cryptor);
 	}
 
-	@Test(expected = InvalidPassphraseException.class)
+	@Test
 	public void testCreateFromKeyWithWrongPepper() {
 		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
 				+ "\"primaryMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
 				+ "\"hmacMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x02}, 3);
+		Assertions.assertThrows(InvalidPassphraseException.class, () -> {
+			cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x02}, 3);
+		});
 	}
 
 	@Test
@@ -90,32 +87,13 @@ public class CryptorProviderImplTest {
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		thrown.expect(CoreMatchers.allOf(new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("isVaultOlderThanSoftware") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.isVaultOlderThanSoftware();
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("not isSoftwareOlderThanVault") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return !item.isSoftwareOlderThanVault();
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("detected version is -1") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.getDetectedVersion().equals(-1);
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("current version is 3") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.getSupportedVersion() == 3;
-			}
-		}));
-		cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
+		UnsupportedVaultFormatException exception = Assertions.assertThrows(UnsupportedVaultFormatException.class, () -> {
+			cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
+		});
+		Assertions.assertTrue(exception.isVaultOlderThanSoftware());
+		Assertions.assertFalse(exception.isSoftwareOlderThanVault());
+		Assertions.assertEquals(-1, exception.getDetectedVersion());
+		Assertions.assertEquals(3, exception.getSupportedVersion());
 	}
 
 	@Test
@@ -124,32 +102,13 @@ public class CryptorProviderImplTest {
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		thrown.expect(CoreMatchers.allOf(new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("not isVaultOlderThanSoftware") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return !item.isVaultOlderThanSoftware();
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("isSoftwareOlderThanVault") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.isSoftwareOlderThanVault();
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("detected version is MAX INT") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.getDetectedVersion().equals(Integer.MAX_VALUE);
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("current version is 3") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.getSupportedVersion() == 3;
-			}
-		}));
-		cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
+		UnsupportedVaultFormatException exception = Assertions.assertThrows(UnsupportedVaultFormatException.class, () -> {
+			cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
+		});
+		Assertions.assertFalse(exception.isVaultOlderThanSoftware());
+		Assertions.assertTrue(exception.isSoftwareOlderThanVault());
+		Assertions.assertEquals(Integer.MAX_VALUE, exception.getDetectedVersion());
+		Assertions.assertEquals(3, exception.getSupportedVersion());
 	}
 
 	@Test
@@ -159,32 +118,13 @@ public class CryptorProviderImplTest {
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLa=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		thrown.expect(CoreMatchers.allOf(new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("not isVaultOlderThanSoftware") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return !item.isVaultOlderThanSoftware();
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("isSoftwareOlderThanVault") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.isSoftwareOlderThanVault();
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("detected version is MAX INT") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.getDetectedVersion().equals(Integer.MAX_VALUE);
-			}
-		}, new CustomTypeSafeMatcher<UnsupportedVaultFormatException>("current version is 3") {
-
-			@Override
-			protected boolean matchesSafely(UnsupportedVaultFormatException item) {
-				return item.getSupportedVersion() == 3;
-			}
-		}));
-		cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
+		UnsupportedVaultFormatException exception = Assertions.assertThrows(UnsupportedVaultFormatException.class, () -> {
+			cryptorProvider.createFromKeyFile(keyFile, "asd", 3);
+		});
+		Assertions.assertFalse(exception.isVaultOlderThanSoftware());
+		Assertions.assertTrue(exception.isSoftwareOlderThanVault());
+		Assertions.assertEquals(Integer.MAX_VALUE, exception.getDetectedVersion());
+		Assertions.assertEquals(3, exception.getSupportedVersion());
 	}
 
 }

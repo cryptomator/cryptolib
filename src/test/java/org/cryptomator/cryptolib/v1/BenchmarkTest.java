@@ -8,8 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -17,7 +17,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 public class BenchmarkTest {
 
-	@Ignore
+	@Disabled
 	@Test
 	public void runBenchmarks() throws RunnerException {
 		// Taken from http://stackoverflow.com/a/30486197/4014509:
