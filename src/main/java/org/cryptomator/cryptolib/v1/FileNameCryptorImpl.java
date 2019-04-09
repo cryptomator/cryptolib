@@ -50,20 +50,29 @@ class FileNameCryptorImpl implements FileNameCryptor {
 
 	@Override
 	public String encryptFilename(String cleartextName, byte[]... associatedData) {
+		return encryptFilename(BASE32, cleartextName, associatedData);
+	}
+
+	@Override
+	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
 		byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
 		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes, associatedData);
-		return BASE32.encode(encryptedBytes);
+		return encoding.encode(encryptedBytes);
 	}
 
 	@Override
 	public String decryptFilename(String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
+		return decryptFilename(BASE32, ciphertextName, associatedData);
+	}
+
+	@Override
+	public String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
 		try {
-			byte[] encryptedBytes = BASE32.decode(ciphertextName);
+			byte[] encryptedBytes = encoding.decode(ciphertextName);
 			byte[] cleartextBytes = AES_SIV.get().decrypt(encryptionKey, macKey, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
 		} catch (UnauthenticCiphertextException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}
 	}
-
 }
