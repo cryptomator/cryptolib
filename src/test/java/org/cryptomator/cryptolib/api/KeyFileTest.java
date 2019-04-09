@@ -8,13 +8,13 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
-import java.nio.charset.Charset;
-
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.Test;
-
 import com.google.gson.annotations.Expose;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.nio.charset.Charset;
 
 public class KeyFileTest {
 
@@ -24,17 +24,19 @@ public class KeyFileTest {
 	public void testParse() {
 		final String serialized = "{\"version\":42, \"foo\":\"AAAAAAAAAAA=\", \"hidden\": \"hello world\"}";
 		KeyFile keyFile = KeyFile.parse(serialized.getBytes());
-		Assert.assertEquals(42, keyFile.getVersion());
+		Assertions.assertEquals(42, keyFile.getVersion());
 		KeyFileImpl keyFileImpl = keyFile.as(KeyFileImpl.class);
-		Assert.assertEquals(42, keyFileImpl.getVersion());
-		Assert.assertArrayEquals(new byte[8], keyFileImpl.foo);
-		Assert.assertNull(keyFileImpl.hidden);
+		Assertions.assertEquals(42, keyFileImpl.getVersion());
+		Assertions.assertArrayEquals(new byte[8], keyFileImpl.foo);
+		Assertions.assertNull(keyFileImpl.hidden);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testParseInvalid1() {
 		final String serialized = "{i don't know syntax}";
-		KeyFile.parse(serialized.getBytes());
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			KeyFile.parse(serialized.getBytes());
+		});
 	}
 
 	@Test
@@ -43,8 +45,8 @@ public class KeyFileTest {
 		keyFile.foo = new byte[8];
 		keyFile.hidden = "hello world";
 		String serialized = new String(keyFile.serialize(), UTF_8);
-		Assert.assertThat(serialized, CoreMatchers.containsString("\"foo\": \"AAAAAAAAAAA=\""));
-		Assert.assertThat(serialized, CoreMatchers.not(CoreMatchers.containsString("\"hidden\": \"hello world\"")));
+		MatcherAssert.assertThat(serialized, CoreMatchers.containsString("\"foo\": \"AAAAAAAAAAA=\""));
+		MatcherAssert.assertThat(serialized, CoreMatchers.not(CoreMatchers.containsString("\"hidden\": \"hello world\"")));
 	}
 
 	private static class KeyFileImpl extends KeyFile {

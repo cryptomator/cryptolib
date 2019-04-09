@@ -8,23 +8,22 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
+import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
+import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.security.SecureRandom;
 import java.util.Arrays;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
 
 public class FileContentEncryptorTest {
 
@@ -34,7 +33,7 @@ public class FileContentEncryptorTest {
 
 	private CryptorImpl cryptor;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		cryptor = new CryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
 	}
@@ -47,7 +46,7 @@ public class FileContentEncryptorTest {
 		ByteBuffer cleartext = ByteBuffer.allocate(size);
 		try (WritableByteChannel ch = new EncryptingWritableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor)) {
 			int written = ch.write(cleartext);
-			Assert.assertEquals(size, written);
+			Assertions.assertEquals(size, written);
 		}
 
 		ciphertextBuffer.flip();
@@ -55,13 +54,13 @@ public class FileContentEncryptorTest {
 		ByteBuffer result = ByteBuffer.allocate(size + 1);
 		try (ReadableByteChannel ch = new DecryptingReadableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor, true)) {
 			int read = ch.read(result);
-			Assert.assertEquals(size, read);
+			Assertions.assertEquals(size, read);
 		}
 
-		Assert.assertArrayEquals(cleartext.array(), Arrays.copyOfRange(result.array(), 0, size));
+		Assertions.assertArrayEquals(cleartext.array(), Arrays.copyOfRange(result.array(), 0, size));
 	}
 
-	@Test(expected = AuthenticationFailedException.class)
+	@Test
 	public void testDecryptManipulatedEncrypted() throws IOException {
 		int size = 1 * 1024 * 1024;
 		ByteBuffer ciphertextBuffer = ByteBuffer.allocate(2 * size);
@@ -69,7 +68,7 @@ public class FileContentEncryptorTest {
 		ByteBuffer cleartext = ByteBuffer.allocate(size);
 		try (WritableByteChannel ch = new EncryptingWritableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor)) {
 			int written = ch.write(cleartext);
-			Assert.assertEquals(size, written);
+			Assertions.assertEquals(size, written);
 		}
 
 		ciphertextBuffer.position(0);
@@ -78,7 +77,9 @@ public class FileContentEncryptorTest {
 
 		ByteBuffer result = ByteBuffer.allocate(size + 1);
 		try (ReadableByteChannel ch = new DecryptingReadableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor, true)) {
-			ch.read(result);
+			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+				ch.read(result);
+			});
 		}
 	}
 
@@ -90,7 +91,7 @@ public class FileContentEncryptorTest {
 		ByteBuffer cleartext = ByteBuffer.allocate(size);
 		try (WritableByteChannel ch = new EncryptingWritableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor)) {
 			int written = ch.write(cleartext);
-			Assert.assertEquals(size, written);
+			Assertions.assertEquals(size, written);
 		}
 
 		ciphertextBuffer.flip();
@@ -100,10 +101,10 @@ public class FileContentEncryptorTest {
 		ByteBuffer result = ByteBuffer.allocate(size + 1);
 		try (ReadableByteChannel ch = new DecryptingReadableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor, false)) {
 			int read = ch.read(result);
-			Assert.assertEquals(size, read);
+			Assertions.assertEquals(size, read);
 		}
 
-		Assert.assertArrayEquals(cleartext.array(), Arrays.copyOfRange(result.array(), 0, size));
+		Assertions.assertArrayEquals(cleartext.array(), Arrays.copyOfRange(result.array(), 0, size));
 	}
 
 }
