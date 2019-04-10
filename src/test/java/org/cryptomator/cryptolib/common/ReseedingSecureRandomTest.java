@@ -8,28 +8,23 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import java.security.SecureRandom;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
+import java.security.SecureRandom;
 
 public class ReseedingSecureRandomTest {
 
 	private SecureRandom seeder, csprng;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		seeder = Mockito.mock(SecureRandom.class);
 		csprng = Mockito.mock(SecureRandom.class);
-		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(new Answer<byte[]>() {
-			@Override
-			public byte[] answer(InvocationOnMock invocation) throws Throwable {
-				int num = invocation.getArgument(0);
-				return new byte[num];
-			}
+		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(invocation ->  {
+			int num = invocation.getArgument(0);
+			return new byte[num];
 		});
 
 	}

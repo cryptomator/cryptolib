@@ -8,108 +8,115 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.UUID;
+import com.google.common.io.BaseEncoding;
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.junit.Assert;
-import org.junit.Test;
+import java.nio.charset.Charset;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 public class FileNameCryptorImplTest {
 
 	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
+	final byte[] keyBytes = new byte[32];
+	final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
+	final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+	final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
+
+	static Stream<String> filenameGenerator() {
+		return Stream.generate(UUID::randomUUID).map(UUID::toString).limit(100);
+	}
+
+	@DisplayName("encrypt and decrypt file names")
+	@ParameterizedTest(name = "decrypt(encrypt({0}))")
+	@MethodSource("filenameGenerator")
+	public void testDeterministicEncryptionOfFilenames(String origName) {
+		String encrypted1 = filenameCryptor.encryptFilename(origName);
+		String encrypted2 = filenameCryptor.encryptFilename(origName);
+		String decrypted = filenameCryptor.decryptFilename(encrypted1);
+
+		Assertions.assertEquals(encrypted1, encrypted2);
+		Assertions.assertEquals(origName, decrypted);
+	}
+
+	@DisplayName("encrypt and decrypt file names with AD and custom encoding")
+	@ParameterizedTest(name = "decrypt(encrypt({0}))")
+	@MethodSource("filenameGenerator")
+	public void testDeterministicEncryptionOfFilenamesWithCustomEncodingAndAssociatedData(String origName) {
+		byte[] associdatedData = new byte[10];
+		String encrypted1 = filenameCryptor.encryptFilename(BaseEncoding.base64Url(), origName, associdatedData);
+		String encrypted2 = filenameCryptor.encryptFilename(BaseEncoding.base64Url(), origName, associdatedData);
+		String decrypted = filenameCryptor.decryptFilename(BaseEncoding.base64Url(), encrypted1, associdatedData);
+
+		Assertions.assertEquals(encrypted1, encrypted2);
+		Assertions.assertEquals(origName, decrypted);
+	}
+
 	@Test
-	public void testDeterministicEncryptionOfFilenames() throws IOException {
-		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
-		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
-
-		// some random
-		for (int i = 0; i < 2000; i++) {
-			final String origName = UUID.randomUUID().toString();
-			final String encrypted1 = filenameCryptor.encryptFilename(origName);
-			final String encrypted2 = filenameCryptor.encryptFilename(origName);
-			Assert.assertEquals(encrypted1, encrypted2);
-			final String decrypted = filenameCryptor.decryptFilename(encrypted1);
-			Assert.assertEquals(origName, decrypted);
-		}
-
+	@DisplayName("encrypt and decrypt 128 bit filename")
+	public void testDeterministicEncryptionOf128bitFilename() {
 		// block size length file names
-		final String originalPath3 = "aaaabbbbccccdddd"; // 128 bit ascii
-		final String encryptedPath3a = filenameCryptor.encryptFilename(originalPath3);
-		final String encryptedPath3b = filenameCryptor.encryptFilename(originalPath3);
-		Assert.assertEquals(encryptedPath3a, encryptedPath3b);
-		final String decryptedPath3 = filenameCryptor.decryptFilename(encryptedPath3a);
-		Assert.assertEquals(originalPath3, decryptedPath3);
+		String originalPath3 = "aaaabbbbccccdddd"; // 128 bit ascii
+		String encryptedPath3a = filenameCryptor.encryptFilename(originalPath3);
+		String encryptedPath3b = filenameCryptor.encryptFilename(originalPath3);
+		String decryptedPath3 = filenameCryptor.decryptFilename(encryptedPath3a);
+
+		Assertions.assertEquals(encryptedPath3a, encryptedPath3b);
+		Assertions.assertEquals(originalPath3, decryptedPath3);
+	}
+
+	@DisplayName("hash directory id for random directory ids")
+	@ParameterizedTest(name = "hashDirectoryId({0})")
+	@MethodSource("filenameGenerator")
+	public void testDeterministicHashingOfDirectoryIds(String originalDirectoryId) {
+		final String hashedDirectory1 = filenameCryptor.hashDirectoryId(originalDirectoryId);
+		final String hashedDirectory2 = filenameCryptor.hashDirectoryId(originalDirectoryId);
+		Assertions.assertEquals(hashedDirectory1, hashedDirectory2);
 	}
 
 	@Test
-	public void testDeterministicHashingOfDirectoryIds() throws IOException {
-		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
-		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
-
-		// some random
-		for (int i = 0; i < 2000; i++) {
-			final String originalDirectoryId = UUID.randomUUID().toString();
-			final String hashedDirectory1 = filenameCryptor.hashDirectoryId(originalDirectoryId);
-			final String hashedDirectory2 = filenameCryptor.hashDirectoryId(originalDirectoryId);
-			Assert.assertEquals(hashedDirectory1, hashedDirectory2);
-		}
-	}
-
-	@Test(expected = AuthenticationFailedException.class)
+	@DisplayName("decrypt tampered ciphertext")
 	public void testDecryptionOfManipulatedFilename() {
-		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
-		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
-
 		final byte[] encrypted = filenameCryptor.encryptFilename("test").getBytes(UTF_8);
 		encrypted[0] ^= (byte) 0x01; // change 1 bit in first byte
-		filenameCryptor.decryptFilename(new String(encrypted, UTF_8));
+
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+			filenameCryptor.decryptFilename(new String(encrypted, UTF_8));
+		});
 	}
 
 	@Test
+	@DisplayName("encrypt with different AD")
 	public void testEncryptionOfSameFilenamesWithDifferentAssociatedData() {
-		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
-		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
-
 		final String encrypted1 = filenameCryptor.encryptFilename("test", "ad1".getBytes(UTF_8));
 		final String encrypted2 = filenameCryptor.encryptFilename("test", "ad2".getBytes(UTF_8));
-		Assert.assertNotEquals(encrypted1, encrypted2);
+		Assertions.assertNotEquals(encrypted1, encrypted2);
 	}
 
 	@Test
+	@DisplayName("decrypt ciphertext with correct AD")
 	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() {
-		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
-		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
-
 		final String encrypted = filenameCryptor.encryptFilename("test", "ad".getBytes(UTF_8));
 		final String decrypted = filenameCryptor.decryptFilename(encrypted, "ad".getBytes(UTF_8));
-		Assert.assertEquals("test", decrypted);
+		Assertions.assertEquals("test", decrypted);
 	}
 
-	@Test(expected = AuthenticationFailedException.class)
+	@Test
+	@DisplayName("decrypt ciphertext with incorrect AD")
 	public void testDeterministicEncryptionOfFilenamesWithWrongAssociatedData() {
-		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
-		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
-
 		final String encrypted = filenameCryptor.encryptFilename("test", "right".getBytes(UTF_8));
-		filenameCryptor.decryptFilename(encrypted, "wrong".getBytes(UTF_8));
+
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+			filenameCryptor.decryptFilename(encrypted, "wrong".getBytes(UTF_8));
+		});
 	}
 
 }

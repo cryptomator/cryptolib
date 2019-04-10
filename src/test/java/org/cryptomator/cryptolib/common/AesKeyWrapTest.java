@@ -8,47 +8,42 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import java.security.InvalidKeyException;
 
 public class AesKeyWrapTest {
 
-	@Rule
-	public final ExpectedException thrown = ExpectedException.none();
-
 	@Test
-	public void wrapAndUnwrap() throws InvalidKeyException, NoSuchAlgorithmException {
+	public void wrapAndUnwrap() throws InvalidKeyException {
 		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[32], "AES");
 		byte[] wrapped = AesKeyWrap.wrap(kek, key);
 		SecretKey unwrapped = AesKeyWrap.unwrap(kek, wrapped, "AES");
-		Assert.assertEquals(key, unwrapped);
+		Assertions.assertEquals(key, unwrapped);
 	}
 
 	@Test
 	public void wrapWithInvalidKey() {
 		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[17], "AES");
-		thrown.expect(IllegalArgumentException.class);
-		AesKeyWrap.wrap(kek, key);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			AesKeyWrap.wrap(kek, key);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void unwrapWithInvalidKey() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+	@Test
+	public void unwrapWithInvalidKey() {
 		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[32], "AES");
 		byte[] wrapped = AesKeyWrap.wrap(kek, key);
-		AesKeyWrap.unwrap(kek, wrapped, "FOO", Cipher.PRIVATE_KEY);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			AesKeyWrap.unwrap(kek, wrapped, "FOO", Cipher.PRIVATE_KEY);
+		});
 	}
 
 }

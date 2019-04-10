@@ -8,21 +8,25 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.util.Arrays;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.Arrays;
 
 public class FileHeaderImplTest {
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConstructionFailsWithInvalidNonceSize() {
-		new FileHeaderImpl(new byte[3], new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			new FileHeaderImpl(new byte[3], new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConstructionFailsWithInvalidKeySize() {
-		new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new byte[3]);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new byte[3]);
+		});
 	}
 
 	@Test
@@ -30,10 +34,10 @@ public class FileHeaderImplTest {
 		byte[] nonNullKey = new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN];
 		Arrays.fill(nonNullKey, (byte) 0x42);
 		FileHeaderImpl header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], nonNullKey);
-		Assert.assertFalse(header.isDestroyed());
+		Assertions.assertFalse(header.isDestroyed());
 		header.destroy();
-		Assert.assertTrue(header.isDestroyed());
-		Assert.assertArrayEquals(new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN], nonNullKey);
+		Assertions.assertTrue(header.isDestroyed());
+		Assertions.assertArrayEquals(new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN], nonNullKey);
 	}
 
 }
