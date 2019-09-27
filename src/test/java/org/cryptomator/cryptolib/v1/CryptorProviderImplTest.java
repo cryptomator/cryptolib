@@ -33,6 +33,19 @@ public class CryptorProviderImplTest {
 		CryptorImpl cryptor = cryptorProvider.createNew();
 		Assertions.assertNotNull(cryptor);
 	}
+	
+	@Test
+	public void testCreateFromRawKey() {
+		CryptorImpl cryptor = cryptorProvider.createFromRawKey(new byte[2*Constants.KEY_LEN_BYTES]);
+		Assertions.assertNotNull(cryptor);
+	}
+
+	@Test
+	public void testCreateFromInvalidRawKey() {
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			cryptorProvider.createFromRawKey(new byte[3]);
+		});
+	}
 
 	@Test
 	public void testCreateFromKeyWithCorrectPassphrase() {

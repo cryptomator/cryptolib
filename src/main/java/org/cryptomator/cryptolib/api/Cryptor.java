@@ -37,6 +37,12 @@ public interface Cryptor extends Destroyable, AutoCloseable {
 	 */
 	KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, byte[] pepper, int vaultVersion);
 
+	/**
+	 * @return All key material of this cryptor
+	 * @since 1.3.0
+	 */
+	byte[] getRawKey();
+
 	@Override
 	void destroy();
 
