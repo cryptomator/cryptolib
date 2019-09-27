@@ -12,8 +12,16 @@ install:
 - mvn source:help javadoc:help dependency:go-offline -Pdependency-check,coverage,release
 before_script:
 - mvn --update-snapshots dependency-check:check -Pdependency-check
+- if [ -n "$TRAVIS_TAG" ]; then mvn versions:set -DnewVersion=${TRAVIS_TAG}; fi
 script:
-- mvn clean test jacoco:report verify -Pcoverage -Dorg.slf4j.simpleLogger.defaultLogLevel=debug
+- |
+  if [[ -n "$TRAVIS_TAG" ]]; then
+    mvn clean install jacoco:report verify -Pcoverage,release
+  elif [[ "$TRAVIS_BRANCH" =~ ^release/.* ]]; then
+    mvn clean install jacoco:report verify -Pcoverage,release
+  else
+    mvn clean test jacoco:report verify -Pcoverage
+  fi
 after_success:
 - curl -o ~/codacy-coverage-reporter.jar https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/4.0.3/codacy-coverage-reporter-4.0.3-assembly.jar
 - $JAVA_HOME/bin/java -jar ~/codacy-coverage-reporter.jar report -l Java -r target/site/jacoco/jacoco.xml
@@ -22,7 +30,7 @@ cache:
   - $HOME/.m2
 deploy:
 - provider: script
-  script: mvn clean versions:set -DnewVersion=${TRAVIS_TAG} deploy -DskipTests -Prelease
+  script: mvn deploy -Dmaven.install.skip=true -Dmaven.test.skip=true -Prelease
   skip_cleanup: true
   on:
     repo: cryptomator/cryptolib
