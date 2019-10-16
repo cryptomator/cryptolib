@@ -10,6 +10,9 @@ package org.cryptomator.cryptolib.v1;
 
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.siv.UnauthenticCiphertextException;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.Charset;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class FileNameCryptorImplTest {
@@ -83,14 +87,24 @@ public class FileNameCryptorImplTest {
 	}
 
 	@Test
+	@DisplayName("decrypt non-ciphertext")
+	public void testDecryptionOfMalformedFilename() {
+		AuthenticationFailedException e = Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+			filenameCryptor.decryptFilename("lol");
+		});
+		MatcherAssert.assertThat(e.getCause(), CoreMatchers.instanceOf(IllegalArgumentException.class));
+	}
+
+	@Test
 	@DisplayName("decrypt tampered ciphertext")
 	public void testDecryptionOfManipulatedFilename() {
 		final byte[] encrypted = filenameCryptor.encryptFilename("test").getBytes(UTF_8);
 		encrypted[0] ^= (byte) 0x01; // change 1 bit in first byte
 
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+		AuthenticationFailedException e = Assertions.assertThrows(AuthenticationFailedException.class, () -> {
 			filenameCryptor.decryptFilename(new String(encrypted, UTF_8));
 		});
+		MatcherAssert.assertThat(e.getCause(), CoreMatchers.instanceOf(UnauthenticCiphertextException.class));
 	}
 
 	@Test
