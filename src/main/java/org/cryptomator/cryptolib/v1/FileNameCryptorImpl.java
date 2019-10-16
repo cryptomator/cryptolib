@@ -71,7 +71,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 			byte[] encryptedBytes = encoding.decode(ciphertextName);
 			byte[] cleartextBytes = AES_SIV.get().decrypt(encryptionKey, macKey, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
-		} catch (UnauthenticCiphertextException | IllegalBlockSizeException e) {
+		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}
 	}
