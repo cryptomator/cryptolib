@@ -43,6 +43,7 @@ public interface FileNameCryptor {
 	 * @param ciphertextName Ciphertext only, with any additional strings like file extensions stripped first, encoded in BASE32
 	 * @param associatedData the same associated data used during encryption, otherwise and {@link AuthenticationFailedException} will be thrown
 	 * @return cleartext filename, probably including its cleartext file extension.
+	 * @throws AuthenticationFailedException if the ciphertext is malformed
 	 */
 	String decryptFilename(String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException;
 
@@ -51,6 +52,7 @@ public interface FileNameCryptor {
 	 * @param ciphertextName Ciphertext only, with any additional strings like file extensions stripped first.
 	 * @param associatedData the same associated data used during encryption, otherwise and {@link AuthenticationFailedException} will be thrown
 	 * @return cleartext filename, probably including its cleartext file extension.
+	 * @throws AuthenticationFailedException if the ciphertext is malformed
 	 */
 	String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException;
 
