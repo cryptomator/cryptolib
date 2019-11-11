@@ -21,6 +21,7 @@ import javax.security.auth.DestroyFailedException;
 import javax.security.auth.Destroyable;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
@@ -60,6 +61,15 @@ public class CryptorImplTest {
 			byte[] serialized1 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x01}, 3).serialize();
 			byte[] serialized2 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x02}, 3).serialize();
 			MatcherAssert.assertThat(serialized1, not(equalTo(serialized2)));
+		}
+	}
+	
+	@Test
+	public void testGetRawKey() {
+		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
+			byte[] rawKey = cryptor.getRawKey();
+			Assertions.assertArrayEquals(Arrays.copyOf(rawKey, Constants.KEY_LEN_BYTES), encKey.getEncoded());
+			Assertions.assertArrayEquals(Arrays.copyOfRange(rawKey, Constants.KEY_LEN_BYTES, 2*Constants.KEY_LEN_BYTES), macKey.getEncoded());
 		}
 	}
 

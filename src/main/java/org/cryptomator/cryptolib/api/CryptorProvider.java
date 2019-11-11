@@ -16,6 +16,14 @@ public interface CryptorProvider {
 	Cryptor createNew();
 
 	/**
+	 * @param rawKey The key to use for the new cryptor
+	 * @return A new Cryptor instance using the given key
+	 * @throws IllegalArgumentException if the key is of invalid length
+	 * @since 1.3.0
+	 */
+	Cryptor createFromRawKey(byte[] rawKey) throws IllegalArgumentException;
+
+	/**
 	 * Shortcut for {@link #createFromKeyFile(KeyFile, CharSequence, byte[], int)} with en empty pepper.
 	 * 
 	 * @param keyFile The parsed key file

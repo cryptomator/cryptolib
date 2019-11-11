@@ -129,6 +129,21 @@ class CryptorImpl implements Cryptor {
 		return keyfile;
 	}
 
+	@Override
+	public byte[] getRawKey() {
+		byte[] rawEncKey = encKey.getEncoded();
+		byte[] rawMacKeyKey = macKey.getEncoded();
+		try {
+			byte[] rawKey = new byte[rawEncKey.length + rawMacKeyKey.length];
+			System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
+			System.arraycopy(rawMacKeyKey, 0, rawKey, rawEncKey.length, rawMacKeyKey.length);
+			return rawKey;
+		} finally {
+			Arrays.fill(rawEncKey, (byte) 0x00);
+			Arrays.fill(rawMacKeyKey, (byte) 0x00);
+		}
+	}
+
 	private void destroyQuietly(SecretKey key) {
 		try {
 			if (key instanceof Destroyable && !((Destroyable) key).isDestroyed()) {
