@@ -116,6 +116,7 @@ public final class Cryptors {
 	 * @param pepper          An application-specific pepper added to the salt during key-derivation (if applicable)
 	 * @param passphrase      The passphrase
 	 * @return The raw key
+	 * @throws InvalidPassphraseException If the wrong <code>passphrase</code> has been supplied for the <code>masterkey</code>
 	 * @since 1.3.0
 	 */
 	public static byte[] exportRawKey(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence passphrase) {
@@ -132,6 +133,7 @@ public final class Cryptors {
 	 * @param rawKey          The original JSON representation of the masterkey
 	 * @param pepper          An application-specific pepper added to the salt during key-derivation (if applicable)
 	 * @param passphrase      The passphrase
+	 * @param vaultVersion    The version of the vault for which to recreate a masterkey file   
 	 * @return The json-encoded masterkey protected by the passphrase
 	 * @since 1.3.0
 	 */
