@@ -40,7 +40,7 @@ class CryptorImpl implements Cryptor {
 
 	/**
 	 * Package-private constructor.
-	 * Use {@link CryptorProviderImpl#createNew()} or {@link CryptorProviderImpl#createFromKeyFile(byte[], CharSequence)} to obtain a Cryptor instance.
+	 * Use {@link CryptorProviderImpl#createNew()} or {@link CryptorProviderImpl#createFromKeyFile(KeyFile, CharSequence, int)} to obtain a Cryptor instance.
 	 */
 	CryptorImpl(SecretKey encKey, SecretKey macKey, SecureRandom random) {
 		this.encKey = encKey;
@@ -127,6 +127,21 @@ class CryptorImpl implements Cryptor {
 		keyfile.macMasterKey = wrappedMacKey;
 		keyfile.versionMac = versionMac;
 		return keyfile;
+	}
+
+	@Override
+	public byte[] getRawKey() {
+		byte[] rawEncKey = encKey.getEncoded();
+		byte[] rawMacKeyKey = macKey.getEncoded();
+		try {
+			byte[] rawKey = new byte[rawEncKey.length + rawMacKeyKey.length];
+			System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
+			System.arraycopy(rawMacKeyKey, 0, rawKey, rawEncKey.length, rawMacKeyKey.length);
+			return rawKey;
+		} finally {
+			Arrays.fill(rawEncKey, (byte) 0x00);
+			Arrays.fill(rawMacKeyKey, (byte) 0x00);
+		}
 	}
 
 	private void destroyQuietly(SecretKey key) {

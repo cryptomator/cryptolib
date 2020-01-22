@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.iterate.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>1.2.1-SNAPSHOT</version>
+	<version>1.4.1-SNAPSHOT</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -27,11 +27,10 @@
 	</distributionManagement>
 
 	<properties>
-		<dagger.version>2.14.1</dagger.version>
-		<gson.version>2.8.2</gson.version>
-		<guava.version>23.6-android</guava.version> <!-- JDK7 -->
-		<siv-mode.version>1.2.2</siv-mode.version>
-		<slf4j.version>1.7.25</slf4j.version>
+		<gson.version>2.8.6</gson.version>
+		<guava.version>28.1-android</guava.version> <!-- JDK7 -->
+		<siv-mode.version>1.3.1</siv-mode.version>
+		<slf4j.version>1.7.28</slf4j.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
@@ -53,6 +52,14 @@
 		</developer>
 	</developers>
 
+	<repositories>
+		<repository>
+			<id>bintray</id>
+			<name>bintray</name>
+			<url>http://jcenter.bintray.com</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.cryptomator</groupId>
@@ -71,19 +78,6 @@
 			<version>${guava.version}</version>
 		</dependency>
 
-		<!-- DI -->
-		<dependency>
-			<groupId>com.google.dagger</groupId>
-			<artifactId>dagger</artifactId>
-			<version>${dagger.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.dagger</groupId>
-			<artifactId>dagger-compiler</artifactId>
-			<version>${dagger.version}</version>
-			<optional>true</optional>
-		</dependency>
-
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -93,27 +87,21 @@
 
 		<!-- tests -->
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.12</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>de.bechte.junit</groupId>
-			<artifactId>junit-hierarchicalcontextrunner</artifactId>
-			<version>4.12.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest-core</artifactId>
-			<version>1.3</version>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.5.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>2.11.0</version>
+			<version>3.1.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest</artifactId>
+			<version>2.2</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -125,13 +113,13 @@
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>
-			<version>1.19</version>
+			<version>1.22</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>1.19</version>
+			<version>1.22</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -155,18 +143,49 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
+				<version>3.8.1</version>
 				<configuration>
-					<source>1.7</source>
+					<release>7</release>
+					<source>1.7</source> <!-- redundant to <release> but needed until https://bugs.openjdk.java.net/browse/JDK-8219474 is fixed (see javadoc config) -->
 					<target>1.7</target>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.1</version>
+			</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
+		<profile>
+			<id>intellij</id>
+			<!-- workaround for intellij bug: https://youtrack.jetbrains.com/issue/IDEA-85478 -->
+			<activation>
+				<activeByDefault>false</activeByDefault>
+				<property>
+					<name>idea.maven.embedder.version</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.1</version>
+						<configuration>
+							<release>8</release>
+							<source>1.8</source>
+							<target>1.8</target>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
 		<profile>
 			<id>dependency-check</id>
 			<build>
@@ -174,7 +193,7 @@
 					<plugin>
 						<groupId>org.owasp</groupId>
 						<artifactId>dependency-check-maven</artifactId>
-						<version>3.0.2</version>
+						<version>5.2.2</version>
 						<configuration>
 							<cveValidForHours>24</cveValidForHours>
 							<failBuildOnCVSS>0</failBuildOnCVSS>
@@ -201,7 +220,7 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.7.9</version>
+						<version>0.8.5</version>
 						<executions>
 							<execution>
 								<id>prepare-agent</id>
@@ -221,7 +240,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-source-plugin</artifactId>
-						<version>3.0.1</version>
+						<version>3.2.0</version>
 						<executions>
 							<execution>
 								<id>attach-sources</id>
@@ -233,7 +252,7 @@
 					</plugin>
 					<plugin>
 						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>2.10.4</version>
+						<version>3.1.1</version>
 						<executions>
 							<execution>
 								<id>attach-javadocs</id>
@@ -242,10 +261,13 @@
 								</goals>
 							</execution>
 						</executions>
+						<configuration>
+							<source>1.7</source> <!-- workaround for https://bugs.openjdk.java.net/browse/JDK-8219474 -->
+						</configuration>
 					</plugin>
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
-						<version>3.0.2</version>
+						<version>3.1.1</version>
 						<executions>
 							<execution>
 								<id>generate-dependency-list</id>
@@ -257,19 +279,6 @@
 									<includeScope>runtime</includeScope>
 									<outputFile>${project.build.directory}/dependency-list.txt</outputFile>
 								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.6</version>
-						<executions>
-							<execution>
-								<id>sign-artifacts</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>sign</goal>
-								</goals>
 							</execution>
 						</executions>
 					</plugin>

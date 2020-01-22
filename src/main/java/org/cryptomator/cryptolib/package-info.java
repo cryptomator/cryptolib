@@ -32,7 +32,7 @@
  * byte[] masterkeyFileContents = Files.readAllBytes(pathToMasterkeyJsonFile);
  * String password = "dadada";
  * KeyFile keyFile = KeyFile.{@link org.cryptomator.cryptolib.api.KeyFile#parse(byte[]) parse(masterkeyFileContents)}
- * Cryptor cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#createFromKeyFile(KeyFile, CharSequence, int) CryptorProvider.createFromKeyFile(keyFile, password, 42)};
+ * Cryptor cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#createFromKeyFile(org.cryptomator.cryptolib.api.KeyFile, java.lang.CharSequence, int) CryptorProvider.createFromKeyFile(keyFile, password, 42)};
  * 
  * // Each directory needs a (relatively) unique ID, which affects the encryption/decryption of child names:
  * String uniqueIdOfDirectory = UUID.randomUUID().toString();
@@ -45,13 +45,13 @@
  * // Encrypt file contents:
  * ByteBuffer plaintext = ...;
  * SeekableByteChannel ciphertextOut = ...;
- * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.v1.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
+ * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
  * 	ch.write(plaintext);
  * }
  * 
  * // Decrypt file contents:
  * ReadableByteChannel ciphertextIn = ...;
- * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.v1.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
+ * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
  * 	ch.read(plaintext);
  * }
  * </pre>
