@@ -11,8 +11,8 @@
 		<connection>scm:git:https://github.com/iterate-ch/cryptolib.git</connection>
 		<developerConnection>scm:git:https://github.com/iterate-ch/cryptolib.git</developerConnection>
 		<url>https://github.com/iterate-ch/cryptolib.git</url>
-	  <tag>HEAD</tag>
-  </scm>
+		<tag>HEAD</tag>
+	</scm>
 
 	<distributionManagement>
 		<repository>
@@ -145,9 +145,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
-					<release>7</release>
-					<source>1.7</source> <!-- redundant to <release> but needed until https://bugs.openjdk.java.net/browse/JDK-8219474 is fixed (see javadoc config) -->
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
@@ -261,9 +260,6 @@
 								</goals>
 							</execution>
 						</executions>
-						<configuration>
-							<source>1.7</source> <!-- workaround for https://bugs.openjdk.java.net/browse/JDK-8219474 -->
-						</configuration>
 					</plugin>
 					<plugin>
 						<artifactId>maven-dependency-plugin</artifactId>
