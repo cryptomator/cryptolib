@@ -40,6 +40,14 @@ public class KeyFileTest {
 	}
 
 	@Test
+	public void testParseInvalid2() {
+		final byte[] serialized = new byte[10];
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			KeyFile.parse(serialized);
+		});
+	}
+
+	@Test
 	public void testSerialize() {
 		KeyFileImpl keyFile = new KeyFileImpl();
 		keyFile.foo = new byte[8];
