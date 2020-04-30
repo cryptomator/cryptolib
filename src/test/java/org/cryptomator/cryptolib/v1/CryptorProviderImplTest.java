@@ -20,7 +20,7 @@ import java.security.SecureRandom;
 public class CryptorProviderImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	
+
 	private CryptorProviderImpl cryptorProvider;
 
 	@BeforeEach
@@ -77,7 +77,7 @@ public class CryptorProviderImplTest {
 				+ "\"hmacMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x01}, 3);
+		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[]{(byte) 0x01}, 3);
 		Assertions.assertNotNull(cryptor);
 	}
 
@@ -89,7 +89,7 @@ public class CryptorProviderImplTest {
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		Assertions.assertThrows(InvalidPassphraseException.class, () -> {
-			cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x02}, 3);
+			cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[]{(byte) 0x02}, 3);
 		});
 	}
 
