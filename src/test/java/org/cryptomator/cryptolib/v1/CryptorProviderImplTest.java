@@ -14,8 +14,13 @@ import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.security.SecureRandom;
+import java.util.Random;
+import java.util.stream.Stream;
 
 public class CryptorProviderImplTest {
 
@@ -33,11 +38,22 @@ public class CryptorProviderImplTest {
 		CryptorImpl cryptor = cryptorProvider.createNew();
 		Assertions.assertNotNull(cryptor);
 	}
-	
-	@Test
-	public void testCreateFromRawKey() {
-		CryptorImpl cryptor = cryptorProvider.createFromRawKey(new byte[2*Constants.KEY_LEN_BYTES]);
+
+	@ParameterizedTest
+	@MethodSource("create64RandomBytes")
+	public void testCreateFromRawKey(byte[] rawKey) {
+		CryptorImpl cryptor = cryptorProvider.createFromRawKey(rawKey);
 		Assertions.assertNotNull(cryptor);
+		Assertions.assertArrayEquals(rawKey, cryptor.getRawKey());
+	}
+
+	static Stream<Arguments> create64RandomBytes() {
+		Random rnd = new Random(42l);
+		return Stream.generate(() -> {
+			byte[] bytes = new byte[64];
+			rnd.nextBytes(bytes);
+			return Arguments.of(bytes);
+		}).limit(10);
 	}
 
 	@Test
