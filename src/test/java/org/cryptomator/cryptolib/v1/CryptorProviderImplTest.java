@@ -14,13 +14,18 @@ import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.security.SecureRandom;
+import java.util.Random;
+import java.util.stream.Stream;
 
 public class CryptorProviderImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	
+
 	private CryptorProviderImpl cryptorProvider;
 
 	@BeforeEach
@@ -33,11 +38,22 @@ public class CryptorProviderImplTest {
 		CryptorImpl cryptor = cryptorProvider.createNew();
 		Assertions.assertNotNull(cryptor);
 	}
-	
-	@Test
-	public void testCreateFromRawKey() {
-		CryptorImpl cryptor = cryptorProvider.createFromRawKey(new byte[2*Constants.KEY_LEN_BYTES]);
+
+	@ParameterizedTest
+	@MethodSource("create64RandomBytes")
+	public void testCreateFromRawKey(byte[] rawKey) {
+		CryptorImpl cryptor = cryptorProvider.createFromRawKey(rawKey);
 		Assertions.assertNotNull(cryptor);
+		Assertions.assertArrayEquals(rawKey, cryptor.getRawKey());
+	}
+
+	static Stream<Arguments> create64RandomBytes() {
+		Random rnd = new Random(42l);
+		return Stream.generate(() -> {
+			byte[] bytes = new byte[64];
+			rnd.nextBytes(bytes);
+			return Arguments.of(bytes);
+		}).limit(10);
 	}
 
 	@Test
@@ -77,7 +93,7 @@ public class CryptorProviderImplTest {
 				+ "\"hmacMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
-		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x01}, 3);
+		CryptorImpl cryptor = cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[]{(byte) 0x01}, 3);
 		Assertions.assertNotNull(cryptor);
 	}
 
@@ -89,7 +105,7 @@ public class CryptorProviderImplTest {
 				+ "\"versionMac\":\"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\"}";
 		KeyFile keyFile = KeyFile.parse(testMasterKey.getBytes());
 		Assertions.assertThrows(InvalidPassphraseException.class, () -> {
-			cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[] {(byte) 0x02}, 3);
+			cryptorProvider.createFromKeyFile(keyFile, "asd", new byte[]{(byte) 0x02}, 3);
 		});
 	}
 

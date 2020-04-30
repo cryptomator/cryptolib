@@ -87,7 +87,7 @@ public class CryptorProviderImpl implements CryptorProvider {
 	public CryptorImpl createFromRawKey(byte[] rawKey) throws IllegalArgumentException {
 		Preconditions.checkArgument(rawKey.length == KEY_LEN_BYTES + KEY_LEN_BYTES, "Invalid raw key length %s", rawKey.length);
 		SecretKey encKey = new SecretKeySpec(rawKey, 0, KEY_LEN_BYTES, ENC_ALG);
-		SecretKey macKey = new SecretKeySpec(rawKey, 0, KEY_LEN_BYTES, MAC_ALG);
+		SecretKey macKey = new SecretKeySpec(rawKey, KEY_LEN_BYTES, KEY_LEN_BYTES, MAC_ALG);
 		return new CryptorImpl(encKey, macKey, random);
 	}
 
