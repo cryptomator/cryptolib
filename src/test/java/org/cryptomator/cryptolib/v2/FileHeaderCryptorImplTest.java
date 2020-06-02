@@ -8,22 +8,20 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.Random;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 
 import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
@@ -35,7 +33,7 @@ public class FileHeaderCryptorImplTest {
 
 	private FileHeaderCryptorImpl headerCryptor;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
 		headerCryptor = new FileHeaderCryptorImpl(encKey, RANDOM_MOCK);
@@ -61,13 +59,13 @@ public class FileHeaderCryptorImplTest {
 
 		ByteBuffer result = headerCryptor.encryptHeader(header);
 
-		Assert.assertArrayEquals(BaseEncoding.base64().decode(expected), result.array());
+		Assertions.assertArrayEquals(BaseEncoding.base64().decode(expected), result.array());
 	}
 
 	@Test
 	public void testHeaderSize() {
-		Assert.assertEquals(org.cryptomator.cryptolib.v2.FileHeaderImpl.SIZE, headerCryptor.headerSize());
-		Assert.assertEquals(org.cryptomator.cryptolib.v2.FileHeaderImpl.SIZE, headerCryptor.encryptHeader(headerCryptor.create()).limit());
+		Assertions.assertEquals(org.cryptomator.cryptolib.v2.FileHeaderImpl.SIZE, headerCryptor.headerSize());
+		Assertions.assertEquals(org.cryptomator.cryptolib.v2.FileHeaderImpl.SIZE, headerCryptor.encryptHeader(headerCryptor.create()).limit());
 	}
 
 	@Test
@@ -75,25 +73,31 @@ public class FileHeaderCryptorImplTest {
 	public void testDecryption() {
 		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjU0=");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
-		Assert.assertEquals(header.getFilesize(), -1l);
+		Assertions.assertEquals(header.getFilesize(), -1l);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testDecryptionWithTooShortHeader() {
 		byte[] ciphertext = new byte[7];
-		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		});
 	}
 
-	@Test(expected = AuthenticationFailedException.class)
+	@Test
 	public void testDecryptionWithInvalidTag1() {
 		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA=");
-		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		});
 	}
 
-	@Test(expected = AuthenticationFailedException.class)
+	@Test
 	public void testDecryptionWithInvalidTag2() {
 		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUa=");
-		headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+		});
 	}
 
 }

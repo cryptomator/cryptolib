@@ -21,6 +21,7 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
@@ -78,6 +79,14 @@ public class CryptorProviderImpl implements CryptorProvider {
 	public CryptorImpl createNew() {
 		SecretKey encKey = encKeyGen.generateKey();
 		SecretKey macKey = macKeyGen.generateKey();
+		return new CryptorImpl(encKey, macKey, random);
+	}
+
+	@Override
+	public CryptorImpl createFromRawKey(byte[] rawKey) throws IllegalArgumentException {
+		Preconditions.checkArgument(rawKey.length == Constants.KEY_LEN_BYTES + Constants.KEY_LEN_BYTES, "Invalid raw key length %s", rawKey.length);
+		SecretKey encKey = new SecretKeySpec(rawKey, 0, Constants.KEY_LEN_BYTES, Constants.ENC_ALG);
+		SecretKey macKey = new SecretKeySpec(rawKey, Constants.KEY_LEN_BYTES, Constants.KEY_LEN_BYTES, Constants.MAC_ALG);
 		return new CryptorImpl(encKey, macKey, random);
 	}
 

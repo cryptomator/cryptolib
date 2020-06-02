@@ -76,12 +76,15 @@ public abstract class KeyFile {
 	 */
 	public static KeyFile parse(byte[] serialized) {
 		try (InputStream in = new ByteArrayInputStream(serialized); //
-				Reader reader = new InputStreamReader(in, UTF_8); //
-				JsonReader jsonReader = GSON.newJsonReader(reader)) {
-			JsonObject jsonObj = new JsonParser().parse(jsonReader).getAsJsonObject();
-			KeyFile result = GSON.fromJson(jsonObj, GenericKeyFile.class);
-			result.jsonObj = jsonObj;
-			return result;
+				Reader reader = new InputStreamReader(in, UTF_8)) {
+			JsonElement json = JsonParser.parseReader(reader);
+			if (json.isJsonObject()) {
+				KeyFile result = GSON.fromJson(json, GenericKeyFile.class);
+				result.jsonObj = json.getAsJsonObject();
+				return result;
+			} else {
+				throw new IllegalArgumentException("Key file doesn't contain json object.");
+			}
 		} catch (IOException | JsonParseException e) {
 			throw new IllegalArgumentException("Unable to parse key file.", e);
 		}
