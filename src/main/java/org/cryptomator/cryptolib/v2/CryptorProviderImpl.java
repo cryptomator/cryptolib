@@ -64,7 +64,6 @@ public class CryptorProviderImpl implements CryptorProvider {
 		}
 	}
 
-	// visible for testing
 	private static boolean isRequiredKeyLengthAllowed() {
 		try {
 			int requiredKeyLengthBits = KEY_LEN_BYTES * Byte.SIZE;
