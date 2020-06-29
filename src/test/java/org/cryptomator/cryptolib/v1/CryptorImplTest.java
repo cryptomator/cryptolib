@@ -8,6 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
+import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;

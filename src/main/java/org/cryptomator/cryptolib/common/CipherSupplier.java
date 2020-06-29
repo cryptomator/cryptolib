@@ -20,6 +20,7 @@ import javax.crypto.SecretKey;
 public final class CipherSupplier {
 
 	public static final CipherSupplier AES_CTR = new CipherSupplier("AES/CTR/NoPadding");
+	public static final CipherSupplier AES_GCM = new CipherSupplier("AES/GCM/NoPadding");
 	public static final CipherSupplier RFC3394_KEYWRAP = new CipherSupplier("AESWrap");
 
 	private final String cipherAlgorithm;
