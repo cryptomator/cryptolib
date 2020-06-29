@@ -48,9 +48,8 @@ public class FileContentCryptorImplBenchmark {
 	@Setup(Level.Trial)
 	public void prepareData() {
 		cleartextChunk.rewind();
-		ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartextChunk, 0l, new byte[12], ENC_KEY);
-		ciphertextChunk.position(0);
-		ciphertextChunk.put(ciphertext);
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, 0l, new byte[12], ENC_KEY);
+		ciphertextChunk.flip();
 	}
 
 	@Setup(Level.Invocation)
@@ -64,12 +63,12 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		fileContentCryptor.encryptChunk(cleartextChunk, chunkNumber, headerNonce, ENC_KEY);
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, ENC_KEY);
 	}
 
 	@Benchmark
 	public void benchmarkDecryption() {
-		fileContentCryptor.decryptChunk(ciphertextChunk, 0l, new byte[12], ENC_KEY);
+		fileContentCryptor.decryptChunk(ciphertextChunk, cleartextChunk, 0l, new byte[12], ENC_KEY);
 	}
 
 }

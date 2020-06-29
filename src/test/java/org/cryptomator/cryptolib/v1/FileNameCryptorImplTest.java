@@ -22,13 +22,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class FileNameCryptorImplTest {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
+	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	final byte[] keyBytes = new byte[32];
 	final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");

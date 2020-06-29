@@ -58,7 +58,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		fileContentCryptor.encryptChunk(cleartextChunk, chunkNumber, headerNonce, ENC_KEY);
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, ENC_KEY);
 	}
 
 	@Benchmark
@@ -68,7 +68,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkDecryption() {
-		fileContentCryptor.decryptChunk(ciphertextChunk, ENC_KEY);
+		fileContentCryptor.decryptChunk(ciphertextChunk, ciphertextChunk, ENC_KEY);
 	}
 
 }

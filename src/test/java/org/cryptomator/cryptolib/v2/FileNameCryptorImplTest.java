@@ -10,6 +10,7 @@ package org.cryptomator.cryptolib.v2;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -22,7 +23,7 @@ import org.junit.jupiter.api.Test;
 
 public class FileNameCryptorImplTest {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
+	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	@Test
 	public void testDeterministicEncryptionOfFilenames() throws IOException {

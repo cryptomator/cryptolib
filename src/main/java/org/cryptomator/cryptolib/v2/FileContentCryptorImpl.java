@@ -8,30 +8,25 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.FileContentCryptor;
+import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.CipherSupplier;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.IvParameterSpec;
-
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.FileContentCryptor;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.MacSupplier;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.SecureRandom;
 
 import static org.cryptomator.cryptolib.v2.Constants.CHUNK_SIZE;
-import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
+import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.PAYLOAD_SIZE;
 
 class FileContentCryptorImpl implements FileContentCryptor {
@@ -54,27 +49,49 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
-		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
-			throw new IllegalArgumentException("Invalid chunk");
+		ByteBuffer ciphertextChunk = ByteBuffer.allocate(CHUNK_SIZE);
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header);
+		ciphertextChunk.flip();
+		return ciphertextChunk;
+	}
+
+	@Override
+	public void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header) {
+		if (cleartextChunk.remaining() <= 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
+			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", expected range [1, " + PAYLOAD_SIZE + "]");
+		}
+		if (ciphertextChunk.remaining() < CHUNK_SIZE) {
+			throw new IllegalArgumentException("Invalid cipehrtext chunk size: " + ciphertextChunk.remaining() + ", must fit up to " + CHUNK_SIZE + " bytes.");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		return encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
 	}
 
 	@Override
 	public ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
+		ByteBuffer cleartextChunk = ByteBuffer.allocate(PAYLOAD_SIZE);
+		decryptChunk(ciphertextChunk, cleartextChunk, chunkNumber, header, authenticate);
+		cleartextChunk.flip();
+		return cleartextChunk;
+	}
+
+	@Override
+	public void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
 		if (ciphertextChunk.remaining() < GCM_NONCE_SIZE + GCM_TAG_SIZE || ciphertextChunk.remaining() > CHUNK_SIZE) {
-			throw new IllegalArgumentException("Invalid chunk size: " + ciphertextChunk.remaining() + ", expected range [" + (GCM_NONCE_SIZE + GCM_TAG_SIZE) + ", " + CHUNK_SIZE + "]");
+			throw new IllegalArgumentException("Invalid ciphertext chunk size: " + ciphertextChunk.remaining() + ", expected range [" + (GCM_NONCE_SIZE + GCM_TAG_SIZE) + ", " + CHUNK_SIZE + "]");
+		}
+		if (cleartextChunk.remaining() < PAYLOAD_SIZE) {
+			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", must fit up to " + PAYLOAD_SIZE + " bytes.");
 		}
 		if (!authenticate) {
 			throw new UnsupportedOperationException("authenticate can not be false");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		return decryptChunk(ciphertextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
+		decryptChunk(ciphertextChunk, cleartextChunk, chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
 	}
 
 	// visible for testing
-	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
+	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
 		try {
 			// nonce:
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
@@ -85,13 +102,9 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 			cipher.updateAAD(chunkNumberBigEndian);
 			cipher.updateAAD(headerNonce);
-			final ByteBuffer outBuf = ByteBuffer.allocate(GCM_NONCE_SIZE + cipher.getOutputSize(cleartextChunk.remaining()));
-			outBuf.put(nonce);
-			int bytesEncrypted = cipher.doFinal(cleartextChunk, outBuf);
-
-			// flip and return:
-			outBuf.flip();
-			return outBuf;
+			ciphertextChunk.put(nonce);
+			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining());
+			cipher.doFinal(cleartextChunk, ciphertextChunk);
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -100,7 +113,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	// visible for testing
-	ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
+	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
 		assert ciphertextChunk.remaining() >= GCM_NONCE_SIZE + GCM_TAG_SIZE;
 
 		try {
@@ -120,12 +133,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 			cipher.updateAAD(chunkNumberBigEndian);
 			cipher.updateAAD(headerNonce);
-			final ByteBuffer outBuf = ByteBuffer.allocate(cipher.getOutputSize(payloadBuf.remaining()));
-			cipher.doFinal(payloadBuf, outBuf);
-
-			// flip and return:
-			outBuf.flip();
-			return outBuf;
+			assert cleartextChunk.remaining() >= cipher.getOutputSize(payloadBuf.remaining());
+			cipher.doFinal(payloadBuf, cleartextChunk);
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Content tag mismatch.", e);
 		} catch (ShortBufferException e) {

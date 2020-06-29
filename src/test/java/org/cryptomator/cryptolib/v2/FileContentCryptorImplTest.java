@@ -28,6 +28,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
@@ -58,9 +59,13 @@ public class FileContentCryptorImplTest {
 	@Test
 	public void testDecryptedEncryptedEqualsPlaintext() throws NoSuchAlgorithmException {
 		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
-		ByteBuffer ciphertext = fileContentCryptor.encryptChunk(ByteBuffer.wrap("asd".getBytes()), 42l, new byte[12], fileKey);
-		ByteBuffer result = fileContentCryptor.decryptChunk(ciphertext, 42l, new byte[12], fileKey);
-		Assertions.assertArrayEquals("asd".getBytes(), result.array());
+		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
+		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
+		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext,42l, new byte[12], fileKey);
+		ciphertext.flip();
+		fileContentCryptor.decryptChunk(ciphertext, cleartext, 42l, new byte[12], fileKey);
+		cleartext.flip();
+		Assertions.assertEquals(StandardCharsets.UTF_8.encode("asd"), cleartext);
 	}
 
 	@Nested
@@ -84,7 +89,17 @@ public class FileContentCryptorImplTest {
 			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
 			// echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 0 -a
 			byte[] expected = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAApsIsUSJAHAF1IqG66PAqEvceoFIiAj5736Xq");
-			Assertions.assertArrayEquals(expected, ciphertext.array());
+			Assertions.assertEquals(ByteBuffer.wrap(expected), ciphertext);
+		}
+
+		@Test
+		@DisplayName("encrypt chunk with too small ciphertext buffer")
+		public void testChunkEncryptionWithBufferUnderflow() {
+			ByteBuffer cleartext = US_ASCII.encode(CharBuffer.wrap("hello world"));
+			ByteBuffer ciphertext = ByteBuffer.allocate(Constants.CHUNK_SIZE - 1);
+			Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				fileContentCryptor.encryptChunk(cleartext, ciphertext, 0, header);
+			});
 		}
 
 //		@Test
@@ -124,8 +139,18 @@ public class FileContentCryptorImplTest {
 		public void testChunkDecryption() {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAApsIsUSJAHAF1IqG66PAqEvceoFIiAj5736Xq"));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
-			ByteBuffer expected = US_ASCII.encode(CharBuffer.wrap("hello world"));
-			Assertions.assertArrayEquals(expected.array(), cleartext.array());
+			ByteBuffer expected = US_ASCII.encode("hello world");
+			Assertions.assertEquals(expected, cleartext);
+		}
+
+		@Test
+		@DisplayName("decrypt chunk with too small cleartext buffer")
+		public void testChunkDecryptionWithBufferUnderflow() {
+			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAApsIsUSJAHAF1IqG66PAqEvceoFIiAj5736Xq"));
+			ByteBuffer cleartext = ByteBuffer.allocate(Constants.PAYLOAD_SIZE - 1);
+			Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				fileContentCryptor.decryptChunk(ciphertext, cleartext, 0, header, true);
+			});
 		}
 
 //		@Test
