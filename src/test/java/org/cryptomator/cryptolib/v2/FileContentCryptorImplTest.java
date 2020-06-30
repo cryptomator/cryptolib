@@ -9,7 +9,9 @@
 package org.cryptomator.cryptolib.v2;
 
 import com.google.common.io.BaseEncoding;
+import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
@@ -25,8 +27,13 @@ import org.mockito.Mockito;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.ByteArrayInputStream;
+import java.io.EOFException;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -42,13 +49,19 @@ public class FileContentCryptorImplTest {
 	private static final SecureRandom ANTI_REUSE_PRNG = SecureRandomMock.cycle((byte) 0x13, (byte) 0x37);
 
 	private FileHeaderImpl header;
+	private FileHeaderCryptorImpl headerCryptor;
 	private FileContentCryptorImpl fileContentCryptor;
+	private Cryptor cryptor;
 
 	@BeforeEach
 	public void setup() {
 		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
 		header = new FileHeaderImpl(new byte[12], new byte[32]);
+		headerCryptor = new FileHeaderCryptorImpl(encKey, RANDOM_MOCK);
 		fileContentCryptor = new FileContentCryptorImpl(RANDOM_MOCK);
+		cryptor = Mockito.mock(Cryptor.class);
+		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);
+		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);
 
 		// init cipher with distinct IV to avoid cipher-internal anti-reuse checking
 		byte[] nonce = new byte[GCM_NONCE_SIZE];
@@ -169,18 +182,18 @@ public class FileContentCryptorImplTest {
 //			}
 //		}
 
-//		@Test
-//		@DisplayName("decrypt file with unauthentic file header")
-//		public void testDecryptionWithTooShortHeader() throws InterruptedException, IOException {
-//			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAA");
-//			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
-//
-//			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-//				Assertions.assertThrows(IllegalArgumentException.class, () -> {
-//					cleartextCh.read(ByteBuffer.allocate(3));
-//				});
-//			}
-//		}
+		@Test
+		@DisplayName("decrypt file with unauthentic file header")
+		public void testDecryptionWithTooShortHeader() throws InterruptedException, IOException {
+			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAA");
+			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+
+			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
+				Assertions.assertThrows(EOFException.class, () -> {
+					cleartextCh.read(ByteBuffer.allocate(3));
+				});
+			}
+		}
 
 		@Test
 		@DisplayName("decrypt chunk with unauthentic NONCE")

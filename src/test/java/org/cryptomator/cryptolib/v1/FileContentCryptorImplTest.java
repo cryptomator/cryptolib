@@ -27,6 +27,7 @@ import org.mockito.Mockito;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -188,7 +189,7 @@ public class FileContentCryptorImplTest {
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				Assertions.assertThrows(EOFException.class, () -> {
 					cleartextCh.read(ByteBuffer.allocate(3));
 				});
 			}

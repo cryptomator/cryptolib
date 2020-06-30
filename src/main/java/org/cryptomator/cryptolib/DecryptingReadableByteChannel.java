@@ -8,6 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
@@ -72,7 +73,7 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 			ByteBuffer headerBuf = ByteBuffer.allocate(cryptor.fileHeaderCryptor().headerSize());
 			int read = delegate.read(headerBuf);
 			if (read != headerBuf.capacity()) {
-				throw new IllegalArgumentException("Unable to read header from channel.");
+				throw new EOFException("Unable to read header from channel.");
 			}
 			headerBuf.flip();
 			header = cryptor.fileHeaderCryptor().decryptHeader(headerBuf);
