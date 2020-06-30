@@ -62,7 +62,6 @@ public interface FileContentCryptor {
 	 * @param chunkNumber Number of the chunk to be decrypted
 	 * @param header Header of the file, this chunk belongs to
 	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
-	 * @return Decrypted content. Position is set to <code>0</code> and limit to the end of the chunk.
 	 * @throws AuthenticationFailedException If authenticate is <code>true</code> and the given chunk does not match its MAC.
 	 */
 	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException;
