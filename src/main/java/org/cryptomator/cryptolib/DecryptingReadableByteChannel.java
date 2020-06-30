@@ -71,7 +71,7 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 	private void loadHeaderIfNecessary() throws IOException {
 		if (header == null) {
 			ByteBuffer headerBuf = ByteBuffer.allocate(cryptor.fileHeaderCryptor().headerSize());
-			int read = delegate.read(headerBuf);
+			int read = ByteBuffers.fill(delegate, headerBuf);
 			if (read != headerBuf.capacity()) {
 				throw new EOFException("Unable to read header from channel.");
 			}
@@ -82,8 +82,8 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 
 	private boolean loadNextCleartextChunk() throws IOException {
 		ByteBuffer ciphertextChunk = ByteBuffer.allocate(cryptor.fileContentCryptor().ciphertextChunkSize());
-		int read = delegate.read(ciphertextChunk);
-		if (read == -1) {
+		int read = ByteBuffers.fill(delegate, ciphertextChunk);
+		if (read == 0) {
 			reachedEof = true;
 			return false;
 		} else {
