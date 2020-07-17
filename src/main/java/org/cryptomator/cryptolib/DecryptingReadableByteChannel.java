@@ -24,14 +24,37 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 	private final boolean authenticate;
 	private ByteBuffer cleartextChunk;
 	private FileHeader header;
-	private boolean reachedEof = false;
-	private long chunk = 0;
+	private boolean reachedEof;
+	private long chunk;
 
+	/**
+	 * Creates a DecryptingReadableByteChannel that decrypts a whole ciphertext file beginning at its first byte.
+	 *
+	 * @param src          A ciphertext channel positioned at the begin of the file header
+	 * @param cryptor      The cryptor to use
+	 * @param authenticate Set to <code>false</code> to skip ciphertext authentication (may not be supported)
+	 */
 	public DecryptingReadableByteChannel(ReadableByteChannel src, Cryptor cryptor, boolean authenticate) {
+		this(src, cryptor, authenticate, null, 0);
+	}
+
+	/**
+	 * Creates a DecryptingReadableByteChannel with a previously read header, allowing to start decryption at any chunk.
+	 *
+	 * @param src          A ciphertext channel positioned at the beginning of the given <code>firstChunk</code>
+	 * @param cryptor      The cryptor to use
+	 * @param authenticate Set to <code>false</code> to skip ciphertext authentication (may not be supported)
+	 * @param header       The file's header
+	 * @param firstChunk   The index of the chunk at which the <code>src</code> channel is positioned
+	 */
+	public DecryptingReadableByteChannel(ReadableByteChannel src, Cryptor cryptor, boolean authenticate, FileHeader header, long firstChunk) {
 		this.delegate = src;
 		this.cryptor = cryptor;
 		this.authenticate = authenticate;
 		this.cleartextChunk = ByteBuffer.allocate(0); // empty buffer will trigger loadNextCleartextChunk() on first access.
+		this.header = header;
+		this.reachedEof = false;
+		this.chunk = firstChunk;
 	}
 
 	@Override
