@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
@@ -51,7 +50,21 @@ class EncryptingReadableByteChannelTest {
 	}
 
 	@Test
-	public void testEncryption() throws IOException {
+	public void testEncryptionOfEmptyCleartext() throws IOException {
+		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream(new byte[0]));
+		ByteBuffer result = ByteBuffer.allocate(10);
+		try (EncryptingReadableByteChannel ch = new EncryptingReadableByteChannel(src, cryptor)) {
+			int read1 = ch.read(result);
+			Assertions.assertEquals(5, read1);
+			int read2 = ch.read(result);
+			Assertions.assertEquals(-1, read2);
+			Assertions.assertArrayEquals("hhhhh".getBytes(), Arrays.copyOfRange(result.array(), 0, read1));
+		}
+		Mockito.verify(contentCryptor, Mockito.never()).encryptChunk(Mockito.any(), Mockito.anyLong(), Mockito.any());
+	}
+
+	@Test
+	public void testEncryptionOfCleartext() throws IOException {
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("hello world 1 hello world 2".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(50);
 		try (EncryptingReadableByteChannel ch = new EncryptingReadableByteChannel(src, cryptor)) {
