@@ -6,10 +6,11 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v2;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.AEADBadTagException;
@@ -18,6 +19,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
+import org.mockito.Mockito;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -41,15 +43,19 @@ public class FileHeaderCryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
 	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
-	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
-	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
-	private FileHeader header;
+	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, RANDOM_MOCK);
+
 	private ByteBuffer validHeaderCiphertextBuf;
+	private FileHeader header;
 
 	@Setup(Level.Iteration)
+	public void prepareData() {
+		validHeaderCiphertextBuf = HEADER_CRYPTOR.encryptHeader(HEADER_CRYPTOR.create());
+	}
+
+	@Setup(Level.Invocation)
 	public void shuffleData() {
 		header = HEADER_CRYPTOR.create();
-		validHeaderCiphertextBuf = HEADER_CRYPTOR.encryptHeader(header);
 	}
 
 	@Benchmark
@@ -58,7 +64,7 @@ public class FileHeaderCryptorBenchmark {
 	}
 
 	@Benchmark
-	public void benchmarkDecryption() throws AEADBadTagException {
+	public void benchmarkDecryption() {
 		HEADER_CRYPTOR.decryptHeader(validHeaderCiphertextBuf);
 	}
 

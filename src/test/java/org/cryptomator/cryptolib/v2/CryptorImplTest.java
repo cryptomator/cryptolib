@@ -6,7 +6,7 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v2;
 
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.hamcrest.CoreMatchers;
@@ -71,7 +71,7 @@ public class CryptorImplTest {
 		try (CryptorImpl cryptor = new CryptorImpl(encKey, macKey, RANDOM_MOCK)) {
 			byte[] rawKey = cryptor.getRawKey();
 			Assertions.assertArrayEquals(Arrays.copyOf(rawKey, Constants.KEY_LEN_BYTES), encKey.getEncoded());
-			Assertions.assertArrayEquals(Arrays.copyOfRange(rawKey, Constants.KEY_LEN_BYTES, 2*Constants.KEY_LEN_BYTES), macKey.getEncoded());
+			Assertions.assertArrayEquals(Arrays.copyOfRange(rawKey, Constants.KEY_LEN_BYTES, 2* Constants.KEY_LEN_BYTES), macKey.getEncoded());
 		}
 	}
 

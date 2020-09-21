@@ -15,10 +15,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class KeyFileTest {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
+	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	@Test
 	public void testParse() {

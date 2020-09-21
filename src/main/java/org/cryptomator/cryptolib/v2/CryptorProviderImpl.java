@@ -6,7 +6,7 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v2;
 
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
@@ -22,7 +22,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Preconditions;
-import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
@@ -33,9 +32,9 @@ import org.cryptomator.cryptolib.common.Scrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.cryptomator.cryptolib.v1.Constants.ENC_ALG;
-import static org.cryptomator.cryptolib.v1.Constants.KEY_LEN_BYTES;
-import static org.cryptomator.cryptolib.v1.Constants.MAC_ALG;
+import static org.cryptomator.cryptolib.v2.Constants.ENC_ALG;
+import static org.cryptomator.cryptolib.v2.Constants.KEY_LEN_BYTES;
+import static org.cryptomator.cryptolib.v2.Constants.MAC_ALG;
 
 public class CryptorProviderImpl implements CryptorProvider {
 
@@ -84,9 +83,9 @@ public class CryptorProviderImpl implements CryptorProvider {
 
 	@Override
 	public CryptorImpl createFromRawKey(byte[] rawKey) throws IllegalArgumentException {
-		Preconditions.checkArgument(rawKey.length == KEY_LEN_BYTES + KEY_LEN_BYTES, "Invalid raw key length %s", rawKey.length);
-		SecretKey encKey = new SecretKeySpec(rawKey, 0, KEY_LEN_BYTES, ENC_ALG);
-		SecretKey macKey = new SecretKeySpec(rawKey, KEY_LEN_BYTES, KEY_LEN_BYTES, MAC_ALG);
+		Preconditions.checkArgument(rawKey.length == Constants.KEY_LEN_BYTES + Constants.KEY_LEN_BYTES, "Invalid raw key length %s", rawKey.length);
+		SecretKey encKey = new SecretKeySpec(rawKey, 0, Constants.KEY_LEN_BYTES, Constants.ENC_ALG);
+		SecretKey macKey = new SecretKeySpec(rawKey, Constants.KEY_LEN_BYTES, Constants.KEY_LEN_BYTES, Constants.MAC_ALG);
 		return new CryptorImpl(encKey, macKey, random);
 	}
 

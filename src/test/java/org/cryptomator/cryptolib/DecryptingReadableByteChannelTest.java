@@ -23,11 +23,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class DecryptingReadableByteChannelTest {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
+	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	private Cryptor cryptor;
 	private FileContentCryptor contentCryptor;
@@ -64,6 +65,22 @@ public class DecryptingReadableByteChannelTest {
 			Assertions.assertEquals(-1, read2);
 			Assertions.assertArrayEquals("topsecret!topsecret!".getBytes(), Arrays.copyOfRange(result.array(), 0, read1));
 		}
+		Mockito.verify(contentCryptor).decryptChunk(Mockito.any(), Mockito.eq(0l), Mockito.eq(header), Mockito.eq(true));
+		Mockito.verify(contentCryptor).decryptChunk(Mockito.any(), Mockito.eq(1l), Mockito.eq(header), Mockito.eq(true));
+	}
+
+	@Test
+	public void testRandomAccessDecryption() throws IOException {
+		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("TOPSECRET!".getBytes()));
+		ByteBuffer result = ByteBuffer.allocate(30);
+		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true, header, 1)) {
+			int read1 = ch.read(result);
+			Assertions.assertEquals(10, read1);
+			int read2 = ch.read(result);
+			Assertions.assertEquals(-1, read2);
+			Assertions.assertArrayEquals("topsecret!".getBytes(), Arrays.copyOfRange(result.array(), 0, read1));
+		}
+		Mockito.verify(contentCryptor).decryptChunk(Mockito.any(), Mockito.eq(1l), Mockito.eq(header), Mockito.eq(true));
 	}
 
 }

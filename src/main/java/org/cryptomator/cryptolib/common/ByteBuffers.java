@@ -8,7 +8,9 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 
 public class ByteBuffers {
 
@@ -27,6 +29,25 @@ public class ByteBuffers {
 		destination.put(tmp);
 		source.position(tmp.position()); // until now only tmp pos has been incremented, so we need to adjust the position
 		return numBytes;
+	}
+
+	/**
+	 * Fills the given <code>buffer</code> by reading from the given source until either reaching EOF
+	 * or <code>buffer</code> has no more {@link ByteBuffer#hasRemaining() remaining space}. 
+	 * @param source The channel to read from
+	 * @param buffer The buffer to fill
+	 * @return Number of bytes read. Will only be less than remaining space in <code>buffer</code> if reaching EOF.
+	 * @throws IOException
+	 */
+	public static int fill(ReadableByteChannel source, ByteBuffer buffer) throws IOException {
+		final int requested = buffer.remaining();
+		while (buffer.hasRemaining()) {
+			int read = source.read(buffer);
+			if (read == -1) { // EOF
+				break;
+			}
+		}
+		return requested - buffer.remaining();
 	}
 
 }

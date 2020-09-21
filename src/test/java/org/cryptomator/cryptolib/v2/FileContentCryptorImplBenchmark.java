@@ -6,17 +6,15 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v2;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
-import javax.crypto.AEADBadTagException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -37,29 +35,40 @@ import org.openjdk.jmh.annotations.Warmup;
 @Measurement(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 @BenchmarkMode(value = {Mode.AverageTime})
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-public class FileHeaderCryptorBenchmark {
+public class FileContentCryptorImplBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
 	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
-	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
-	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
-	private FileHeader header;
-	private ByteBuffer validHeaderCiphertextBuf;
+	private final byte[] headerNonce = new byte[FileHeaderImpl.NONCE_LEN];
+	private final ByteBuffer cleartextChunk = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
+	private final ByteBuffer ciphertextChunk = ByteBuffer.allocate(Constants.CHUNK_SIZE);
+	private final FileContentCryptorImpl fileContentCryptor = new FileContentCryptorImpl(RANDOM_MOCK);
+	private long chunkNumber;
 
-	@Setup(Level.Iteration)
+	@Setup(Level.Trial)
+	public void prepareData() {
+		cleartextChunk.rewind();
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, 0l, new byte[12], ENC_KEY);
+		ciphertextChunk.flip();
+	}
+
+	@Setup(Level.Invocation)
 	public void shuffleData() {
-		header = HEADER_CRYPTOR.create();
-		validHeaderCiphertextBuf = HEADER_CRYPTOR.encryptHeader(header);
+		chunkNumber = RANDOM_MOCK.nextLong();
+		cleartextChunk.rewind();
+		ciphertextChunk.rewind();
+		RANDOM_MOCK.nextBytes(headerNonce);
+		RANDOM_MOCK.nextBytes(cleartextChunk.array());
 	}
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		HEADER_CRYPTOR.encryptHeader(header);
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, ENC_KEY);
 	}
 
 	@Benchmark
-	public void benchmarkDecryption() throws AEADBadTagException {
-		HEADER_CRYPTOR.decryptHeader(validHeaderCiphertextBuf);
+	public void benchmarkDecryption() {
+		fileContentCryptor.decryptChunk(ciphertextChunk, cleartextChunk, 0l, new byte[12], ENC_KEY);
 	}
 
 }

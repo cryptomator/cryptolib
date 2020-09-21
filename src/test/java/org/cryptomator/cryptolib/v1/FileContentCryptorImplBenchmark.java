@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -57,7 +58,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		fileContentCryptor.encryptChunk(cleartextChunk, chunkNumber, headerNonce, ENC_KEY);
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, ENC_KEY);
 	}
 
 	@Benchmark
@@ -67,7 +68,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkDecryption() {
-		fileContentCryptor.decryptChunk(ciphertextChunk, ENC_KEY);
+		fileContentCryptor.decryptChunk(ciphertextChunk, ciphertextChunk, ENC_KEY);
 	}
 
 }

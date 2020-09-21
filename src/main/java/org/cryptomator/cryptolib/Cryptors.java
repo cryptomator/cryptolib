@@ -16,7 +16,6 @@ import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
-import org.cryptomator.cryptolib.v1.CryptorProviderImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -28,7 +27,16 @@ public final class Cryptors {
 	 */
 	public static CryptorProvider version1(SecureRandom seeder) {
 		SecureRandom csprng = ReseedingSecureRandom.create(seeder);
-		return new CryptorProviderImpl(csprng);
+		return new org.cryptomator.cryptolib.v1.CryptorProviderImpl(csprng);
+	}
+
+	/**
+	 * @param seeder A native (if possible) SecureRandom used to seed internal CSPRNGs.
+	 * @return A version 2 CryptorProvider
+	 */
+	public static CryptorProvider version2(SecureRandom seeder) {
+		SecureRandom csprng = ReseedingSecureRandom.create(seeder);
+		return new org.cryptomator.cryptolib.v2.CryptorProviderImpl(csprng);
 	}
 
 	/**

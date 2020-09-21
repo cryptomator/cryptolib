@@ -6,13 +6,19 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.common;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Random;
 
-class SecureRandomMock extends SecureRandom {
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import com.google.common.primitives.Bytes;
+
+public class SecureRandomMock extends SecureRandom {
 
 	private static final ByteFiller NULL_FILLER = new ByteFiller() {
 
@@ -44,11 +50,29 @@ class SecureRandomMock extends SecureRandom {
 	@Override
 	public void nextBytes(byte[] bytes) {
 		byteFiller.fill(bytes);
-
 	}
 
-	private static interface ByteFiller {
+	public static SecureRandomMock cycle(byte... bytes) {
+		return new SecureRandomMock(new CyclicByteFiller(bytes));
+	}
+
+	public interface ByteFiller {
 		void fill(byte[] bytes);
+	}
+
+	private static class CyclicByteFiller implements ByteFiller {
+
+		private final Iterator<Byte> source;
+
+		CyclicByteFiller(byte... bytes) {
+			source = Iterators.cycle(Bytes.asList(bytes));
+		}
+
+		@Override
+		public void fill(byte[] bytes) {
+			Arrays.fill(bytes, source.next());
+		}
+
 	}
 
 }

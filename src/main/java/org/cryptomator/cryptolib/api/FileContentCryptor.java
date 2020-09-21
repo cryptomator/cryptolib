@@ -33,6 +33,16 @@ public interface FileContentCryptor {
 	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header);
 
 	/**
+	 * Encrypts a single chunk of cleartext.
+	 *
+	 * @param cleartextChunk Content to be encrypted
+	 * @param ciphertextChunk Encrypted content buffer (with at least {@link #ciphertextChunkSize()} remaining bytes)
+	 * @param chunkNumber Number of the chunk to be encrypted
+	 * @param header Header of the file, this chunk belongs to
+	 */
+	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header);
+
+	/**
 	 * Decrypts a single chunk of ciphertext.
 	 * 
 	 * @param ciphertextChunk Content to be decrypted
@@ -43,5 +53,17 @@ public interface FileContentCryptor {
 	 * @throws AuthenticationFailedException If authenticate is <code>true</code> and the given chunk does not match its MAC.
 	 */
 	ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException;
+
+	/**
+	 * Decrypts a single chunk of ciphertext.
+	 *
+	 * @param ciphertextChunk Content to be decrypted
+	 * @param cleartextChunk Buffer for decrypted chunk (with at least {@link #cleartextChunkSize()} remaining bytes)
+	 * @param chunkNumber Number of the chunk to be decrypted
+	 * @param header Header of the file, this chunk belongs to
+	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
+	 * @throws AuthenticationFailedException If authenticate is <code>true</code> and the given chunk does not match its MAC.
+	 */
+	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException;
 
 }
