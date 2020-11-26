@@ -14,11 +14,19 @@
 	</scm>
 
 	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<!-- dependencies -->
 		<gson.version>2.8.6</gson.version>
 		<guava.version>30.0-jre</guava.version>
 		<siv-mode.version>1.4.0</siv-mode.version>
 		<slf4j.version>1.7.30</slf4j.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<!-- test dependencies -->
+		<junit.jupiter.version>5.7.0</junit.jupiter.version>
+		<mockito.version>3.6.0</mockito.version>
+		<hamcrest.version>2.2</hamcrest.version>
+		<jmh.version>1.26</jmh.version>
 	</properties>
 
 	<licenses>
@@ -76,19 +84,19 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
-			<version>5.7.0</version>
+			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>3.5.11</version>
+			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
-			<version>2.2</version>
+			<version>${hamcrest.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -100,13 +108,13 @@
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>
-			<version>1.25.2</version>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>1.25.2</version>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -114,13 +122,31 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>3.0.0-M3</version>
+				<executions>
+					<execution>
+						<id>enforce-java</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireJavaVersion>
+									<message>You need at least JDK 11.0.3 to build this project.</message>
+									<version>[11.0.3,)</version>
+								</requireJavaVersion>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
-					<release>7</release>
-					<source>1.7</source> <!-- redundant to <release> but needed until https://bugs.openjdk.java.net/browse/JDK-8219474 is fixed (see javadoc config) -->
-					<target>1.7</target>
-					<testRelease>8</testRelease>
+					<release>8</release>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
@@ -147,38 +173,13 @@
 
 	<profiles>
 		<profile>
-			<id>intellij</id>
-			<!-- workaround for intellij bug: https://youtrack.jetbrains.com/issue/IDEA-85478 -->
-			<activation>
-				<activeByDefault>false</activeByDefault>
-				<property>
-					<name>idea.maven.embedder.version</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.8.1</version>
-						<configuration>
-							<release>8</release>
-							<source>1.8</source>
-							<target>1.8</target>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
 			<id>dependency-check</id>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.owasp</groupId>
 						<artifactId>dependency-check-maven</artifactId>
-						<version>6.0.1</version>
+						<version>6.0.3</version>
 						<configuration>
 							<cveValidForHours>24</cveValidForHours>
 							<failBuildOnCVSS>0</failBuildOnCVSS>
@@ -211,6 +212,12 @@
 								<id>prepare-agent</id>
 								<goals>
 									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>report</id>
+								<goals>
+									<goal>report</goal>
 								</goals>
 							</execution>
 						</executions>
@@ -253,7 +260,31 @@
 							</execution>
 						</executions>
 						<configuration>
-							<source>1.7</source> <!-- workaround for https://bugs.openjdk.java.net/browse/JDK-8219474 -->
+							<tags>
+								<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
+								<tag>
+									<name>apiNote</name>
+									<placement>a</placement>
+									<head>API Note:</head>
+								</tag>
+								<tag>
+									<name>implSpec</name>
+									<placement>a</placement>
+									<head>Implementation Requirements:</head>
+								</tag>
+								<tag>
+									<name>implNote</name>
+									<placement>a</placement>
+									<head>Implementation Note:</head>
+								</tag>
+								<tag><name>param</name></tag>
+								<tag><name>return</name></tag>
+								<tag><name>throws</name></tag>
+								<tag><name>since</name></tag>
+								<tag><name>version</name></tag>
+								<tag><name>serialData</name></tag>
+								<tag><name>see</name></tag>
+							</tags>
 						</configuration>
 					</plugin>
 					<plugin>
