@@ -50,6 +50,8 @@ public interface Cryptor extends Destroyable, AutoCloseable {
 	 * Calls {@link #destroy()}.
 	 */
 	@Override
-	void close();
+	default void close() {
+		destroy();
+	}
 
 }

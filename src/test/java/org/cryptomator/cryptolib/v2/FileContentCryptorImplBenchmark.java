@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -67,7 +68,7 @@ public class FileContentCryptorImplBenchmark {
 	}
 
 	@Benchmark
-	public void benchmarkDecryption() {
+	public void benchmarkDecryption() throws AuthenticationFailedException {
 		fileContentCryptor.decryptChunk(ciphertextChunk, cleartextChunk, 0l, new byte[12], ENC_KEY);
 	}
 

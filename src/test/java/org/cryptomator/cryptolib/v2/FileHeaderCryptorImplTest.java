@@ -70,7 +70,7 @@ public class FileHeaderCryptorImplTest {
 
 	@Test
 	@SuppressWarnings("deprecation")
-	public void testDecryption() {
+	public void testDecryption() throws AuthenticationFailedException {
 		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjU0=");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
 		Assertions.assertEquals(header.getFilesize(), -1l);

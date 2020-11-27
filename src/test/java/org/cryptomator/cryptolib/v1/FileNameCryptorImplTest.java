@@ -43,7 +43,7 @@ public class FileNameCryptorImplTest {
 	@DisplayName("encrypt and decrypt file names")
 	@ParameterizedTest(name = "decrypt(encrypt({0}))")
 	@MethodSource("filenameGenerator")
-	public void testDeterministicEncryptionOfFilenames(String origName) {
+	public void testDeterministicEncryptionOfFilenames(String origName) throws AuthenticationFailedException {
 		String encrypted1 = filenameCryptor.encryptFilename(origName);
 		String encrypted2 = filenameCryptor.encryptFilename(origName);
 		String decrypted = filenameCryptor.decryptFilename(encrypted1);
@@ -55,7 +55,7 @@ public class FileNameCryptorImplTest {
 	@DisplayName("encrypt and decrypt file names with AD and custom encoding")
 	@ParameterizedTest(name = "decrypt(encrypt({0}))")
 	@MethodSource("filenameGenerator")
-	public void testDeterministicEncryptionOfFilenamesWithCustomEncodingAndAssociatedData(String origName) {
+	public void testDeterministicEncryptionOfFilenamesWithCustomEncodingAndAssociatedData(String origName) throws AuthenticationFailedException {
 		byte[] associdatedData = new byte[10];
 		String encrypted1 = filenameCryptor.encryptFilename(BaseEncoding.base64Url(), origName, associdatedData);
 		String encrypted2 = filenameCryptor.encryptFilename(BaseEncoding.base64Url(), origName, associdatedData);
@@ -67,7 +67,7 @@ public class FileNameCryptorImplTest {
 
 	@Test
 	@DisplayName("encrypt and decrypt 128 bit filename")
-	public void testDeterministicEncryptionOf128bitFilename() {
+	public void testDeterministicEncryptionOf128bitFilename() throws AuthenticationFailedException {
 		// block size length file names
 		String originalPath3 = "aaaabbbbccccdddd"; // 128 bit ascii
 		String encryptedPath3a = filenameCryptor.encryptFilename(originalPath3);
@@ -118,7 +118,7 @@ public class FileNameCryptorImplTest {
 
 	@Test
 	@DisplayName("decrypt ciphertext with correct AD")
-	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() {
+	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() throws AuthenticationFailedException {
 		final String encrypted = filenameCryptor.encryptFilename("test", "ad".getBytes(UTF_8));
 		final String decrypted = filenameCryptor.decryptFilename(encrypted, "ad".getBytes(UTF_8));
 		Assertions.assertEquals("test", decrypted);

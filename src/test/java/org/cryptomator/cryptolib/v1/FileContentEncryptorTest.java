@@ -13,6 +13,8 @@ import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,9 +80,10 @@ public class FileContentEncryptorTest {
 
 		ByteBuffer result = ByteBuffer.allocate(size + 1);
 		try (ReadableByteChannel ch = new DecryptingReadableByteChannel(new SeekableByteChannelMock(ciphertextBuffer), cryptor, true)) {
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+			IOException thrown = Assertions.assertThrows(IOException.class, () -> {
 				ch.read(result);
 			});
+			MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
 		}
 	}
 

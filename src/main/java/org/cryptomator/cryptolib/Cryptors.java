@@ -15,6 +15,7 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
+import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -93,7 +94,8 @@ public final class Cryptors {
 	 * @see #changePassphrase(CryptorProvider, byte[], byte[], CharSequence, CharSequence)
 	 * @since 1.1.0
 	 */
-	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
+	@Deprecated
+	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException, UnsupportedVaultFormatException {
 		return changePassphrase(cryptorProvider, masterkey, new byte[0], oldPassphrase, newPassphrase);
 	}
 
@@ -109,7 +111,8 @@ public final class Cryptors {
 	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
 	 * @since 1.1.4
 	 */
-	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
+	@Deprecated
+	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException, UnsupportedVaultFormatException {
 		final KeyFile keyFile = KeyFile.parse(masterkey);
 		try (Cryptor cryptor = cryptorProvider.createFromKeyFile(keyFile, oldPassphrase, pepper, keyFile.getVersion())) {
 			return cryptor.writeKeysToMasterkeyFile(newPassphrase, pepper, keyFile.getVersion()).serialize();
@@ -127,7 +130,8 @@ public final class Cryptors {
 	 * @throws InvalidPassphraseException If the wrong <code>passphrase</code> has been supplied for the <code>masterkey</code>
 	 * @since 1.3.0
 	 */
-	public static byte[] exportRawKey(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence passphrase) {
+	@Deprecated
+	public static byte[] exportRawKey(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence passphrase) throws UnsupportedVaultFormatException, InvalidPassphraseException {
 		final KeyFile keyFile = KeyFile.parse(masterkey);
 		try (Cryptor cryptor = cryptorProvider.createFromKeyFile(keyFile, passphrase, pepper, keyFile.getVersion())) {
 			return cryptor.getRawKey();
@@ -145,6 +149,7 @@ public final class Cryptors {
 	 * @return The json-encoded masterkey protected by the passphrase
 	 * @since 1.3.0
 	 */
+	@Deprecated
 	public static byte[] restoreRawKey(CryptorProvider cryptorProvider, byte[] rawKey, byte[] pepper, CharSequence passphrase, int vaultVersion) {
 		try (Cryptor cryptor = cryptorProvider.createFromRawKey(rawKey)) {
 			return cryptor.writeKeysToMasterkeyFile(passphrase, pepper, vaultVersion).serialize();

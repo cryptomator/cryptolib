@@ -8,6 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib;
 
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
@@ -36,7 +37,7 @@ public class DecryptingReadableByteChannelTest {
 	private FileHeader header;
 
 	@BeforeEach
-	public void setup() {
+	public void setup() throws AuthenticationFailedException {
 		cryptor = Mockito.mock(Cryptor.class);
 		contentCryptor = Mockito.mock(FileContentCryptor.class);
 		headerCryptor = Mockito.mock(FileHeaderCryptor.class);
@@ -55,7 +56,7 @@ public class DecryptingReadableByteChannelTest {
 	}
 
 	@Test
-	public void testDecryption() throws IOException {
+	public void testDecryption() throws IOException, AuthenticationFailedException {
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("hhhhhTOPSECRET!TOPSECRET!".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(30);
 		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true)) {
@@ -70,7 +71,7 @@ public class DecryptingReadableByteChannelTest {
 	}
 
 	@Test
-	public void testRandomAccessDecryption() throws IOException {
+	public void testRandomAccessDecryption() throws IOException, AuthenticationFailedException {
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("TOPSECRET!".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(30);
 		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true, header, 1)) {

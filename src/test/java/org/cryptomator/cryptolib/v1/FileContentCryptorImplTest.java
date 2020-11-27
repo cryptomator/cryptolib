@@ -15,6 +15,8 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -149,7 +151,7 @@ public class FileContentCryptorImplTest {
 
 		@Test
 		@DisplayName("decrypt chunk")
-		public void testChunkDecryption() {
+		public void testChunkDecryption() throws AuthenticationFailedException {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
 			ByteBuffer expected = US_ASCII.encode("hello world");
@@ -213,9 +215,10 @@ public class FileContentCryptorImplTest {
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
 					cleartextCh.read(ByteBuffer.allocate(3));
 				});
+				MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
 			}
 		}
 
@@ -237,9 +240,10 @@ public class FileContentCryptorImplTest {
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
 					cleartextCh.read(ByteBuffer.allocate(3));
 				});
+				MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
 			}
 		}
 
@@ -261,15 +265,16 @@ public class FileContentCryptorImplTest {
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
 					cleartextCh.read(ByteBuffer.allocate(3));
 				});
+				MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
 			}
 		}
 
 		@Test
 		@DisplayName("decrypt chunk with unauthentic MAC but skipping MAC verficiation")
-		public void testChunkDecryptionWithUnauthenticMacSkipAuth() {
+		public void testChunkDecryptionWithUnauthenticMacSkipAuth() throws AuthenticationFailedException {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG="));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), false);
 			ByteBuffer expected = US_ASCII.encode(CharBuffer.wrap("hello world"));
