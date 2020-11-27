@@ -70,7 +70,7 @@ public class FileContentCryptorImplTest {
 	}
 
 	@Test
-	public void testDecryptedEncryptedEqualsPlaintext() throws NoSuchAlgorithmException {
+	public void testDecryptedEncryptedEqualsPlaintext() throws AuthenticationFailedException {
 		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
 		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
@@ -149,7 +149,7 @@ public class FileContentCryptorImplTest {
 
 		@Test
 		@DisplayName("decrypt chunk")
-		public void testChunkDecryption() {
+		public void testChunkDecryption() throws AuthenticationFailedException {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAApsIsUSJAHAF1IqG66PAqEvceoFIiAj5736Xq"));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			ByteBuffer expected = US_ASCII.encode("hello world");

@@ -64,7 +64,7 @@ public class CryptorProviderImplTest {
 	}
 
 	@Test
-	public void testCreateFromKeyWithCorrectPassphrase() {
+	public void testCreateFromKeyWithCorrectPassphrase() throws UnsupportedVaultFormatException, InvalidPassphraseException {
 		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
 				+ "\"primaryMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
 				+ "\"hmacMasterKey\":\"mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==\"," //
@@ -87,7 +87,7 @@ public class CryptorProviderImplTest {
 	}
 
 	@Test
-	public void testCreateFromKeyWithPepper() {
+	public void testCreateFromKeyWithPepper() throws UnsupportedVaultFormatException, InvalidPassphraseException {
 		final String testMasterKey = "{\"version\":3,\"scryptSalt\":\"AAAAAAAAAAA=\",\"scryptCostParam\":2,\"scryptBlockSize\":8," //
 				+ "\"primaryMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //
 				+ "\"hmacMasterKey\":\"jkF3rc0WQsntEMlvXSLkquBLPlSYfOUDXDg90VHcj6irG4X/TOGJhA==\"," //

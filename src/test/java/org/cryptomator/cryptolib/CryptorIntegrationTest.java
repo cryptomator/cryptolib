@@ -5,7 +5,9 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
+import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
+import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -60,7 +62,7 @@ class CryptorIntegrationTest {
 		}
 		
 		@Test
-		public void changePassword() {
+		public void changePassword() throws UnsupportedVaultFormatException, InvalidPassphraseException {
 			byte[] newMasterkey = Cryptors.changePassphrase(cryptorProvider, masterkey, "password", "betterPassw0rd!");
 			Assertions.assertFalse(Arrays.equals(masterkey, newMasterkey));
 			
@@ -70,7 +72,7 @@ class CryptorIntegrationTest {
 		}
 		
 		@Test
-		public void testExportRawKey() {
+		public void testExportRawKey() throws UnsupportedVaultFormatException, InvalidPassphraseException {
 			byte[] rawKey = Cryptors.exportRawKey(cryptorProvider, masterkey, pepper, passphrase);
 			Assertions.assertNotNull(rawKey);
 		}
@@ -81,7 +83,7 @@ class CryptorIntegrationTest {
 			byte[] rawKey;
 
 			@BeforeEach
-			public void setup() {
+			public void setup() throws UnsupportedVaultFormatException, InvalidPassphraseException {
 				rawKey = Cryptors.exportRawKey(cryptorProvider, masterkey, pepper, passphrase);
 			}
 			

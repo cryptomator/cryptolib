@@ -38,6 +38,7 @@ import com.google.gson.stream.JsonReader;
  * Each version might have its own package-private subclass of this file, which adds further properties.
  * These properties must be annotated with {@link Expose} in order to be considered by {@link #serialize()}.
  */
+@Deprecated
 public abstract class KeyFile {
 
 	private static final Charset UTF_8 = Charset.forName("UTF-8");

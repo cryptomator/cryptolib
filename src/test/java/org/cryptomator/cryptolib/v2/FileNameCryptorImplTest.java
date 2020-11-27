@@ -26,7 +26,7 @@ public class FileNameCryptorImplTest {
 	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	@Test
-	public void testDeterministicEncryptionOfFilenames() throws IOException {
+	public void testDeterministicEncryptionOfFilenames() throws IOException, AuthenticationFailedException {
 		final byte[] keyBytes = new byte[32];
 		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
 		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
@@ -94,7 +94,7 @@ public class FileNameCryptorImplTest {
 	}
 
 	@Test
-	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() {
+	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() throws AuthenticationFailedException {
 		final byte[] keyBytes = new byte[32];
 		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
 		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
