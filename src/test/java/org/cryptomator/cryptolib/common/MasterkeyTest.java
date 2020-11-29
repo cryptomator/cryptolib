@@ -6,11 +6,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
 import java.security.SecureRandom;
+import java.util.Random;
+import java.util.stream.Stream;
 
 public class MasterkeyTest {
 
@@ -33,6 +36,24 @@ public class MasterkeyTest {
 
 		Mockito.verify(csprng, Mockito.atLeastOnce()).nextBytes(Mockito.any());
 		Assertions.assertNotNull(masterkey);
+	}
+
+	@ParameterizedTest
+	@MethodSource("create64RandomBytes")
+	public void testCreateFromRawKey(byte[] encoded) {
+		Masterkey masterkey = Masterkey.createFromRaw(encoded);
+
+		Assertions.assertNotNull(masterkey);
+		Assertions.assertArrayEquals(encoded, masterkey.getEncoded());
+	}
+
+	static Stream<byte[]> create64RandomBytes() {
+		Random rnd = new Random(42l);
+		return Stream.generate(() -> {
+			byte[] bytes = new byte[64];
+			rnd.nextBytes(bytes);
+			return bytes;
+		}).limit(10);
 	}
 
 	@Test

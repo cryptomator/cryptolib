@@ -8,21 +8,20 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.Arrays;
+import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.KeyFile;
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.AesKeyWrap;
+import org.cryptomator.cryptolib.common.MacSupplier;
+import org.cryptomator.cryptolib.common.Scrypt;
+import org.cryptomator.cryptolib.v1.CryptorProviderImpl;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.DestroyFailedException;
-import javax.security.auth.Destroyable;
-
-import org.cryptomator.cryptolib.api.Cryptor;
-import org.cryptomator.cryptolib.api.KeyFile;
-import org.cryptomator.cryptolib.common.AesKeyWrap;
-import org.cryptomator.cryptolib.common.MacSupplier;
-import org.cryptomator.cryptolib.common.Scrypt;
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.Arrays;
 
 import static org.cryptomator.cryptolib.v2.Constants.DEFAULT_SCRYPT_BLOCK_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.DEFAULT_SCRYPT_COST_PARAM;
@@ -31,8 +30,7 @@ import static org.cryptomator.cryptolib.v2.Constants.KEY_LEN_BYTES;
 
 class CryptorImpl implements Cryptor {
 
-	private final SecretKey encKey;
-	private final SecretKey macKey;
+	private final Masterkey masterkey;
 	private final SecureRandom random;
 	private final FileContentCryptorImpl fileContentCryptor;
 	private final FileHeaderCryptorImpl fileHeaderCryptor;
@@ -40,15 +38,14 @@ class CryptorImpl implements Cryptor {
 
 	/**
 	 * Package-private constructor.
-	 * Use {@link CryptorProviderImpl#createNew()} or {@link CryptorProviderImpl#createFromKeyFile(KeyFile, CharSequence, int)} to obtain a Cryptor instance.
+	 * Use {@link CryptorProviderImpl#withKey(Masterkey)} to obtain a Cryptor instance.
 	 */
-	CryptorImpl(SecretKey encKey, SecretKey macKey, SecureRandom random) {
-		this.encKey = encKey;
-		this.macKey = macKey;
+	CryptorImpl(Masterkey masterkey, SecureRandom random) {
+		this.masterkey = masterkey;
 		this.random = random;
-		this.fileHeaderCryptor = new FileHeaderCryptorImpl(encKey, random);
+		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey.getEncKey(), random);
 		this.fileContentCryptor = new FileContentCryptorImpl(random);
-		this.fileNameCryptor = new FileNameCryptorImpl(encKey, macKey);
+		this.fileNameCryptor = new FileNameCryptorImpl(masterkey.getEncKey(), masterkey.getMacKey());
 	}
 
 	@Override
@@ -71,12 +68,7 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public boolean isDestroyed() {
-		// SecretKey did not implement Destroyable in Java 7:
-		if (encKey instanceof Destroyable && macKey instanceof Destroyable) {
-			return ((Destroyable) encKey).isDestroyed() || ((Destroyable) macKey).isDestroyed();
-		} else {
-			return false;
-		}
+		return masterkey.isDestroyed();
 	}
 
 	@Override
@@ -86,8 +78,7 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public void destroy() {
-		destroyQuietly(encKey);
-		destroyQuietly(macKey);
+		masterkey.destroy();
 	}
 
 	@Override
@@ -109,13 +100,13 @@ class CryptorImpl implements Cryptor {
 		final byte[] wrappedMacKey;
 		try {
 			final SecretKey kek = new SecretKeySpec(kekBytes, Constants.ENC_ALG);
-			wrappedEncryptionKey = AesKeyWrap.wrap(kek, encKey);
-			wrappedMacKey = AesKeyWrap.wrap(kek, macKey);
+			wrappedEncryptionKey = AesKeyWrap.wrap(kek, masterkey.getEncKey());
+			wrappedMacKey = AesKeyWrap.wrap(kek, masterkey.getMacKey());
 		} finally {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}
 
-		final Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
+		final Mac mac = MacSupplier.HMAC_SHA256.withKey(masterkey.getMacKey());
 		final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
 
 		final KeyFileImpl keyfile = new KeyFileImpl();
@@ -131,27 +122,7 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public byte[] getRawKey() {
-		byte[] rawEncKey = encKey.getEncoded();
-		byte[] rawMacKeyKey = macKey.getEncoded();
-		try {
-			byte[] rawKey = new byte[rawEncKey.length + rawMacKeyKey.length];
-			System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
-			System.arraycopy(rawMacKeyKey, 0, rawKey, rawEncKey.length, rawMacKeyKey.length);
-			return rawKey;
-		} finally {
-			Arrays.fill(rawEncKey, (byte) 0x00);
-			Arrays.fill(rawMacKeyKey, (byte) 0x00);
-		}
-	}
-
-	private void destroyQuietly(SecretKey key) {
-		try {
-			if (key instanceof Destroyable && !((Destroyable) key).isDestroyed()) {
-				((Destroyable) key).destroy();
-			}
-		} catch (DestroyFailedException e) {
-			// ignore
-		}
+		return masterkey.getEncoded();
 	}
 
 	private void assertNotDestroyed() {

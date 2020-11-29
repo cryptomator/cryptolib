@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
@@ -31,14 +32,13 @@ import java.util.Arrays;
 public class FileContentEncryptorTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[32], "AES");
-	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[32], "HmacSHA256");
+	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
 
 	private CryptorImpl cryptor;
 
 	@BeforeEach
 	public void setup() {
-		cryptor = new CryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
+		cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK);
 	}
 
 	@Test

@@ -19,6 +19,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -42,14 +43,13 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentEncryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[32], "AES");
-	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[32], "HmacSHA256");
+	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
 
 	private CryptorImpl cryptor;
 
 	@Setup(Level.Iteration)
 	public void shuffleData() {
-		cryptor = new CryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
+		cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK);
 	}
 
 	@Benchmark
@@ -93,39 +93,39 @@ public class FileContentEncryptorBenchmark {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() {
 			open = false;
 		}
 
 		@Override
-		public int read(ByteBuffer dst) throws IOException {
+		public int read(ByteBuffer dst) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public int write(ByteBuffer src) throws IOException {
+		public int write(ByteBuffer src) {
 			int delta = src.remaining();
 			src.position(src.position() + delta);
 			return delta;
 		}
 
 		@Override
-		public long position() throws IOException {
+		public long position() {
 			return 0;
 		}
 
 		@Override
-		public SeekableByteChannel position(long newPosition) throws IOException {
+		public SeekableByteChannel position(long newPosition) {
 			return this;
 		}
 
 		@Override
-		public long size() throws IOException {
+		public long size() {
 			return 0;
 		}
 
 		@Override
-		public SeekableByteChannel truncate(long size) throws IOException {
+		public SeekableByteChannel truncate(long size) {
 			return this;
 		}
 
