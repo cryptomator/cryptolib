@@ -8,15 +8,24 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib;
 
-import java.security.SecureRandom;
-
+import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.KeyFile;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
+import org.cryptomator.cryptolib.common.MasterkeyFile;
+import org.cryptomator.cryptolib.common.MasterkeyFileLoader;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.security.SecureRandom;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -43,7 +52,7 @@ public final class Cryptors {
 	/**
 	 * Calculates the size of the cleartext resulting from the given ciphertext decrypted with the given cryptor.
 	 *
-	 * @param ciphertextSize Length of encrypted payload. Not including the {@link FileHeader#getFilesize() length of the header}.
+	 * @param ciphertextSize Length of encrypted payload. Not including the {@link FileHeaderCryptor#headerSize() length of the header}.
 	 * @param cryptor        The cryptor which defines the cleartext/ciphertext ratio
 	 * @return Cleartext length of a <code>ciphertextSize</code>-sized ciphertext decrypted with <code>cryptor</code>.
 	 */
@@ -95,7 +104,7 @@ public final class Cryptors {
 	 * @since 1.1.0
 	 */
 	@Deprecated
-	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException, UnsupportedVaultFormatException {
+	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws CryptoException {
 		return changePassphrase(cryptorProvider, masterkey, new byte[0], oldPassphrase, newPassphrase);
 	}
 
@@ -112,10 +121,14 @@ public final class Cryptors {
 	 * @since 1.1.4
 	 */
 	@Deprecated
-	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException, UnsupportedVaultFormatException {
+	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence oldPassphrase, CharSequence newPassphrase) throws CryptoException {
 		final KeyFile keyFile = KeyFile.parse(masterkey);
-		try (Cryptor cryptor = cryptorProvider.createFromKeyFile(keyFile, oldPassphrase, pepper, keyFile.getVersion())) {
+		try (MasterkeyFileLoader loader = MasterkeyFile.withContent(new ByteArrayInputStream(masterkey)).unlock(oldPassphrase, pepper, Optional.empty());
+			 Masterkey key = loader.loadKey(MasterkeyFileLoader.KEY_ID);
+			 Cryptor cryptor = cryptorProvider.withKey(key)) {
 			return cryptor.writeKeysToMasterkeyFile(newPassphrase, pepper, keyFile.getVersion()).serialize();
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
 	}
 
@@ -131,10 +144,12 @@ public final class Cryptors {
 	 * @since 1.3.0
 	 */
 	@Deprecated
-	public static byte[] exportRawKey(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence passphrase) throws UnsupportedVaultFormatException, InvalidPassphraseException {
-		final KeyFile keyFile = KeyFile.parse(masterkey);
-		try (Cryptor cryptor = cryptorProvider.createFromKeyFile(keyFile, passphrase, pepper, keyFile.getVersion())) {
-			return cryptor.getRawKey();
+	public static byte[] exportRawKey(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence passphrase) throws UnsupportedVaultFormatException, CryptoException {
+		try (MasterkeyFileLoader loader = MasterkeyFile.withContent(new ByteArrayInputStream(masterkey)).unlock(passphrase, pepper, Optional.empty());
+			 Masterkey key = loader.loadKey(MasterkeyFileLoader.KEY_ID)) {
+			return key.getEncoded();
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
 	}
 
@@ -145,13 +160,14 @@ public final class Cryptors {
 	 * @param rawKey          The original JSON representation of the masterkey
 	 * @param pepper          An application-specific pepper added to the salt during key-derivation (if applicable)
 	 * @param passphrase      The passphrase
-	 * @param vaultVersion    The version of the vault for which to recreate a masterkey file   
+	 * @param vaultVersion    The version of the vault for which to recreate a masterkey file
 	 * @return The json-encoded masterkey protected by the passphrase
 	 * @since 1.3.0
 	 */
 	@Deprecated
 	public static byte[] restoreRawKey(CryptorProvider cryptorProvider, byte[] rawKey, byte[] pepper, CharSequence passphrase, int vaultVersion) {
-		try (Cryptor cryptor = cryptorProvider.createFromRawKey(rawKey)) {
+		try (Masterkey key = Masterkey.createFromRaw(rawKey);
+			 Cryptor cryptor = cryptorProvider.withKey(key)) {
 			return cryptor.writeKeysToMasterkeyFile(passphrase, pepper, vaultVersion).serialize();
 		}
 	}

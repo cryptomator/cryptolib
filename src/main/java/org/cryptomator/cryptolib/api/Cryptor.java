@@ -26,6 +26,7 @@ public interface Cryptor extends Destroyable, AutoCloseable {
 	 * @return Encrypted data that can be stored in insecure locations.
 	 * @see #writeKeysToMasterkeyFile(CharSequence, byte[], int)
 	 */
+	@Deprecated
 	KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, int vaultVersion);
 
 	/**
@@ -35,12 +36,14 @@ public interface Cryptor extends Destroyable, AutoCloseable {
 	 * @return Encrypted data that can be stored in insecure locations.
 	 * @since 1.1.0
 	 */
+	@Deprecated
 	KeyFile writeKeysToMasterkeyFile(CharSequence passphrase, byte[] pepper, int vaultVersion);
 
 	/**
 	 * @return All key material of this cryptor
 	 * @since 1.3.0
 	 */
+	@Deprecated
 	byte[] getRawKey();
 
 	@Override

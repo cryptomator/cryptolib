@@ -1,9 +1,11 @@
 package org.cryptomator.cryptolib.api;
 
+import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.common.Destroyables;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -34,6 +36,13 @@ public class Masterkey implements AutoCloseable, SecretKey {
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("Hard-coded algorithm doesn't exist.", e);
 		}
+	}
+
+	public static Masterkey createFromRaw(byte[] encoded) {
+		Preconditions.checkArgument(encoded.length == KEY_LEN_BYTES + KEY_LEN_BYTES, "Invalid raw key length %s", encoded.length);
+		SecretKey encKey = new SecretKeySpec(encoded, 0, KEY_LEN_BYTES, ENC_ALG);
+		SecretKey macKey = new SecretKeySpec(encoded, KEY_LEN_BYTES, KEY_LEN_BYTES, MAC_ALG);
+		return new Masterkey(encKey, macKey);
 	}
 
 	public SecretKey getEncKey() {
