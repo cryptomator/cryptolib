@@ -9,24 +9,12 @@
 package org.cryptomator.cryptolib;
 
 import org.cryptomator.cryptolib.api.Cryptor;
-import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
-import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.api.FileNameCryptor;
-import org.cryptomator.cryptolib.api.KeyFile;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
-
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Collection;
 
 public class CryptorsTest {
 

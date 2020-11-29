@@ -13,52 +13,15 @@ import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.DestroyFailedException;
-import javax.security.auth.Destroyable;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.Arrays;
-
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.hamcrest.core.IsNot.not;
 
 public class CryptorImplTest {
 
-	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
-
-	@Test
-	public void testWriteKeysToMasterkeyFile() {
-		final byte[] serialized;
-		try (CryptorImpl cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK)) {
-			serialized = cryptor.writeKeysToMasterkeyFile("asd", 3).serialize();
-		}
-		String serializedStr = new String(serialized, UTF_8);
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"version\": 3"));
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptSalt\": \"AAAAAAAAAAA=\""));
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptCostParam\": 32768"));
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"scryptBlockSize\": 8"));
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"primaryMasterKey\": \"bOuDTfSpTHJrM4G321gts1QL+TFAZ3I6S/QHwim39pz+t+/K9IYy6g==\""));
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"hmacMasterKey\": \"bOuDTfSpTHJrM4G321gts1QL+TFAZ3I6S/QHwim39pz+t+/K9IYy6g==\""));
-		MatcherAssert.assertThat(serializedStr, CoreMatchers.containsString("\"versionMac\": \"iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=\""));
-	}
-
-	@Test
-	public void testWriteKeysToMasterkeyFileWithPepper() {
-		try (CryptorImpl cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK)) {
-			byte[] serialized1 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x01}, 3).serialize();
-			byte[] serialized2 = cryptor.writeKeysToMasterkeyFile("asd", new byte[] {(byte) 0x02}, 3).serialize();
-			MatcherAssert.assertThat(serialized1, not(equalTo(serialized2)));
-		}
-	}
 
 	@Test
 	public void testGetFileContentCryptor() {
