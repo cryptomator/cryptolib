@@ -8,24 +8,13 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib;
 
-import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.api.InvalidPassphraseException;
-import org.cryptomator.cryptolib.api.KeyFile;
-import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
-import org.cryptomator.cryptolib.common.MasterkeyFile;
-import org.cryptomator.cryptolib.common.MasterkeyFileLoader;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.security.SecureRandom;
-import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -89,87 +78,6 @@ public final class Cryptors {
 		long additionalCiphertextBytes = (additionalCleartextBytes == 0) ? 0 : additionalCleartextBytes + overheadPerChunk;
 		assert additionalCiphertextBytes >= 0;
 		return ciphertextChunkSize * numFullChunks + additionalCiphertextBytes;
-	}
-
-	/**
-	 * Reencrypts a masterkey with a new passphrase.
-	 *
-	 * @param cryptorProvider A suitable CryptorProvider instance, i.e. same version as the original masterkey has been created with.
-	 * @param masterkey       The original JSON representation of the masterkey
-	 * @param oldPassphrase   The old passphrase
-	 * @param newPassphrase   The new passphrase
-	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
-	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
-	 * @see #changePassphrase(CryptorProvider, byte[], byte[], CharSequence, CharSequence)
-	 * @since 1.1.0
-	 */
-	@Deprecated
-	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws CryptoException {
-		return changePassphrase(cryptorProvider, masterkey, new byte[0], oldPassphrase, newPassphrase);
-	}
-
-	/**
-	 * Reencrypts a masterkey with a new passphrase.
-	 *
-	 * @param cryptorProvider A suitable CryptorProvider instance, i.e. same version as the original masterkey has been created with.
-	 * @param masterkey       The original JSON representation of the masterkey
-	 * @param pepper          An application-specific pepper added to the salt during key-derivation (if applicable)
-	 * @param oldPassphrase   The old passphrase
-	 * @param newPassphrase   The new passphrase
-	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
-	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
-	 * @since 1.1.4
-	 */
-	@Deprecated
-	public static byte[] changePassphrase(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence oldPassphrase, CharSequence newPassphrase) throws CryptoException {
-		final KeyFile keyFile = KeyFile.parse(masterkey);
-		try (MasterkeyFileLoader loader = MasterkeyFile.withContent(new ByteArrayInputStream(masterkey)).unlock(oldPassphrase, pepper, Optional.empty());
-			 Masterkey key = loader.loadKey(MasterkeyFileLoader.KEY_ID);
-			 Cryptor cryptor = cryptorProvider.withKey(key)) {
-			return cryptor.writeKeysToMasterkeyFile(newPassphrase, pepper, keyFile.getVersion()).serialize();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-	}
-
-	/**
-	 * Decrypts the raw key from a given JSON-encoded masterkey file.
-	 *
-	 * @param cryptorProvider A suitable CryptorProvider instance, i.e. same version as the original masterkey has been created with.
-	 * @param masterkey       The original JSON representation of the masterkey
-	 * @param pepper          An application-specific pepper added to the salt during key-derivation (if applicable)
-	 * @param passphrase      The passphrase
-	 * @return The raw key
-	 * @throws InvalidPassphraseException If the wrong <code>passphrase</code> has been supplied for the <code>masterkey</code>
-	 * @since 1.3.0
-	 */
-	@Deprecated
-	public static byte[] exportRawKey(CryptorProvider cryptorProvider, byte[] masterkey, byte[] pepper, CharSequence passphrase) throws UnsupportedVaultFormatException, CryptoException {
-		try (MasterkeyFileLoader loader = MasterkeyFile.withContent(new ByteArrayInputStream(masterkey)).unlock(passphrase, pepper, Optional.empty());
-			 Masterkey key = loader.loadKey(MasterkeyFileLoader.KEY_ID)) {
-			return key.getEncoded();
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-	}
-
-	/**
-	 * Encrypts a raw key to a JSON-encoded masterkey file.
-	 *
-	 * @param cryptorProvider A suitable CryptorProvider instance, i.e. same version as the original masterkey has been created with.
-	 * @param rawKey          The original JSON representation of the masterkey
-	 * @param pepper          An application-specific pepper added to the salt during key-derivation (if applicable)
-	 * @param passphrase      The passphrase
-	 * @param vaultVersion    The version of the vault for which to recreate a masterkey file
-	 * @return The json-encoded masterkey protected by the passphrase
-	 * @since 1.3.0
-	 */
-	@Deprecated
-	public static byte[] restoreRawKey(CryptorProvider cryptorProvider, byte[] rawKey, byte[] pepper, CharSequence passphrase, int vaultVersion) {
-		try (Masterkey key = Masterkey.createFromRaw(rawKey);
-			 Cryptor cryptor = cryptorProvider.withKey(key)) {
-			return cryptor.writeKeysToMasterkeyFile(passphrase, pepper, vaultVersion).serialize();
-		}
 	}
 
 }
