@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/cryptomator/cryptolib.svg?branch=master)](https://travis-ci.org/cryptomator/cryptolib)
+[![Build](https://github.com/cryptomator/cryptolib/workflows/Build/badge.svg)](https://github.com/cryptomator/cryptolib/actions?query=workflow%3ABuild)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/9d736fe3e9e14dfb8a65949abbe8f712)](https://www.codacy.com/app/cryptomator/cryptolib)
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/9d736fe3e9e14dfb8a65949abbe8f712)](https://www.codacy.com/app/cryptomator/cryptolib?utm_source=github.com&utm_medium=referral&utm_content=cryptomator/cryptolib&utm_campaign=Badge_Coverage)
 [![Known Vulnerabilities](https://snyk.io/test/github/cryptomator/cryptolib/badge.svg)](https://snyk.io/test/github/cryptomator/cryptolib)
@@ -15,7 +15,7 @@ This library contains all cryptographic functions that are used by Cryptomator. 
 
 | Finding | Comment |
 |---|---|
-| 1u1-22-001 | The GPG key is used exclusively for the Maven repositories, is designed for signing only and is protected by a 30-character generated password (alphabet size: 96 chars). It is iterated and salted (SHA1 with 20971520 iterations). An offline attack is also very unattractive. Apart from that, this finding has no influence on the Tresor apps<sup>[1](#footnote-tresor-apps)</sup>. This was not known to Cure53 at the time of reporting. |
+| 1u1-22-001 | The now revoked GPG key has been used exclusively for the Maven repositories, was designed for signing only and was protected by a 30-character generated password (alphabet size: 96 chars). It was iterated and salted (SHA1 with 20971520 iterations), making even offline attacks very unattractive. Apart from that, this finding has no influence on the Tresor apps<sup>[1](#footnote-tresor-apps)</sup>. This was not known to Cure53 at the time of reporting. |
 | 1u1-22-002 | This issue is related to [siv-mode](https://github.com/cryptomator/siv-mode/). |
 
 ## License
