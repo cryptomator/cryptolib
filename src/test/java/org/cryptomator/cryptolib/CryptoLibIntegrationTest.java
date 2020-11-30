@@ -6,43 +6,44 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib;
 
-import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
-public class FileContentEncryptorTest {
+public class CryptoLibIntegrationTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
+	private static final Masterkey MASTERKEY = Masterkey.createNew(RANDOM_MOCK);
 
-	private CryptorImpl cryptor;
-
-	@BeforeEach
-	public void setup() {
-		cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK);
+	private static Stream<Cryptor> getCryptors() {
+		return Stream.of(
+				Cryptors.version1(RANDOM_MOCK).withKey(MASTERKEY),
+				Cryptors.version2(RANDOM_MOCK).withKey(MASTERKEY)
+		);
 	}
 
-	@Test
-	public void testDecryptEncrypted() throws IOException {
+	@ParameterizedTest
+	@MethodSource("getCryptors")
+	public void testDecryptEncrypted(Cryptor cryptor) throws IOException {
 		int size = 1 * 1024 * 1024;
 		ByteBuffer ciphertextBuffer = ByteBuffer.allocate(2 * size);
 
@@ -63,8 +64,9 @@ public class FileContentEncryptorTest {
 		Assertions.assertArrayEquals(cleartext.array(), Arrays.copyOfRange(result.array(), 0, size));
 	}
 
-	@Test
-	public void testDecryptManipulatedEncrypted() throws IOException {
+	@ParameterizedTest
+	@MethodSource("getCryptors")
+	public void testDecryptManipulatedEncrypted(Cryptor cryptor) throws IOException {
 		int size = 1 * 1024 * 1024;
 		ByteBuffer ciphertextBuffer = ByteBuffer.allocate(2 * size);
 
@@ -75,7 +77,7 @@ public class FileContentEncryptorTest {
 		}
 
 		ciphertextBuffer.position(0);
-		int firstByteOfFirstChunk = FileHeaderImpl.SIZE + 1; // not inside chunk MAC
+		int firstByteOfFirstChunk = cryptor.fileHeaderCryptor().headerSize() + 1; // not inside chunk MAC
 		ciphertextBuffer.put(firstByteOfFirstChunk, (byte) ~ciphertextBuffer.get(firstByteOfFirstChunk));
 
 		ByteBuffer result = ByteBuffer.allocate(size + 1);
@@ -87,8 +89,10 @@ public class FileContentEncryptorTest {
 		}
 	}
 
-	@Test
-	public void testDecryptManipulatedEncryptedSkipAuth() throws InterruptedException, IOException {
+	@ParameterizedTest
+	@MethodSource("getCryptors")
+	public void testDecryptManipulatedEncryptedSkipAuth(Cryptor cryptor) throws IOException {
+		Assumptions.assumeTrue(cryptor.fileContentCryptor().canSkipAuthentication(), "cryptor doesn't support decryption of unauthentic ciphertext");
 		int size = 1 * 1024 * 1024;
 		ByteBuffer ciphertextBuffer = ByteBuffer.allocate(2 * size);
 
@@ -99,7 +103,7 @@ public class FileContentEncryptorTest {
 		}
 
 		ciphertextBuffer.flip();
-		int lastByteOfFirstChunk = FileHeaderImpl.SIZE + Constants.CHUNK_SIZE - 1; // inside chunk MAC
+		int lastByteOfFirstChunk = cryptor.fileHeaderCryptor().headerSize() + cryptor.fileContentCryptor().ciphertextChunkSize() - 1; // inside chunk MAC
 		ciphertextBuffer.put(lastByteOfFirstChunk, (byte) ~ciphertextBuffer.get(lastByteOfFirstChunk));
 
 		ByteBuffer result = ByteBuffer.allocate(size + 1);

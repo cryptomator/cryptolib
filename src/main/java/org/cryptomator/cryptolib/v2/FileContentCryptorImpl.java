@@ -39,6 +39,11 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	@Override
+	public boolean canSkipAuthentication() {
+		return false;
+	}
+
+	@Override
 	public int cleartextChunkSize() {
 		return PAYLOAD_SIZE;
 	}
