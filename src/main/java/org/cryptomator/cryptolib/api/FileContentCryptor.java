@@ -13,6 +13,11 @@ import java.nio.ByteBuffer;
 public interface FileContentCryptor {
 
 	/**
+	 * @return <code>true</code> if it is technically possible to decrypt unauthentic ciphertext
+	 */
+	boolean canSkipAuthentication();
+
+	/**
 	 * @return The number of cleartext bytes per chunk.
 	 */
 	int cleartextChunkSize();
@@ -51,6 +56,7 @@ public interface FileContentCryptor {
 	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
 	 * @return Decrypted content. Position is set to <code>0</code> and limit to the end of the chunk.
 	 * @throws AuthenticationFailedException If authenticate is <code>true</code> and the given chunk does not match its MAC.
+	 * @throws UnsupportedOperationException If authenticate is <code>false</code> but this cryptor {@link #canSkipAuthentication() can not skip authentication}.
 	 */
 	ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException;
 
@@ -63,6 +69,7 @@ public interface FileContentCryptor {
 	 * @param header Header of the file, this chunk belongs to
 	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
 	 * @throws AuthenticationFailedException If authenticate is <code>true</code> and the given chunk does not match its MAC.
+	 * @throws UnsupportedOperationException If authenticate is <code>false</code> but this cryptor {@link #canSkipAuthentication() can not skip authentication}.
 	 */
 	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException;
 
