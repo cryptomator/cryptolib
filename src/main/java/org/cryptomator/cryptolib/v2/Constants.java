@@ -10,13 +10,7 @@ package org.cryptomator.cryptolib.v2;
 
 final class Constants {
 
-	static final String ENC_ALG = "AES";
-	static final String MAC_ALG = "HmacSHA256";
-
-	static final int KEY_LEN_BYTES = 32;
-	static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
-	static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
-	static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
+	static final String CONTENT_ENC_ALG = "AES";
 
 	static final int GCM_NONCE_SIZE = 12; // 96 bit IVs strongly recommended for GCM
 	static final int PAYLOAD_SIZE = 32 * 1024;
