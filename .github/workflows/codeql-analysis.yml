@@ -13,7 +13,7 @@ jobs:
   analyse:
     name: Analyse
     runs-on: ubuntu-latest
-
+    if: "!contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[skip ci]')"
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
