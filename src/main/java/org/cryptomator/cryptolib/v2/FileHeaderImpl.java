@@ -91,7 +91,7 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 				throw new IllegalArgumentException("Invalid key length. (was: " + contentKeyBytes.length + ", required: " + CONTENT_KEY_LEN + ")");
 			}
 			this.contentKeyBytes = contentKeyBytes;
-			this.contentKey = new SecretKeySpec(contentKeyBytes, Constants.ENC_ALG);
+			this.contentKey = new SecretKeySpec(contentKeyBytes, Constants.CONTENT_ENC_ALG);
 		}
 
 		private long getFilesize() {
