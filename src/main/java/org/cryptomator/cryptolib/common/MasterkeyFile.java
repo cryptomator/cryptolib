@@ -70,6 +70,13 @@ public class MasterkeyFile {
 	}
 
 	/**
+	 * @return The unverified vault version (MAC not checked)
+	 */
+	public int allegedVaultVersion() {
+		return content.version;
+	}
+
+	/**
 	 * Derives a KEK from the given passphrase and the params from this masterkey file using scrypt and unwraps the
 	 * stored encryption and MAC keys.
 	 *

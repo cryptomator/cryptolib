@@ -13,9 +13,8 @@ import java.util.Optional;
  * a Cryptomator masterkey file and then be used to {@link MasterkeyLoader#loadKey(String) load} a {@link Masterkey}.
  *
  * <pre>
- * 	Masterkey masterkey;
- * 	try (MasterkeyLoader loader = MasterkeyFile.withContent(in).unlock(pw, pepper, expectedVaultVersion)) {
- * 		masterkey = loader.loadKey(MasterkeyFileLoader.KEY_ID);
+ * 	try (Masterkey masterkey = MasterkeyFile.withContent(in).unlock(pw, pepper, expectedVaultVersion).loadKeyAndClose()) {
+ * 		// use masterkey
  * 	}
  * </pre>
  */
@@ -31,10 +30,37 @@ public class MasterkeyFileLoader implements MasterkeyLoader, AutoCloseable {
 		this.macKey = macKey;
 	}
 
+	/**
+	 * Loads the key and closes this MasterkeyFileLoader immediately, if reuse is not required.
+	 *
+	 * @return The masterkey loaded from this masterkey file.
+	 */
+	public Masterkey loadKeyAndClose() {
+		try {
+			return loadKey();
+		} finally {
+			close();
+		}
+	}
+
+	/**
+	 * @return The masterkey loaded from this masterkey file.
+	 */
+	public Masterkey loadKey() {
+		try {
+			return loadKey(KEY_ID);
+		} catch (MasterkeyLoadingFailedException e) {
+			throw new IllegalStateException("Should have been able to load " + KEY_ID);
+		}
+	}
+
 	@Override
 	public Masterkey loadKey(String keyId) throws MasterkeyLoadingFailedException {
 		if (!KEY_ID.equals(keyId)) {
 			throw new MasterkeyLoadingFailedException("Unsupported key " + keyId);
+		}
+		if (encKey.isDestroyed() || macKey.isDestroyed()) {
+			throw new MasterkeyLoadingFailedException("MasterkeyFileLoader already closed.");
 		}
 		// we need a copy to make sure we can use autocloseable destruction
 		SecretKey encKeyCopy = new SecretKeySpec(encKey.getEncoded(), encKey.getAlgorithm());
