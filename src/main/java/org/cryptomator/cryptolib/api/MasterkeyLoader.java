@@ -1,20 +1,26 @@
 package org.cryptomator.cryptolib.api;
 
+import org.cryptomator.cryptolib.common.MasterkeyFileAccess;
+
+import java.net.URI;
+
 /**
  * Masterkey loaders load keys to unlock Cryptomator vaults.
  *
- * @see org.cryptomator.cryptolib.common.MasterkeyFileLoader
+ * @see MasterkeyFileAccess
  */
-@FunctionalInterface
-public interface MasterkeyLoader {
+public interface MasterkeyLoader<C> {
+
+	boolean supportsScheme(String scheme);
 
 	/**
 	 * Loads a master key. This might be a long-running operation, as it may require user input or expensive computations.
 	 *
-	 * @param keyId a string uniquely identifying the source of the key and its identity, if multiple keys can be obtained from the same source
+	 * @param keyId An URI uniquely identifying the source and identity of the key
+	 * @param context An optional context containing additional information required during key retrieval
 	 * @return The raw key bytes. Must not be null
 	 * @throws MasterkeyLoadingFailedException Thrown when it is impossible to fulfill the request
 	 */
-	Masterkey loadKey(String keyId) throws MasterkeyLoadingFailedException;
+	Masterkey loadKey(URI keyId, C context) throws MasterkeyLoadingFailedException;
 
 }
