@@ -16,12 +16,12 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.util.function.Function;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
@@ -33,6 +33,7 @@ public class MasterkeyFileAccessTest {
 
 	private Masterkey key = Masterkey.createFromRaw(new byte[64]);
 	private MasterkeyFileAccess.MasterkeyFile keyFile = new MasterkeyFileAccess.MasterkeyFile();
+	private MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
 
 	@BeforeEach
 	public void setup() {
@@ -50,7 +51,6 @@ public class MasterkeyFileAccessTest {
 	public void testCreateKeyLoader() {
 		Path path = Mockito.mock(Path.class);
 		MasterkeyFileLoaderContext keyLoaderContext = Mockito.mock(MasterkeyFileLoaderContext.class);
-		MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
 
 		MasterkeyLoader keyLoader = masterkeyFileAccess.keyLoader(path, keyLoaderContext);
 
@@ -59,10 +59,8 @@ public class MasterkeyFileAccessTest {
 	}
 
 	@Test
-	@DisplayName("changePassphrase()")
-	public void testChangePassphrase() throws CryptoException {
-		MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
-
+	@DisplayName("changePassphrase(MasterkeyFile, ...)")
+	public void testChangePassphraseWithMasterkeyFile() throws CryptoException {
 		MasterkeyFileAccess.MasterkeyFile changed1 = masterkeyFileAccess.changePassphrase(keyFile, "asd", "qwe");
 		MasterkeyFileAccess.MasterkeyFile changed2 = masterkeyFileAccess.changePassphrase(changed1, "qwe", "asd");
 
@@ -81,13 +79,41 @@ public class MasterkeyFileAccessTest {
 	}
 
 	@Nested
-	@DisplayName("load()")
-	class Load {
+	@DisplayName("with serialized keyfile")
+	class WithSerializedKeyFile {
 
-		MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
+		private byte[] serializedKeyFile;
+
+		@BeforeEach
+		public void setup() throws IOException {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			masterkeyFileAccess.persist(key, out, "asd", 999, 2);
+			serializedKeyFile = out.toByteArray();
+		}
 
 		@Test
-		public void testParseInvalid() {
+		@DisplayName("changePassphrase(byte[], ...)")
+		public void testChangePassphraseWithRawBytes() throws CryptoException, IOException {
+			byte[] changed = masterkeyFileAccess.changePassphrase(serializedKeyFile, "asd", "qwe");
+			byte[] restored = masterkeyFileAccess.changePassphrase(changed, "qwe", "asd");
+
+			MatcherAssert.assertThat(changed, not(equalTo(serializedKeyFile)));
+			Assertions.assertArrayEquals(serializedKeyFile, restored);
+		}
+
+		@Test
+		@DisplayName("load()")
+		public void testLoad() throws IOException {
+			InputStream in = new ByteArrayInputStream(serializedKeyFile);
+
+			Masterkey loaded = masterkeyFileAccess.load(in, "asd");
+
+			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+		}
+
+		@Test
+		@DisplayName("load() unrelated json file")
+		public void testLoadInvalid() {
 			String content = "{\"foo\": 42}";
 			InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
@@ -97,7 +123,8 @@ public class MasterkeyFileAccessTest {
 		}
 
 		@Test
-		public void testParseMalformed() {
+		@DisplayName("load() non-json file")
+		public void testLoadMalformed() {
 			final String content = "not even json";
 			InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
@@ -115,8 +142,6 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("with correct password")
 		public void testUnlockWithCorrectPassword() throws CryptoException {
-			MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
-
 			Masterkey key = masterkeyFileAccess.unlock(keyFile, "asd");
 
 			Assertions.assertNotNull(key);
@@ -125,8 +150,6 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("with invalid password")
 		public void testUnlockWithIncorrectPassword() {
-			MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
-
 			Assertions.assertThrows(InvalidPassphraseException.class, () -> {
 				masterkeyFileAccess.unlock(keyFile, "qwe");
 			});
@@ -151,8 +174,6 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("creates expected values")
 		public void testLock() {
-			MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
-
 			MasterkeyFileAccess.MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 3, 2);
 
 			Assertions.assertEquals(3, keyFile.version);
@@ -167,10 +188,8 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("different passwords -> different wrapped keys")
 		public void testLockWithDifferentPasswords() {
-			MasterkeyFileAccess masterkeyFileAccess1 = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
-
-			MasterkeyFileAccess.MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 8, 2);
-			MasterkeyFileAccess.MasterkeyFile keyFile2 = masterkeyFileAccess1.lock(key, "qwe", 8, 2);
+			MasterkeyFileAccess.MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 8, 2);
+			MasterkeyFileAccess.MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 8, 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
@@ -194,7 +213,6 @@ public class MasterkeyFileAccessTest {
 	@Test
 	@DisplayName("persist and load")
 	public void testPersistAndLoad(@TempDir Path tmpDir) throws IOException, MasterkeyLoadingFailedException {
-		MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
 
 		masterkeyFileAccess.persist(key, masterkeyFile, "asd");

@@ -109,6 +109,7 @@ public class MasterkeyFileAccess {
 			MasterkeyFile original = GSON.fromJson(reader, MasterkeyFile.class);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			GSON.toJson(updated, writer);
+			writer.flush();
 			return out.toByteArray();
 		} catch (JsonParseException e) {
 			throw new IOException("Unreadable JSON", e);
@@ -198,9 +199,14 @@ public class MasterkeyFileAccess {
 	}
 
 	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
+		persist(masterkey, out, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
+	}
+
+	// visible for testing
+	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
 
-		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
+		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
 			GSON.toJson(fileContent, writer);
 			writer.flush();
