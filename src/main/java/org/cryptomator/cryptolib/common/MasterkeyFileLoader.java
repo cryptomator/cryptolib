@@ -13,7 +13,7 @@ import java.nio.file.Path;
  * A {@link MasterkeyLoader} for keys with the {@value #SCHEME} scheme.
  * <p>
  * Instances of this class are {@link MasterkeyFileLoaderContext context}-specific and should be obtained
- * via {@link MasterkeyFileAccess#keyLoader(MasterkeyFileLoaderContext)}
+ * via {@link MasterkeyFileAccess#keyLoader(Path, MasterkeyFileLoaderContext)}
  * <p>
  * This key loader {@link #loadKey(URI) loads} a vault's masterkey by interpreting the key ID as a path,
  * either absolute or relative to the root directory of the vault, pointing to a masterkey file containing

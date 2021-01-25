@@ -28,7 +28,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -38,7 +37,6 @@ import java.nio.file.StandardOpenOption;
 import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.function.Function;
 
 /**
  * Allow loading and persisting of {@link Masterkey masterkeys} from and to encrypted json files.
@@ -74,6 +72,7 @@ public class MasterkeyFileAccess {
 
 	/**
 	 * Parses the given masterkey file contents and returns the alleged vault version without verifying the version MAC.
+	 *
 	 * @param masterkey The file contents of a masterkey file.
 	 * @return The (unverified) vault version
 	 * @throws IOException In case of errors, such as unparseable JSON.
@@ -133,7 +132,7 @@ public class MasterkeyFileAccess {
 	 * @param passphrase The passphrase used during key derivation
 	 * @return A new masterkey. Should be used in a try-with-resource statement.
 	 * @throws InvalidPassphraseException      If the provided passphrase can not be used to unwrap the stored keys.
-	 * @throws MasterkeyLoadingFailedException
+	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails
 	 */
 	public Masterkey load(Path filePath, CharSequence passphrase) throws MasterkeyLoadingFailedException {
 		try (InputStream in = Files.newInputStream(filePath, StandardOpenOption.READ)) {
@@ -181,9 +180,9 @@ public class MasterkeyFileAccess {
 	 * Then serializes the encrypted keys as well as used key derivation parameters into a JSON representation
 	 * that will be stored at the given filePath.
 	 *
-	 * @param masterkey    The key to protect
-	 * @param filePath     Where to store the file (gets overwritten, parent dir must exist)
-	 * @param passphrase   The passphrase used during key derivation
+	 * @param masterkey  The key to protect
+	 * @param filePath   Where to store the file (gets overwritten, parent dir must exist)
+	 * @param passphrase The passphrase used during key derivation
 	 * @throws IOException When unable to write to the given file
 	 */
 	public void persist(Masterkey masterkey, Path filePath, CharSequence passphrase) throws IOException {
@@ -240,7 +239,7 @@ public class MasterkeyFileAccess {
 	 * Creates a {@link MasterkeyLoader} able to load keys from masterkey JSON files using the same pepper as <code>this</code>.
 	 *
 	 * @param vaultRoot The path to a vault for which a masterkey should be loaded.
-	 * @param context A context providing information required by the key loader.
+	 * @param context   A context providing information required by the key loader.
 	 * @return A new masterkey loader.
 	 */
 	public MasterkeyFileLoader keyLoader(Path vaultRoot, MasterkeyFileLoaderContext context) {
