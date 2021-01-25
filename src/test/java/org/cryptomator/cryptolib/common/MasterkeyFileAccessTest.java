@@ -48,13 +48,14 @@ public class MasterkeyFileAccessTest {
 	@Test
 	@DisplayName("keyLoader(...) does not load a key yet")
 	public void testCreateKeyLoader() {
-		Function<? extends VaultRootAwareContext, CharSequence> pwProvider = Mockito.mock(Function.class);
+		Path path = Mockito.mock(Path.class);
+		MasterkeyFileLoaderContext keyLoaderContext = Mockito.mock(MasterkeyFileLoaderContext.class);
 		MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
 
-		MasterkeyLoader<? extends VaultRootAwareContext> keyLoader = masterkeyFileAccess.keyLoader(pwProvider);
+		MasterkeyLoader keyLoader = masterkeyFileAccess.keyLoader(path, keyLoaderContext);
 
 		Assertions.assertNotNull(keyLoader);
-		Mockito.verify(pwProvider, Mockito.never()).apply(Mockito.any());
+		Mockito.verifyNoInteractions(keyLoaderContext);
 	}
 
 	@Test
@@ -67,6 +68,16 @@ public class MasterkeyFileAccessTest {
 
 		MatcherAssert.assertThat(keyFile.encMasterKey, not(equalTo(changed1.encMasterKey)));
 		Assertions.assertArrayEquals(keyFile.encMasterKey, changed2.encMasterKey);
+	}
+
+	@Test
+	@DisplayName("readAllegedVaultVersion()")
+	public void testReadAllegedVaultVersion() throws IOException {
+		byte[] content = "{\"version\": 1337}".getBytes(StandardCharsets.UTF_8);
+
+		int version = MasterkeyFileAccess.readAllegedVaultVersion(content);
+
+		Assertions.assertEquals(1337, version);
 	}
 
 	@Nested
@@ -186,7 +197,7 @@ public class MasterkeyFileAccessTest {
 		MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK);
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
 
-		masterkeyFileAccess.persist(key, masterkeyFile, "asd", 999);
+		masterkeyFileAccess.persist(key, masterkeyFile, "asd");
 		Masterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
 
 		Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());

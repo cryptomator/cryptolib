@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -52,6 +53,8 @@ import java.util.function.Function;
  * </pre>
  */
 public class MasterkeyFileAccess {
+
+	private static final int DEFAULT_MASTERKEY_FILE_VERSION = 999; // legacy field. dropped with vault format 8
 	private static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
 	private static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
 	private static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
@@ -67,6 +70,26 @@ public class MasterkeyFileAccess {
 	public MasterkeyFileAccess(byte[] pepper, SecureRandom csprng) {
 		this.pepper = pepper;
 		this.csprng = csprng;
+	}
+
+	/**
+	 * Parses the given masterkey file contents and returns the alleged vault version without verifying the version MAC.
+	 * @param masterkey The file contents of a masterkey file.
+	 * @return The (unverified) vault version
+	 * @throws IOException In case of errors, such as unparseable JSON.
+	 * @deprecated Starting with vault format 8, the vault version is no longer stored inside the masterkey file.
+	 */
+	@Deprecated
+	public static int readAllegedVaultVersion(byte[] masterkey) throws IOException {
+		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
+			 Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+			MasterkeyFile parsedFile = GSON.fromJson(reader, MasterkeyFile.class);
+			return parsedFile.version;
+		} catch (JsonParseException e) {
+			throw new IOException("Unreadable JSON", e);
+		} catch (IllegalArgumentException e) {
+			throw new IOException("Invalid JSON content", e);
+		}
 	}
 
 	/**
@@ -161,10 +184,13 @@ public class MasterkeyFileAccess {
 	 * @param masterkey    The key to protect
 	 * @param filePath     Where to store the file (gets overwritten, parent dir must exist)
 	 * @param passphrase   The passphrase used during key derivation
-	 * @param vaultVersion The vault version that should be stored in this masterkey file (for downwards compatibility)
 	 * @throws IOException When unable to write to the given file
 	 */
-	public void persist(Masterkey masterkey, Path filePath, CharSequence passphrase, int vaultVersion) throws IOException {
+	public void persist(Masterkey masterkey, Path filePath, CharSequence passphrase) throws IOException {
+		persist(masterkey, filePath, passphrase, DEFAULT_MASTERKEY_FILE_VERSION);
+	}
+
+	public void persist(Masterkey masterkey, Path filePath, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
 		Path tmpFilePath = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
 		try (OutputStream out = Files.newOutputStream(tmpFilePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
 			persist(masterkey, out, passphrase, vaultVersion);
@@ -172,7 +198,7 @@ public class MasterkeyFileAccess {
 		Files.move(tmpFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
 	}
 
-	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, int vaultVersion) throws IOException {
+	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
@@ -213,12 +239,12 @@ public class MasterkeyFileAccess {
 	/**
 	 * Creates a {@link MasterkeyLoader} able to load keys from masterkey JSON files using the same pepper as <code>this</code>.
 	 *
-	 * @param passphraseProvider A callback used to retrieve the passphrase used during key derivation
-	 * @param <C> The type of the context to use during passphrase retrieval.
+	 * @param vaultRoot The path to a vault for which a masterkey should be loaded.
+	 * @param context A context providing information required by the key loader.
 	 * @return A new masterkey loader.
 	 */
-	public <C extends VaultRootAwareContext> MasterkeyLoader<C> keyLoader(Function<C, CharSequence> passphraseProvider) {
-		return new MasterkeyFileLoader<>(this, passphraseProvider);
+	public MasterkeyFileLoader keyLoader(Path vaultRoot, MasterkeyFileLoaderContext context) {
+		return new MasterkeyFileLoader(vaultRoot, this, context);
 	}
 
 	private static SecretKey scrypt(CharSequence passphrase, byte[] salt, byte[] pepper, int costParam, int blockSize) {
