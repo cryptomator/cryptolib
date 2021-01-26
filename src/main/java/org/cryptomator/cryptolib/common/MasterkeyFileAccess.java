@@ -115,7 +115,6 @@ public class MasterkeyFileAccess {
 			MasterkeyFile original = GSON.fromJson(reader, MasterkeyFile.class);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			GSON.toJson(updated, writer);
-			writer.flush();
 		} catch (JsonParseException e) {
 			throw new IOException("Unreadable JSON", e);
 		} catch (IllegalArgumentException e) {
@@ -214,7 +213,6 @@ public class MasterkeyFileAccess {
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
 			GSON.toJson(fileContent, writer);
-			writer.flush();
 		} catch (JsonIOException e) {
 			throw new IOException(e);
 		}
