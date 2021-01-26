@@ -103,14 +103,19 @@ public class MasterkeyFileAccess {
 	 */
 	public byte[] changePassphrase(byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
-			 ByteArrayOutputStream out = new ByteArrayOutputStream();
-			 Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8);
-			 Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+			ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+			changePassphrase(in, out, oldPassphrase, newPassphrase);
+			return out.toByteArray();
+		}
+	}
+
+	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
+		try (Reader reader = new InputStreamReader(oldIn, StandardCharsets.UTF_8);
+			 Writer writer = new OutputStreamWriter(newOut, StandardCharsets.UTF_8)) {
 			MasterkeyFile original = GSON.fromJson(reader, MasterkeyFile.class);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			GSON.toJson(updated, writer);
 			writer.flush();
-			return out.toByteArray();
 		} catch (JsonParseException e) {
 			throw new IOException("Unreadable JSON", e);
 		} catch (IllegalArgumentException e) {
@@ -143,7 +148,7 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	Masterkey load(InputStream in, CharSequence passphrase) throws MasterkeyLoadingFailedException, IOException {
+	public Masterkey load(InputStream in, CharSequence passphrase) throws MasterkeyLoadingFailedException, IOException {
 		try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
 			MasterkeyFile parsedFile = GSON.fromJson(reader, MasterkeyFile.class);
 			if (parsedFile == null || !parsedFile.isValid()) {
@@ -198,7 +203,7 @@ public class MasterkeyFileAccess {
 		Files.move(tmpFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
 	}
 
-	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
+	public void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
 		persist(masterkey, out, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
 	}
 
