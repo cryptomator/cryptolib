@@ -55,15 +55,9 @@ public class MasterkeyFileLoader implements MasterkeyLoader {
 		assert SCHEME.equalsIgnoreCase(keyId.getScheme());
 		Path filePath = vaultRoot.resolve(keyId.getSchemeSpecificPart());
 		if (!Files.exists(filePath)) {
-			filePath = context.getMasterkeyFilePath(keyId.getSchemeSpecificPart());
-		}
-		if (filePath == null) {
-			throw new MasterkeyLoadingFailedException("No masterkey file provided.");
+			filePath = context.getCorrectMasterkeyFilePath(keyId.getSchemeSpecificPart());
 		}
 		CharSequence passphrase = context.getPassphrase(filePath);
-		if (passphrase == null) {
-			throw new MasterkeyLoadingFailedException("No passphrase provided.");
-		}
 		return masterkeyFileAccess.load(filePath, passphrase);
 	}
 
