@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>1.4.0</version>
+	<version>1.4.1</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -14,11 +14,19 @@
 	</scm>
 
 	<properties>
-		<gson.version>2.8.6</gson.version>
-		<guava.version>29.0-android</guava.version>
-		<siv-mode.version>1.4.0</siv-mode.version>
-		<slf4j.version>1.7.30</slf4j.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<!-- dependencies -->
+		<gson.version>2.8.6</gson.version>
+		<guava.version>30.1-jre</guava.version>
+		<siv-mode.version>1.4.1</siv-mode.version>
+		<slf4j.version>1.7.30</slf4j.version>
+
+		<!-- test dependencies -->
+		<junit.jupiter.version>5.7.1</junit.jupiter.version>
+		<mockito.version>3.7.7</mockito.version>
+		<hamcrest.version>2.2</hamcrest.version>
+		<jmh.version>1.27</jmh.version>
 	</properties>
 
 	<licenses>
@@ -38,14 +46,6 @@
 			<organizationUrl>http://cryptomator.org</organizationUrl>
 		</developer>
 	</developers>
-
-	<repositories>
-		<repository>
-			<id>bintray</id>
-			<name>bintray</name>
-			<url>https://jcenter.bintray.com</url>
-		</repository>
-	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -76,19 +76,19 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
-			<version>5.7.0</version>
+			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>3.5.11</version>
+			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
-			<version>2.2</version>
+			<version>${hamcrest.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -100,13 +100,13 @@
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>
-			<version>1.25.2</version>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>1.25.2</version>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -114,13 +114,31 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>3.0.0-M3</version>
+				<executions>
+					<execution>
+						<id>enforce-java</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireJavaVersion>
+									<message>You need at least JDK 11.0.3 to build this project.</message>
+									<version>[11.0.3,)</version>
+								</requireJavaVersion>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
-					<release>7</release>
-					<source>1.7</source> <!-- redundant to <release> but needed until https://bugs.openjdk.java.net/browse/JDK-8219474 is fixed (see javadoc config) -->
-					<target>1.7</target>
-					<testRelease>8</testRelease>
+					<release>8</release>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
@@ -142,35 +160,61 @@
 					</archive>
 				</configuration>
 			</plugin>
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<tags>
+						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
+						<tag>
+							<name>apiNote</name>
+							<placement>a</placement>
+							<head>API Note:</head>
+						</tag>
+						<tag>
+							<name>implSpec</name>
+							<placement>a</placement>
+							<head>Implementation Requirements:</head>
+						</tag>
+						<tag>
+							<name>implNote</name>
+							<placement>a</placement>
+							<head>Implementation Note:</head>
+						</tag>
+						<tag><name>param</name></tag>
+						<tag><name>return</name></tag>
+						<tag><name>throws</name></tag>
+						<tag><name>since</name></tag>
+						<tag><name>version</name></tag>
+						<tag><name>serialData</name></tag>
+						<tag><name>see</name></tag>
+					</tags>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
-		<profile>
-			<id>intellij</id>
-			<!-- workaround for intellij bug: https://youtrack.jetbrains.com/issue/IDEA-85478 -->
-			<activation>
-				<activeByDefault>false</activeByDefault>
-				<property>
-					<name>idea.maven.embedder.version</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.8.1</version>
-						<configuration>
-							<release>8</release>
-							<source>1.8</source>
-							<target>1.8</target>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
 		<profile>
 			<id>dependency-check</id>
 			<build>
@@ -178,7 +222,7 @@
 					<plugin>
 						<groupId>org.owasp</groupId>
 						<artifactId>dependency-check-maven</artifactId>
-						<version>6.0.1</version>
+						<version>6.1.0</version>
 						<configuration>
 							<cveValidForHours>24</cveValidForHours>
 							<failBuildOnCVSS>0</failBuildOnCVSS>
@@ -213,6 +257,12 @@
 									<goal>prepare-agent</goal>
 								</goals>
 							</execution>
+							<execution>
+								<id>report</id>
+								<goals>
+									<goal>report</goal>
+								</goals>
+							</execution>
 						</executions>
 					</plugin>
 				</plugins>
@@ -220,61 +270,67 @@
 		</profile>
 
 		<profile>
-			<id>release</id>
-			<distributionManagement>
-				<repository>
-					<id>bintray-jcenter</id>
-					<url>https://api.bintray.com/maven/cryptomator/maven/cryptolib/;publish=1</url>
-				</repository>
-			</distributionManagement>
+			<id>sign</id>
 			<build>
 				<plugins>
 					<plugin>
-						<artifactId>maven-source-plugin</artifactId>
-						<version>3.2.1</version>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.6</version>
 						<executions>
 							<execution>
-								<id>attach-sources</id>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
 								<goals>
-									<goal>jar-no-fork</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.2.0</version>
-						<executions>
-							<execution>
-								<id>attach-javadocs</id>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<source>1.7</source> <!-- workaround for https://bugs.openjdk.java.net/browse/JDK-8219474 -->
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-dependency-plugin</artifactId>
-						<version>3.1.2</version>
-						<executions>
-							<execution>
-								<id>generate-dependency-list</id>
-								<phase>prepare-package</phase>
-								<goals>
-									<goal>list</goal>
+									<goal>sign</goal>
 								</goals>
 								<configuration>
-									<includeScope>runtime</includeScope>
-									<outputFile>${project.build.directory}/dependency-list.txt</outputFile>
+									<gpgArguments>
+										<arg>--pinentry-mode</arg>
+										<arg>loopback</arg>
+									</gpgArguments>
 								</configuration>
 							</execution>
 						</executions>
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+
+		<profile>
+			<id>deploy-central</id>
+			<distributionManagement>
+				<repository>
+					<id>ossrh</id>
+					<name>Maven Central</name>
+					<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+				</repository>
+			</distributionManagement>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.8</version>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>deploy-github</id>
+			<distributionManagement>
+				<repository>
+					<id>github</id>
+					<name>GitHub Packages</name>
+					<url>https://maven.pkg.github.com/cryptomator/cryptolib</url>
+				</repository>
+			</distributionManagement>
 		</profile>
 	</profiles>
 </project>

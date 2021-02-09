@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -29,7 +30,7 @@ import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 public class FileHeaderCryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private static final SecureRandom ANTI_REUSE_PRNG = SecureRandomMock.cycle((byte) 0x13, (byte) 0x37);
+	private static final SecureRandom ANTI_REUSE_PRNG = SecureRandomMock.PRNG_RANDOM;
 
 	private FileHeaderCryptorImpl headerCryptor;
 
@@ -38,10 +39,12 @@ public class FileHeaderCryptorImplTest {
 		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
 		headerCryptor = new FileHeaderCryptorImpl(encKey, RANDOM_MOCK);
 
-		// init cipher with distinct IV to avoid cipher-internal anti-reuse checking
+		// create new (unused) cipher, just to cipher.init() internally. This is an attempt to avoid
+		// InvalidAlgorithmParameterExceptions due to IV-reuse, when the actual unit tests use constant IVs
 		byte[] nonce = new byte[GCM_NONCE_SIZE];
 		ANTI_REUSE_PRNG.nextBytes(nonce);
-		CipherSupplier.AES_GCM.forEncryption(encKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+		Cipher cipher = CipherSupplier.AES_GCM.forEncryption(encKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+		Assertions.assertNotNull(cipher);
 	}
 
 	@Test
