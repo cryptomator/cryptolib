@@ -126,6 +126,15 @@ public class DestroyableSecretKeyTest {
 			Assertions.assertArrayEquals(rawKey, key.getEncoded());
 		}
 
+		@Test
+		@DisplayName("clone() returns equal copy")
+		public void testClone() {
+			DestroyableSecretKey clone = key.clone();
+
+			Assertions.assertEquals(key, clone);
+			Assertions.assertNotSame(key, clone);
+		}
+
 		@Nested
 		@DisplayName("After destroy()...")
 		public class WithDestroyed {
@@ -168,10 +177,14 @@ public class DestroyableSecretKeyTest {
 				Assertions.assertThrows(IllegalStateException.class, key::getEncoded);
 			}
 
+			@Test
+			@DisplayName("clone() throws IllegalStateException")
+			public void testClone() {
+				Assertions.assertThrows(IllegalStateException.class, key::clone);
+			}
+
 		}
 
 	}
-
-
 
 }

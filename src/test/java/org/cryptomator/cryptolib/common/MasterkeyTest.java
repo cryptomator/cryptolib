@@ -59,16 +59,22 @@ public class MasterkeyTest {
 
 	@Test
 	public void testGetEncKey() {
+		DestroyableSecretKey clonedEncKey = Mockito.mock(DestroyableSecretKey.class);
+		Mockito.when(encKey.clone()).thenReturn(clonedEncKey);
+
 		SecretKey encKey = masterkey.getEncKey();
 
-		Assertions.assertSame(this.encKey, encKey);
+		Assertions.assertSame(clonedEncKey, encKey);
 	}
 
 	@Test
 	public void testGetMacKey() {
+		DestroyableSecretKey clonedMacKey = Mockito.mock(DestroyableSecretKey.class);
+		Mockito.when(macKey.clone()).thenReturn(clonedMacKey);
+
 		SecretKey macKey = masterkey.getMacKey();
 
-		Assertions.assertSame(this.macKey, macKey);
+		Assertions.assertSame(clonedMacKey, macKey);
 	}
 
 	@Test

@@ -5,7 +5,6 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.crypto.SecretKey;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.Objects;
 
 public class Masterkey implements AutoCloseable, SecretKey, Cloneable {
@@ -47,15 +46,15 @@ public class Masterkey implements AutoCloseable, SecretKey, Cloneable {
 	 */
 	@Override
 	public Masterkey clone() {
-		return Masterkey.createFromRaw(getEncoded());
+		return new Masterkey(getEncKey(), getMacKey());
 	}
 
-	public SecretKey getEncKey() {
-		return encKey;
+	public DestroyableSecretKey getEncKey() {
+		return encKey.clone();
 	}
 
-	public SecretKey getMacKey() {
-		return macKey;
+	public DestroyableSecretKey getMacKey() {
+		return macKey.clone();
 	}
 
 	@Override
@@ -72,15 +71,10 @@ public class Masterkey implements AutoCloseable, SecretKey, Cloneable {
 	public byte[] getEncoded() {
 		byte[] rawEncKey = encKey.getEncoded();
 		byte[] rawMacKey = macKey.getEncoded();
-		try {
-			byte[] rawKey = new byte[rawEncKey.length + rawMacKey.length];
-			System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
-			System.arraycopy(rawMacKey, 0, rawKey, rawEncKey.length, rawMacKey.length);
-			return rawKey;
-		} finally {
-			Arrays.fill(rawEncKey, (byte) 0x00);
-			Arrays.fill(rawMacKey, (byte) 0x00);
-		}
+		byte[] rawKey = new byte[rawEncKey.length + rawMacKey.length];
+		System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
+		System.arraycopy(rawMacKey, 0, rawKey, rawEncKey.length, rawMacKey.length);
+		return rawKey;
 	}
 
 	@Override

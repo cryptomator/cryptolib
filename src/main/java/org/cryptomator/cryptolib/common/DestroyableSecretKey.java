@@ -12,10 +12,21 @@ import java.util.Objects;
 /**
  * A {@link SecretKey} that (<a href="https://bugs.openjdk.java.net/browse/JDK-8160206">other than JDK's SecretKeySpec</a>)
  * actually implements {@link Destroyable}.
- * <p>
- * Furthermore this key keeps track of any accesses via {@link #getEncoded()} and will destroy returned byte arrays as well.
+ *
+ * Furthermore, this implementation will not create copies when accessing {@link #getEncoded()}.
+ * Instead it implements {@link AutoCloseable} and {@link Cloneable} in an exception-free manner. To prevent mutation of the exposed key,
+ * you would want to make sure to always work on scoped copies, such as in this example:
+ *
+ * <pre>
+ *     // clone "key" to protect it from unwanted modifications:
+ *     try (DestroyableSecretKey k = key.clone()) {
+ *         // use "k":
+ *         Cipher cipher = Cipher.init(k, ...)
+ *         cipher.doFinal(...)
+ *     } // "k" will get destroyed here
+ * </pre>
  */
-public class DestroyableSecretKey implements SecretKey, AutoCloseable {
+public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable {
 
 	private transient final byte[] key;
 	private final String algorithm;
@@ -73,10 +84,21 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 		return "RAW";
 	}
 
+	/**
+	 * Returns the key as raw byte array. Do not mutate this, unless you know what you're doing!
+	 * If in doubt, make your local copy, first.
+	 * @return The secret key bytes
+	 */
 	@Override
 	public byte[] getEncoded() {
 		Preconditions.checkState(!destroyed, "Key has been destroyed");
-		return key.clone();
+		return key;
+	}
+
+	@Override
+	public DestroyableSecretKey clone() {
+		Preconditions.checkState(!destroyed, "Key has been destroyed");
+		return new DestroyableSecretKey(key, algorithm);
 	}
 
 	@Override
