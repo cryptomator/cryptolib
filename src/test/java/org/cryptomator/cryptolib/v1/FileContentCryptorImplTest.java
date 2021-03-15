@@ -13,6 +13,7 @@ import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
@@ -53,8 +54,8 @@ public class FileContentCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
+		DestroyableSecretKey encKey = new DestroyableSecretKey(new byte[32], "AES");
+		DestroyableSecretKey macKey = new DestroyableSecretKey(new byte[32], "HmacSHA256");
 		headerCryptor = new FileHeaderCryptorImpl(encKey, macKey, RANDOM_MOCK);
 		fileContentCryptor = new FileContentCryptorImpl(macKey, RANDOM_MOCK);
 		cryptor = Mockito.mock(Cryptor.class);
@@ -64,9 +65,9 @@ public class FileContentCryptorImplTest {
 
 	@Test
 	public void testMacIsValidAfterEncryption() throws NoSuchAlgorithmException {
-		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
+		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
-		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext,42l, new byte[16], fileKey);
+		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext, 42l, new byte[16], fileKey);
 		ciphertext.flip();
 		Assertions.assertTrue(fileContentCryptor.checkChunkMac(new byte[16], 42l, ciphertext));
 		Assertions.assertFalse(fileContentCryptor.checkChunkMac(new byte[16], 43l, ciphertext));
@@ -74,10 +75,10 @@ public class FileContentCryptorImplTest {
 
 	@Test
 	public void testDecryptedEncryptedEqualsPlaintext() throws NoSuchAlgorithmException {
-		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
+		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
 		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
-		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext,42l, new byte[12], fileKey);
+		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey);
 		ciphertext.flip();
 		fileContentCryptor.decryptChunk(ciphertext, cleartext, fileKey);
 		cleartext.flip();

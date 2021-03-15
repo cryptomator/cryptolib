@@ -11,14 +11,12 @@ package org.cryptomator.cryptolib.v1;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.AEADBadTagException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
@@ -29,8 +27,8 @@ public class FileHeaderCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
+		DestroyableSecretKey encKey = new DestroyableSecretKey(new byte[32], "AES");
+		DestroyableSecretKey macKey = new DestroyableSecretKey(new byte[32], "HmacSHA256");
 		headerCryptor = new FileHeaderCryptorImpl(encKey, macKey, RANDOM_MOCK);
 	}
 

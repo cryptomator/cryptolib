@@ -10,6 +10,7 @@ package org.cryptomator.cryptolib.v1;
 
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -32,8 +33,8 @@ public class FileNameCryptorImplTest {
 	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	final byte[] keyBytes = new byte[32];
-	final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-	final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+	final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+	final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 	final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 	static Stream<String> filenameGenerator() {

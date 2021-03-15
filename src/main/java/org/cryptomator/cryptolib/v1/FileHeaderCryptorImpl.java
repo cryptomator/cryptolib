@@ -8,32 +8,31 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.nio.ByteBuffer;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.util.Arrays;
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.FileHeaderCryptor;
+import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.MacSupplier;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
-import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
-
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.MacSupplier;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Arrays;
 
 class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
-	private final SecretKey headerKey;
-	private final SecretKey macKey;
+	private final DestroyableSecretKey headerKey;
+	private final DestroyableSecretKey macKey;
 	private final SecureRandom random;
 
-	FileHeaderCryptorImpl(SecretKey headerKey, SecretKey macKey, SecureRandom random) {
+	FileHeaderCryptorImpl(DestroyableSecretKey headerKey, DestroyableSecretKey macKey, SecureRandom random) {
 		this.headerKey = headerKey;
 		this.macKey = macKey;
 		this.random = random;
@@ -60,19 +59,19 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		payloadCleartextBuf.putLong(-1l);
 		payloadCleartextBuf.put(headerImpl.getPayload().getContentKeyBytes());
 		payloadCleartextBuf.flip();
-		try {
+		try (DestroyableSecretKey hk = headerKey.clone(); DestroyableSecretKey mk = macKey.clone()) {
 			ByteBuffer result = ByteBuffer.allocate(FileHeaderImpl.SIZE);
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			Cipher cipher = CipherSupplier.AES_CTR.forEncryption(headerKey, new IvParameterSpec(headerImpl.getNonce()));
+			Cipher cipher = CipherSupplier.AES_CTR.forEncryption(hk, new IvParameterSpec(headerImpl.getNonce()));
 			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
 			assert encrypted == FileHeaderImpl.Payload.SIZE;
 
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertextBuf = result.duplicate();
 			nonceAndCiphertextBuf.flip();
-			Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
+			Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
 			mac.update(nonceAndCiphertextBuf);
 			result.put(mac.doFinal());
 
@@ -104,19 +103,21 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.get(expectedMac);
 
 		// check mac:
-		ByteBuffer nonceAndCiphertextBuf = buf.duplicate();
-		nonceAndCiphertextBuf.position(FileHeaderImpl.NONCE_POS).limit(FileHeaderImpl.NONCE_POS + FileHeaderImpl.NONCE_LEN + FileHeaderImpl.PAYLOAD_LEN);
-		Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
-		mac.update(nonceAndCiphertextBuf);
-		byte[] calculatedMac = mac.doFinal();
-		if (!MessageDigest.isEqual(expectedMac, calculatedMac)) {
-			throw new AuthenticationFailedException("Header MAC doesn't match.");
+		try (DestroyableSecretKey mk = macKey.clone()) {
+			ByteBuffer nonceAndCiphertextBuf = buf.duplicate();
+			nonceAndCiphertextBuf.position(FileHeaderImpl.NONCE_POS).limit(FileHeaderImpl.NONCE_POS + FileHeaderImpl.NONCE_LEN + FileHeaderImpl.PAYLOAD_LEN);
+			Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
+			mac.update(nonceAndCiphertextBuf);
+			byte[] calculatedMac = mac.doFinal();
+			if (!MessageDigest.isEqual(expectedMac, calculatedMac)) {
+				throw new AuthenticationFailedException("Header MAC doesn't match.");
+			}
 		}
 
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
-		try {
+		try (DestroyableSecretKey hk = headerKey.clone()) {
 			// decrypt payload:
-			Cipher cipher = CipherSupplier.AES_CTR.forDecryption(headerKey, new IvParameterSpec(nonce));
+			Cipher cipher = CipherSupplier.AES_CTR.forDecryption(hk, new IvParameterSpec(nonce));
 			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
 			assert decrypted == FileHeaderImpl.Payload.SIZE;
 

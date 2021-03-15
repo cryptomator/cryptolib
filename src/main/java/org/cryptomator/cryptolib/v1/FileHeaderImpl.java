@@ -11,7 +11,6 @@ package org.cryptomator.cryptolib.v1;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
-import javax.crypto.SecretKey;
 import javax.security.auth.Destroyable;
 import java.util.Arrays;
 
@@ -100,7 +99,7 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 			this.filesize = filesize;
 		}
 
-		SecretKey getContentKey() {
+		DestroyableSecretKey getContentKey() {
 			return contentKey;
 		}
 
