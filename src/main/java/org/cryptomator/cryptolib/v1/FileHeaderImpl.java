@@ -8,13 +8,12 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.util.Arrays;
+import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.Destroyable;
-
-import org.cryptomator.cryptolib.api.FileHeader;
+import java.util.Arrays;
 
 class FileHeaderImpl implements FileHeader, Destroyable {
 
@@ -80,18 +79,17 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 		static final int CONTENT_KEY_POS = 8;
 		static final int CONTENT_KEY_LEN = 32;
 		static final int SIZE = FILESIZE_LEN + CONTENT_KEY_LEN;
-		private static final byte[] EMPTY_CONTENT_KEY = new byte[CONTENT_KEY_LEN];
 
 		private long filesize = -1L;
 		private final byte[] contentKeyBytes;
-		private final SecretKey contentKey;
+		private final DestroyableSecretKey contentKey;
 
 		private Payload(byte[] contentKeyBytes) {
 			if (contentKeyBytes.length != CONTENT_KEY_LEN) {
 				throw new IllegalArgumentException("Invalid key length. (was: " + contentKeyBytes.length + ", required: " + CONTENT_KEY_LEN + ")");
 			}
 			this.contentKeyBytes = contentKeyBytes;
-			this.contentKey = new SecretKeySpec(contentKeyBytes, Constants.CONTENT_ENC_ALG);
+			this.contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
 		}
 
 		private long getFilesize() {
@@ -112,11 +110,12 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 
 		@Override
 		public boolean isDestroyed() {
-			return Arrays.equals(contentKeyBytes, EMPTY_CONTENT_KEY);
+			return contentKey.isDestroyed();
 		}
 
 		@Override
 		public void destroy() {
+			contentKey.destroy();
 			Arrays.fill(contentKeyBytes, (byte) 0x00);
 		}
 

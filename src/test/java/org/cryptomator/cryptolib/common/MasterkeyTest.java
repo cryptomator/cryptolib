@@ -12,19 +12,20 @@ import org.mockito.Mockito;
 import javax.crypto.SecretKey;
 import javax.security.auth.DestroyFailedException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Stream;
 
 public class MasterkeyTest {
 
-	private SecretKey encKey;
-	private SecretKey macKey;
+	private DestroyableSecretKey encKey;
+	private DestroyableSecretKey macKey;
 	private Masterkey masterkey;
 
 	@BeforeEach
 	public void setup() {
-		encKey = Mockito.mock(SecretKey.class);
-		macKey = Mockito.mock(SecretKey.class);
+		encKey = Mockito.mock(DestroyableSecretKey.class);
+		macKey = Mockito.mock(DestroyableSecretKey.class);
 		masterkey = new Masterkey(encKey, macKey);
 	}
 
@@ -116,6 +117,19 @@ public class MasterkeyTest {
 		byte[] raw = masterkey.getEncoded();
 
 		Assertions.assertArrayEquals(combined.getBytes(), raw);
+	}
+
+	@Test
+	public void testClone() {
+		byte[] raw = new byte[64];
+		Arrays.fill(raw, (byte) 0x55);
+		Masterkey original = Masterkey.createFromRaw(raw);
+
+		Masterkey clone = original.clone();
+
+		Assertions.assertEquals(original, clone);
+		clone.destroy();
+		Assertions.assertNotEquals(original, clone);
 	}
 
 }

@@ -18,7 +18,6 @@ import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -168,15 +167,12 @@ public class MasterkeyFileAccess {
 		Preconditions.checkArgument(parsedFile.isValid(), "Invalid masterkey file");
 		Preconditions.checkNotNull(passphrase);
 
-		SecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize);
-		try {
+		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize)) {
 			SecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG);
 			SecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG);
 			return new Masterkey(encKey, macKey);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();
-		} finally {
-			Destroyables.destroySilently(kek);
 		}
 	}
 
@@ -226,8 +222,7 @@ public class MasterkeyFileAccess {
 
 		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		csprng.nextBytes(salt);
-		SecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE);
-		try {
+		try (DestroyableSecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE)) {
 			final Mac mac = MacSupplier.HMAC_SHA256.withKey(masterkey.getMacKey());
 			final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
 			MasterkeyFile result = new MasterkeyFile();
@@ -239,8 +234,6 @@ public class MasterkeyFileAccess {
 			result.encMasterKey = AesKeyWrap.wrap(kek, masterkey.getEncKey());
 			result.macMasterKey = AesKeyWrap.wrap(kek, masterkey.getMacKey());
 			return result;
-		} finally {
-			Destroyables.destroySilently(kek);
 		}
 	}
 
@@ -255,13 +248,13 @@ public class MasterkeyFileAccess {
 		return new MasterkeyFileLoader(vaultRoot, this, context);
 	}
 
-	private static SecretKey scrypt(CharSequence passphrase, byte[] salt, byte[] pepper, int costParam, int blockSize) {
+	private static DestroyableSecretKey scrypt(CharSequence passphrase, byte[] salt, byte[] pepper, int costParam, int blockSize) {
 		byte[] saltAndPepper = new byte[salt.length + pepper.length];
 		System.arraycopy(salt, 0, saltAndPepper, 0, salt.length);
 		System.arraycopy(pepper, 0, saltAndPepper, salt.length, pepper.length);
 		byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, costParam, blockSize, Masterkey.KEY_LEN_BYTES);
 		try {
-			return new SecretKeySpec(kekBytes, Masterkey.ENC_ALG);
+			return new DestroyableSecretKey(kekBytes, Masterkey.ENC_ALG);
 		} finally {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}
