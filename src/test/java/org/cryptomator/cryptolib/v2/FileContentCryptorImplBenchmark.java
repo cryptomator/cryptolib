@@ -8,14 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -28,6 +22,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Needs to be compiled via maven as the JMH annotation processor needs to do stuff...
  */
@@ -39,7 +37,7 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentCryptorImplBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
+	private static final DestroyableSecretKey ENC_KEY = new DestroyableSecretKey(new byte[16], "AES");
 	private final byte[] headerNonce = new byte[FileHeaderImpl.NONCE_LEN];
 	private final ByteBuffer cleartextChunk = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
 	private final ByteBuffer ciphertextChunk = ByteBuffer.allocate(Constants.CHUNK_SIZE);

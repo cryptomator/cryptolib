@@ -8,17 +8,15 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 
 public class FileNameCryptorImplTest {
@@ -26,10 +24,10 @@ public class FileNameCryptorImplTest {
 	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	@Test
-	public void testDeterministicEncryptionOfFilenames() throws IOException, AuthenticationFailedException {
+	public void testDeterministicEncryptionOfFilenames() throws AuthenticationFailedException {
 		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+		final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+		final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 		// some random
@@ -54,8 +52,8 @@ public class FileNameCryptorImplTest {
 	@Test
 	public void testDeterministicHashingOfDirectoryIds() throws IOException {
 		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+		final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+		final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 		// some random
@@ -70,8 +68,8 @@ public class FileNameCryptorImplTest {
 	@Test
 	public void testDecryptionOfManipulatedFilename() {
 		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+		final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+		final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 		final byte[] encrypted = filenameCryptor.encryptFilename("test").getBytes(UTF_8);
@@ -84,8 +82,8 @@ public class FileNameCryptorImplTest {
 	@Test
 	public void testEncryptionOfSameFilenamesWithDifferentAssociatedData() {
 		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+		final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+		final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 		final String encrypted1 = filenameCryptor.encryptFilename("test", "ad1".getBytes(UTF_8));
@@ -96,8 +94,8 @@ public class FileNameCryptorImplTest {
 	@Test
 	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() throws AuthenticationFailedException {
 		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+		final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+		final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 		final String encrypted = filenameCryptor.encryptFilename("test", "ad".getBytes(UTF_8));
@@ -108,8 +106,8 @@ public class FileNameCryptorImplTest {
 	@Test
 	public void testDeterministicEncryptionOfFilenamesWithWrongAssociatedData() {
 		final byte[] keyBytes = new byte[32];
-		final SecretKey encryptionKey = new SecretKeySpec(keyBytes, "AES");
-		final SecretKey macKey = new SecretKeySpec(keyBytes, "AES");
+		final DestroyableSecretKey encryptionKey = new DestroyableSecretKey(keyBytes, "AES");
+		final DestroyableSecretKey macKey = new DestroyableSecretKey(keyBytes, "AES");
 		final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(encryptionKey, macKey);
 
 		final String encrypted = filenameCryptor.encryptFilename("test", "right".getBytes(UTF_8));

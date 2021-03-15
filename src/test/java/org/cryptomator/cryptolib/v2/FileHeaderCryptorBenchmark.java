@@ -8,19 +8,10 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
-
-import javax.crypto.AEADBadTagException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
-import org.mockito.Mockito;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -31,6 +22,10 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Needs to be compiled via maven as the JMH annotation processor needs to do stuff...
@@ -43,7 +38,7 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileHeaderCryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
+	private static final DestroyableSecretKey ENC_KEY = new DestroyableSecretKey(new byte[16], "AES");
 	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, RANDOM_MOCK);
 
 	private ByteBuffer validHeaderCiphertextBuf;

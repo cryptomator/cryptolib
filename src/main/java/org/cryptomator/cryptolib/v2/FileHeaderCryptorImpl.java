@@ -8,35 +8,30 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.nio.ByteBuffer;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.util.Arrays;
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.FileHeaderCryptor;
+import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.Mac;
-import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.IvParameterSpec;
-
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.MacSupplier;
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.Arrays;
 
 import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
-	private final SecretKey headerKey;
+	private final DestroyableSecretKey headerKey;
 	private final SecureRandom random;
 
-	FileHeaderCryptorImpl(SecretKey headerKey, SecureRandom random) {
+	FileHeaderCryptorImpl(DestroyableSecretKey headerKey, SecureRandom random) {
 		this.headerKey = headerKey;
 		this.random = random;
 	}
@@ -62,12 +57,12 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		payloadCleartextBuf.putLong(-1l);
 		payloadCleartextBuf.put(headerImpl.getPayload().getContentKeyBytes());
 		payloadCleartextBuf.flip();
-		try {
+		try (DestroyableSecretKey hk = headerKey.clone()) {
 			ByteBuffer result = ByteBuffer.allocate(FileHeaderImpl.SIZE);
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()));
+			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(hk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()));
 			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
 			assert encrypted == FileHeaderImpl.PAYLOAD_LEN + FileHeaderImpl.TAG_LEN;
 
@@ -96,9 +91,9 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.get(ciphertextAndTag);
 
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
-		try {
+		try (DestroyableSecretKey hk = headerKey.clone()) {
 			// decrypt payload:
-			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(hk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
 			assert decrypted == FileHeaderImpl.Payload.SIZE;
 

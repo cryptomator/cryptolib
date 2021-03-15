@@ -14,6 +14,7 @@ import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
@@ -27,8 +28,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -56,7 +55,7 @@ public class FileContentCryptorImplTest {
 	@BeforeEach
 	public void setup() {
 		csprng = SecureRandomMock.cycle((byte) 0x55, (byte) 0x77); // AES-GCM implementation requires non-repeating nonces, still we need deterministic nonces for testing
-		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
+		DestroyableSecretKey encKey = new DestroyableSecretKey(new byte[32], "AES");
 		header = new FileHeaderImpl(new byte[12], new byte[32]);
 		headerCryptor = new FileHeaderCryptorImpl(encKey, csprng);
 		fileContentCryptor = new FileContentCryptorImpl(csprng);
@@ -67,7 +66,7 @@ public class FileContentCryptorImplTest {
 
 	@Test
 	public void testDecryptedEncryptedEqualsPlaintext() throws AuthenticationFailedException {
-		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
+		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
 		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
 		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey);
