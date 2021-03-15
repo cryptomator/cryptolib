@@ -18,7 +18,7 @@ public class DestroyableSecretKeyTest {
 
 	@DisplayName("DestroyableSecretKey.generate(...)")
 	@ParameterizedTest(name = "keylen = {0}")
-	@ValueSource(ints = {16, 32})
+	@ValueSource(ints = {0, 16, 24, 32})
 	public void testGenerateNew(int keylen) {
 		byte[] keySrc = new byte[keylen];
 		new Random(42).nextBytes(keySrc);
@@ -133,6 +133,14 @@ public class DestroyableSecretKeyTest {
 
 			Assertions.assertEquals(key, clone);
 			Assertions.assertNotSame(key, clone);
+		}
+
+		@Test
+		@DisplayName("close() destroys key")
+		public void testClose() {
+			key.close();
+
+			Assertions.assertTrue(key.isDestroyed());
 		}
 
 		@Nested
