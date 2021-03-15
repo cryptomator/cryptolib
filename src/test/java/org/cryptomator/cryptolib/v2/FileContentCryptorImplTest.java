@@ -46,7 +46,9 @@ import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 public class FileContentCryptorImplTest {
 
-	private SecureRandom csprng;
+	// AES-GCM implementation requires non-repeating nonces, still we need deterministic nonces for testing
+	private static final SecureRandom CSPRNG = Mockito.spy(SecureRandomMock.cycle((byte) 0xF0, (byte) 0x0F));
+
 	private FileHeaderImpl header;
 	private FileHeaderCryptorImpl headerCryptor;
 	private FileContentCryptorImpl fileContentCryptor;
@@ -54,11 +56,10 @@ public class FileContentCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		csprng = SecureRandomMock.cycle((byte) 0x55, (byte) 0x77); // AES-GCM implementation requires non-repeating nonces, still we need deterministic nonces for testing
 		DestroyableSecretKey encKey = new DestroyableSecretKey(new byte[32], "AES");
 		header = new FileHeaderImpl(new byte[12], new byte[32]);
-		headerCryptor = new FileHeaderCryptorImpl(encKey, csprng);
-		fileContentCryptor = new FileContentCryptorImpl(csprng);
+		headerCryptor = new FileHeaderCryptorImpl(encKey, CSPRNG);
+		fileContentCryptor = new FileContentCryptorImpl(CSPRNG);
 		cryptor = Mockito.mock(Cryptor.class);
 		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);
 		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);
@@ -93,10 +94,15 @@ public class FileContentCryptorImplTest {
 		@Test
 		@DisplayName("encrypt chunk")
 		public void testChunkEncryption() {
+			Mockito.doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x33);
+				return null;
+			}).when(CSPRNG).nextBytes(Mockito.any());
 			ByteBuffer cleartext = StandardCharsets.US_ASCII.encode(CharBuffer.wrap("hello world"));
 			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
-			// echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 555555555555555555555555 -a
-			byte[] expected = BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv");
+			// echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 333333333333333333333333 -a
+			byte[] expected = BaseEncoding.base64().decode("MzMzMzMzMzMzMzMzbYvL7CusRmzk70Kn1QxFA5WQg/hgKeba4bln");
 			Assertions.assertEquals(ByteBuffer.wrap(expected), ciphertext);
 		}
 
@@ -113,6 +119,19 @@ public class FileContentCryptorImplTest {
 		@Test
 		@DisplayName("encrypt file")
 		public void testFileEncryption() throws IOException {
+			Mockito.doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x55);
+				return null;
+			}).doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x77);
+				return null;
+			}).doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x55);
+				return null;
+			}).when(CSPRNG).nextBytes(Mockito.any());
 			ByteBuffer dst = ByteBuffer.allocate(200);
 			SeekableByteChannel dstCh = new SeekableByteChannelMock(dst);
 			try (WritableByteChannel ch = new EncryptingWritableByteChannel(dstCh, cryptor)) {
