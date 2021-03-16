@@ -26,9 +26,9 @@ class CryptorImpl implements Cryptor {
 	 */
 	CryptorImpl(Masterkey masterkey, SecureRandom random) {
 		this.masterkey = masterkey;
-		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey.getEncKey(), masterkey.getMacKey(), random);
-		this.fileContentCryptor = new FileContentCryptorImpl(masterkey.getMacKey(), random);
-		this.fileNameCryptor = new FileNameCryptorImpl(masterkey.getEncKey(), masterkey.getMacKey());
+		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey, random);
+		this.fileContentCryptor = new FileContentCryptorImpl(masterkey, random);
+		this.fileNameCryptor = new FileNameCryptorImpl(masterkey);
 	}
 
 	@Override

@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.siv.SivMode;
@@ -30,17 +31,15 @@ class FileNameCryptorImpl implements FileNameCryptor {
 		};
 	};
 
-	private final DestroyableSecretKey encryptionKey;
-	private final DestroyableSecretKey macKey;
+	private final Masterkey masterkey;
 
-	FileNameCryptorImpl(DestroyableSecretKey encryptionKey, DestroyableSecretKey macKey) {
-		this.encryptionKey = encryptionKey;
-		this.macKey = macKey;
+	FileNameCryptorImpl(Masterkey masterkey) {
+		this.masterkey = masterkey;
 	}
 
 	@Override
 	public String hashDirectoryId(String cleartextDirectoryId) {
-		try (DestroyableSecretKey ek = encryptionKey.clone(); DestroyableSecretKey mk = macKey.clone()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
 			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes);
 			byte[] hashedBytes = MessageDigestSupplier.SHA1.get().digest(encryptedBytes);
@@ -55,7 +54,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 
 	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
-		try (DestroyableSecretKey ek = encryptionKey.clone(); DestroyableSecretKey mk = macKey.clone()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
 			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes, associatedData);
 			return encoding.encode(encryptedBytes);
@@ -69,7 +68,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 
 	@Override
 	public String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
-		try (DestroyableSecretKey ek = encryptionKey.clone(); DestroyableSecretKey mk = macKey.clone()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] encryptedBytes = encoding.decode(ciphertextName);
 			byte[] cleartextBytes = AES_SIV.get().decrypt(ek, mk, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);

@@ -13,6 +13,7 @@ import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
@@ -52,10 +53,9 @@ public class FileContentCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		DestroyableSecretKey encKey = new DestroyableSecretKey(new byte[32], "AES");
-		DestroyableSecretKey macKey = new DestroyableSecretKey(new byte[32], "HmacSHA256");
-		headerCryptor = new FileHeaderCryptorImpl(encKey, macKey, RANDOM_MOCK);
-		fileContentCryptor = new FileContentCryptorImpl(macKey, RANDOM_MOCK);
+		Masterkey masterkey = new Masterkey(new byte[64]);
+		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
+		fileContentCryptor = new FileContentCryptorImpl(masterkey, RANDOM_MOCK);
 		cryptor = Mockito.mock(Cryptor.class);
 		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);
 		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);

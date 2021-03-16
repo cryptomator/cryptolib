@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
@@ -33,11 +34,11 @@ import static org.cryptomator.cryptolib.v1.Constants.PAYLOAD_SIZE;
 
 class FileContentCryptorImpl implements FileContentCryptor {
 
-	private final DestroyableSecretKey macKey;
+	private final Masterkey masterkey;
 	private final SecureRandom random;
 
-	FileContentCryptorImpl(DestroyableSecretKey macKey, SecureRandom random) {
-		this.macKey = macKey;
+	FileContentCryptorImpl(Masterkey masterkey, SecureRandom random) {
+		this.masterkey = masterkey;
 		this.random = random;
 	}
 
@@ -102,7 +103,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	// visible for testing
 	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
-		try (DestroyableSecretKey fk = fileKey.clone(); DestroyableSecretKey mk = macKey.clone()) {
+		try (DestroyableSecretKey fk = fileKey.clone()) {
 			// nonce:
 			byte[] nonce = new byte[NONCE_SIZE];
 			random.nextBytes(nonce);
@@ -116,7 +117,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			// mac:
 			final ByteBuffer ciphertextBuf = ciphertextChunk.asReadOnlyBuffer();
 			ciphertextBuf.position(NONCE_SIZE).limit(NONCE_SIZE + bytesEncrypted);
-			byte[] authenticationCode = calcChunkMac(mk, headerNonce, chunkNumber, nonce, ciphertextBuf);
+			byte[] authenticationCode = calcChunkMac(headerNonce, chunkNumber, nonce, ciphertextBuf);
 			assert authenticationCode.length == MAC_SIZE;
 			ciphertextChunk.put(authenticationCode);
 		} catch (ShortBufferException e) {
@@ -173,14 +174,14 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		expectedMacBuf.get(expectedMac);
 
 		// get actual MAC:
-		final byte[] calculatedMac = calcChunkMac(macKey, headerNonce, chunkNumber, chunkNonce, payloadBuf);
+		final byte[] calculatedMac = calcChunkMac(headerNonce, chunkNumber, chunkNonce, payloadBuf);
 
 		// time-constant equality check of two MACs:
 		return MessageDigest.isEqual(expectedMac, calculatedMac);
 	}
 
-	private static byte[] calcChunkMac(DestroyableSecretKey macKey, byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
-		try (DestroyableSecretKey mk = macKey.clone()) {
+	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
 			final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
 			final Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
 			mac.update(headerNonce);
