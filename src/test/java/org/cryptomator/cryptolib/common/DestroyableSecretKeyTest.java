@@ -16,9 +16,9 @@ import java.util.Random;
 
 public class DestroyableSecretKeyTest {
 
-	@DisplayName("DestroyableSecretKey.generate(...)")
+	@DisplayName("generate(...)")
 	@ParameterizedTest(name = "keylen = {0}")
-	@ValueSource(ints = {0, 16, 24, 32})
+	@ValueSource(ints = {0, 16, 24, 32, 64, 777})
 	public void testGenerateNew(int keylen) {
 		byte[] keySrc = new byte[keylen];
 		new Random(42).nextBytes(keySrc);
@@ -63,6 +63,14 @@ public class DestroyableSecretKeyTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new DestroyableSecretKey(new byte[16], 8, 16, "TEST");
 		});
+	}
+
+	@Test
+	public void testConstructorCreatesLocalCopy() {
+		byte[] orig = "hello".getBytes();
+		DestroyableSecretKey key = new DestroyableSecretKey(orig, "TEST");
+		Arrays.fill(orig, (byte) 0x00);
+		Assertions.assertArrayEquals("hello".getBytes(), key.getEncoded());
 	}
 
 	@Test

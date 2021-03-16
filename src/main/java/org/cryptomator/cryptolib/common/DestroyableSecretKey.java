@@ -12,7 +12,7 @@ import java.util.Objects;
 /**
  * A {@link SecretKey} that (<a href="https://bugs.openjdk.java.net/browse/JDK-8160206">other than JDK's SecretKeySpec</a>)
  * actually implements {@link Destroyable}.
- *
+ * <p>
  * Furthermore, this implementation will not create copies when accessing {@link #getEncoded()}.
  * Instead it implements {@link AutoCloseable} and {@link Cloneable} in an exception-free manner. To prevent mutation of the exposed key,
  * you would want to make sure to always work on scoped copies, such as in this example:
@@ -32,20 +32,40 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 	private final String algorithm;
 	private boolean destroyed;
 
+	/**
+	 * Convenience constructor for {@link #DestroyableSecretKey(byte[], int, int, String)}
+	 *
+	 * @param key       The raw key data (will get copied)
+	 * @param algorithm The {@link #getAlgorithm() algorithm name}
+	 */
 	public DestroyableSecretKey(byte[] key, String algorithm) {
 		this(key, 0, key.length, algorithm);
 	}
 
+	/**
+	 * Creates a new destroyable secret key, copying of the provided raw key bytes.
+	 *
+	 * @param key       A byte[] holding the key material (relevant part will get copied)
+	 * @param offset    The offset within <code>key</code> where the key starts
+	 * @param len       The number of bytes beginning at <code>offset</code> to read from <code>key</code>
+	 * @param algorithm The {@link #getAlgorithm() algorithm name}
+	 */
 	public DestroyableSecretKey(byte[] key, int offset, int len, String algorithm) {
 		Preconditions.checkArgument(offset >= 0, "Invalid offset");
 		Preconditions.checkArgument(len >= 0, "Invalid length");
-		Preconditions.checkArgument(key.length >= offset+len, "Invalid offset/len");
+		Preconditions.checkArgument(key.length >= offset + len, "Invalid offset/len");
 		this.key = new byte[len];
 		this.algorithm = Preconditions.checkNotNull(algorithm, "Algorithm must not be null");
 		this.destroyed = false;
 		System.arraycopy(key, offset, this.key, 0, len);
 	}
 
+	/**
+	 * Casts or converts a given {@link SecretKey} to a DestroyableSecretKey
+	 *
+	 * @param secretKey The secret key
+	 * @return Either the provided or a new key, depending on whether the provided key is already a DestroyableSecretKey
+	 */
 	public static DestroyableSecretKey from(SecretKey secretKey) {
 		if (secretKey instanceof DestroyableSecretKey) {
 			return (DestroyableSecretKey) secretKey;
@@ -57,8 +77,8 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 	/**
 	 * Creates a new key of given length and for use with given algorithm using entropy from the given csprng.
 	 *
-	 * @param csprng A cryptographically secure random number source
-	 * @param algorithm The {@link #getAlgorithm() key algorithm}
+	 * @param csprng      A cryptographically secure random number source
+	 * @param algorithm   The {@link #getAlgorithm() key algorithm}
 	 * @param keyLenBytes The length of the key (in bytes)
 	 * @return A new secret key
 	 */
@@ -85,9 +105,12 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 	}
 
 	/**
-	 * Returns the key as raw byte array. Do not mutate this, unless you know what you're doing!
-	 * If in doubt, make your local copy, first.
-	 * @return The secret key bytes
+	 * Returns the raw key bytes this instance wraps.
+	 * <p>
+	 * <b>Important:</b> Any change to the returned array will reflect in this key. Make sure to
+	 * {@link #clone() make a local copy} if you can't rule out mutations.
+	 *
+	 * @return A byte array holding the secret key
 	 */
 	@Override
 	public byte[] getEncoded() {
@@ -98,7 +121,7 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 	@Override
 	public DestroyableSecretKey clone() {
 		Preconditions.checkState(!destroyed, "Key has been destroyed");
-		return new DestroyableSecretKey(key, algorithm);
+		return new DestroyableSecretKey(key, algorithm); // key will get copied by the constructor as per contract
 	}
 
 	@Override
