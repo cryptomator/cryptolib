@@ -43,7 +43,7 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentEncryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
+	private static final Masterkey MASTERKEY = new Masterkey(new byte[64]);
 
 	private CryptorImpl cryptor;
 

@@ -3,106 +3,46 @@ package org.cryptomator.cryptolib.api;
 import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
-import javax.crypto.SecretKey;
 import java.security.SecureRandom;
-import java.util.Objects;
+import java.util.Arrays;
 
-public class Masterkey implements AutoCloseable, SecretKey, Cloneable {
+public class Masterkey extends DestroyableSecretKey {
 
+	private static final String KEY_ALGORITHM = "MASTERKEY";
 	public static final String ENC_ALG = "AES";
 	public static final String MAC_ALG = "HmacSHA256";
-	public static final int KEY_LEN_BYTES = 32;
+	public static final int SUBKEY_LEN_BYTES = 32;
 
-	private final DestroyableSecretKey encKey;
-	private final DestroyableSecretKey macKey;
-
-	public Masterkey(SecretKey encKey, SecretKey macKey) {
-		this(DestroyableSecretKey.from(encKey), DestroyableSecretKey.from(macKey));
+	public Masterkey(byte[] key) {
+		super(checkKeyLength(key), KEY_ALGORITHM);
 	}
 
-	public Masterkey(DestroyableSecretKey encKey, DestroyableSecretKey macKey) {
-		this.encKey = Preconditions.checkNotNull(encKey);
-		this.macKey = Preconditions.checkNotNull(macKey);
+	private static byte[] checkKeyLength(byte[] key) {
+		Preconditions.checkArgument(key.length == SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES, "Invalid raw key length %s", key.length);
+		return key;
 	}
 
-	public static Masterkey createNew(SecureRandom random) {
-		DestroyableSecretKey encKey = DestroyableSecretKey.generate(random, ENC_ALG, KEY_LEN_BYTES);
-		DestroyableSecretKey macKey = DestroyableSecretKey.generate(random, MAC_ALG, KEY_LEN_BYTES);
-		return new Masterkey(encKey, macKey);
+	public static Masterkey generate(SecureRandom csprng) {
+		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
+		try {
+			csprng.nextBytes(key);
+			return new Masterkey(key);
+		} finally {
+			Arrays.fill(key, (byte) 0x00);
+		}
 	}
 
-	public static Masterkey createFromRaw(byte[] encoded) {
-		Preconditions.checkArgument(encoded.length == KEY_LEN_BYTES + KEY_LEN_BYTES, "Invalid raw key length %s", encoded.length);
-		DestroyableSecretKey encKey = new DestroyableSecretKey(encoded, 0, KEY_LEN_BYTES, ENC_ALG);
-		DestroyableSecretKey macKey = new DestroyableSecretKey(encoded, KEY_LEN_BYTES, KEY_LEN_BYTES, MAC_ALG);
-		return new Masterkey(encKey, macKey);
-	}
-
-	/**
-	 * Creates an exact deep copy of this Masterkey.
-	 * The new instance is decoupled from this instance and will therefore survive if this gets destroyed.
-	 *
-	 * @return A new but equal Masterkey instance
-	 */
 	@Override
 	public Masterkey clone() {
-		return new Masterkey(getEncKey(), getMacKey());
+		return new Masterkey(getEncoded());
 	}
 
 	public DestroyableSecretKey getEncKey() {
-		return encKey.clone();
+		return new DestroyableSecretKey(getEncoded(), 0, SUBKEY_LEN_BYTES, ENC_ALG);
 	}
 
 	public DestroyableSecretKey getMacKey() {
-		return macKey.clone();
+		return new DestroyableSecretKey(getEncoded(), SUBKEY_LEN_BYTES, SUBKEY_LEN_BYTES, MAC_ALG);
 	}
 
-	@Override
-	public String getAlgorithm() {
-		return "private";
-	}
-
-	@Override
-	public String getFormat() {
-		return "RAW";
-	}
-
-	@Override
-	public byte[] getEncoded() {
-		byte[] rawEncKey = encKey.getEncoded();
-		byte[] rawMacKey = macKey.getEncoded();
-		byte[] rawKey = new byte[rawEncKey.length + rawMacKey.length];
-		System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
-		System.arraycopy(rawMacKey, 0, rawKey, rawEncKey.length, rawMacKey.length);
-		return rawKey;
-	}
-
-	@Override
-	public void close() {
-		destroy();
-	}
-
-	@Override
-	public boolean isDestroyed() {
-		return encKey.isDestroyed() && macKey.isDestroyed();
-	}
-
-	@Override
-	public void destroy() {
-		encKey.destroy();
-		macKey.destroy();
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		Masterkey masterkey = (Masterkey) o;
-		return encKey.equals(masterkey.encKey) && macKey.equals(masterkey.macKey);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(encKey, macKey);
-	}
 }

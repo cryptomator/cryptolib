@@ -27,7 +27,7 @@ public class CryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		this.masterkey = Masterkey.createFromRaw(new byte[64]);
+		this.masterkey = new Masterkey(new byte[64]);
 	}
 
 	@Test

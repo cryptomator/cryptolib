@@ -167,12 +167,20 @@ public class MasterkeyFileAccess {
 		Preconditions.checkArgument(parsedFile.isValid(), "Invalid masterkey file");
 		Preconditions.checkNotNull(passphrase);
 
+		byte[] encKey = new byte[0], macKey = new byte[0], combined = new byte[0];
 		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize)) {
-			SecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG);
-			SecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG);
-			return new Masterkey(encKey, macKey);
+			encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG).getEncoded();
+			macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG).getEncoded();
+			combined = new byte[encKey.length + macKey.length];
+			System.arraycopy(encKey, 0, combined, 0, encKey.length);
+			System.arraycopy(macKey, 0, combined, encKey.length, macKey.length);
+			return new Masterkey(combined);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();
+		} finally {
+			Arrays.fill(encKey, (byte) 0x00);
+			Arrays.fill(macKey, (byte) 0x00);
+			Arrays.fill(combined, (byte) 0x00);
 		}
 	}
 
@@ -252,7 +260,7 @@ public class MasterkeyFileAccess {
 		byte[] saltAndPepper = new byte[salt.length + pepper.length];
 		System.arraycopy(salt, 0, saltAndPepper, 0, salt.length);
 		System.arraycopy(pepper, 0, saltAndPepper, salt.length, pepper.length);
-		byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, costParam, blockSize, Masterkey.KEY_LEN_BYTES);
+		byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, costParam, blockSize, Masterkey.SUBKEY_LEN_BYTES);
 		try {
 			return new DestroyableSecretKey(kekBytes, Masterkey.ENC_ALG);
 		} finally {

@@ -31,7 +31,7 @@ public class MasterkeyFileAccessTest {
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private static final byte[] DEFAULT_PEPPER = new byte[0];
 
-	private Masterkey key = Masterkey.createFromRaw(new byte[64]);
+	private Masterkey key = new Masterkey(new byte[64]);
 	private MasterkeyFileAccess.MasterkeyFile keyFile = new MasterkeyFileAccess.MasterkeyFile();
 	private MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
 
