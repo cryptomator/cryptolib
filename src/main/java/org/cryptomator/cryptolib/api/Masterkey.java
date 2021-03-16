@@ -37,10 +37,20 @@ public class Masterkey extends DestroyableSecretKey {
 		return new Masterkey(getEncoded());
 	}
 
+	/**
+	 * Get the encryption subkey.
+	 *
+	 * @return A new copy of the subkey used for encryption
+	 */
 	public DestroyableSecretKey getEncKey() {
 		return new DestroyableSecretKey(getEncoded(), 0, SUBKEY_LEN_BYTES, ENC_ALG);
 	}
 
+	/**
+	 * Get the MAC subkey.
+	 *
+	 * @return A new copy of the subkey used for message authentication
+	 */
 	public DestroyableSecretKey getMacKey() {
 		return new DestroyableSecretKey(getEncoded(), SUBKEY_LEN_BYTES, SUBKEY_LEN_BYTES, MAC_ALG);
 	}
