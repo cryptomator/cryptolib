@@ -10,6 +10,7 @@ package org.cryptomator.cryptolib.v2;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -38,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 public class FileHeaderCryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final DestroyableSecretKey ENC_KEY = new DestroyableSecretKey(new byte[16], "AES");
-	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, RANDOM_MOCK);
+	private static final Masterkey MASTERKEY = new Masterkey(new byte[64]);
+	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(MASTERKEY, RANDOM_MOCK);
 
 	private ByteBuffer validHeaderCiphertextBuf;
 	private FileHeader header;

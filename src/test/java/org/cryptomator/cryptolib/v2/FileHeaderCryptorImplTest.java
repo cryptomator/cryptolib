@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v2;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
@@ -35,14 +36,14 @@ public class FileHeaderCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		DestroyableSecretKey encKey = new DestroyableSecretKey(new byte[32], "AES");
-		headerCryptor = new FileHeaderCryptorImpl(encKey, RANDOM_MOCK);
+		Masterkey masterkey = new Masterkey(new byte[64]);
+		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
 
 		// create new (unused) cipher, just to cipher.init() internally. This is an attempt to avoid
 		// InvalidAlgorithmParameterExceptions due to IV-reuse, when the actual unit tests use constant IVs
 		byte[] nonce = new byte[GCM_NONCE_SIZE];
 		ANTI_REUSE_PRNG.nextBytes(nonce);
-		Cipher cipher = CipherSupplier.AES_GCM.forEncryption(encKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+		Cipher cipher = CipherSupplier.AES_GCM.forEncryption(masterkey.getEncKey(), new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 		Assertions.assertNotNull(cipher);
 	}
 

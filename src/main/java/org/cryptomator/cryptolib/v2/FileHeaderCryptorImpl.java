@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v2;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
@@ -28,11 +29,11 @@ import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
-	private final DestroyableSecretKey headerKey;
+	private final Masterkey masterkey;
 	private final SecureRandom random;
 
-	FileHeaderCryptorImpl(DestroyableSecretKey headerKey, SecureRandom random) {
-		this.headerKey = headerKey;
+	FileHeaderCryptorImpl(Masterkey masterkey, SecureRandom random) {
+		this.masterkey = masterkey;
 		this.random = random;
 	}
 
@@ -57,12 +58,12 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		payloadCleartextBuf.putLong(-1l);
 		payloadCleartextBuf.put(headerImpl.getPayload().getContentKeyBytes());
 		payloadCleartextBuf.flip();
-		try (DestroyableSecretKey hk = headerKey.clone()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			ByteBuffer result = ByteBuffer.allocate(FileHeaderImpl.SIZE);
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(hk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()));
+			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()));
 			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
 			assert encrypted == FileHeaderImpl.PAYLOAD_LEN + FileHeaderImpl.TAG_LEN;
 
@@ -91,9 +92,9 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.get(ciphertextAndTag);
 
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
-		try (DestroyableSecretKey hk = headerKey.clone()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(hk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
 			assert decrypted == FileHeaderImpl.Payload.SIZE;
 
