@@ -9,9 +9,8 @@ import java.net.URI;
  *
  * @see MasterkeyFileAccess
  */
+@FunctionalInterface
 public interface MasterkeyLoader {
-
-	boolean supportsScheme(String scheme);
 
 	/**
 	 * Loads a master key. This might be a long-running operation, as it may require user input or expensive computations.

@@ -245,17 +245,6 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	/**
-	 * Creates a {@link MasterkeyLoader} able to load keys from masterkey JSON files using the same pepper as <code>this</code>.
-	 *
-	 * @param vaultRoot The path to a vault for which a masterkey should be loaded.
-	 * @param context   A context providing information required by the key loader.
-	 * @return A new masterkey loader.
-	 */
-	public MasterkeyFileLoader keyLoader(Path vaultRoot, MasterkeyFileLoaderContext context) {
-		return new MasterkeyFileLoader(vaultRoot, this, context);
-	}
-
 	private static DestroyableSecretKey scrypt(CharSequence passphrase, byte[] salt, byte[] pepper, int costParam, int blockSize) {
 		byte[] saltAndPepper = new byte[salt.length + pepper.length];
 		System.arraycopy(salt, 0, saltAndPepper, 0, salt.length);

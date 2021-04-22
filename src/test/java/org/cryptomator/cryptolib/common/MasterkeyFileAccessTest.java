@@ -47,18 +47,6 @@ public class MasterkeyFileAccessTest {
 	}
 
 	@Test
-	@DisplayName("keyLoader(...) does not load a key yet")
-	public void testCreateKeyLoader() {
-		Path path = Mockito.mock(Path.class);
-		MasterkeyFileLoaderContext keyLoaderContext = Mockito.mock(MasterkeyFileLoaderContext.class);
-
-		MasterkeyLoader keyLoader = masterkeyFileAccess.keyLoader(path, keyLoaderContext);
-
-		Assertions.assertNotNull(keyLoader);
-		Mockito.verifyNoInteractions(keyLoaderContext);
-	}
-
-	@Test
 	@DisplayName("changePassphrase(MasterkeyFile, ...)")
 	public void testChangePassphraseWithMasterkeyFile() throws CryptoException {
 		MasterkeyFileAccess.MasterkeyFile changed1 = masterkeyFileAccess.changePassphrase(keyFile, "asd", "qwe");
