@@ -1,8 +1,6 @@
 package org.cryptomator.cryptolib.common;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonParseException;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
@@ -68,10 +66,6 @@ public class MasterkeyFileAccess {
 			 Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			return parsedFile.version;
-		} catch (JsonParseException e) {
-			throw new IOException("Unreadable JSON", e);
-		} catch (IllegalArgumentException e) {
-			throw new IOException("Invalid JSON content", e);
 		}
 	}
 
@@ -87,7 +81,7 @@ public class MasterkeyFileAccess {
 	 */
 	public byte[] changePassphrase(byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
-			ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+			 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 			changePassphrase(in, out, oldPassphrase, newPassphrase);
 			return out.toByteArray();
 		}
@@ -99,10 +93,6 @@ public class MasterkeyFileAccess {
 			MasterkeyFile original = MasterkeyFile.read(reader);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			updated.write(writer);
-		} catch (JsonParseException e) {
-			throw new IOException("Unreadable JSON", e);
-		} catch (IllegalArgumentException e) {
-			throw new IOException("Invalid JSON content", e);
 		}
 	}
 
@@ -131,18 +121,14 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	public Masterkey load(InputStream in, CharSequence passphrase) throws MasterkeyLoadingFailedException, IOException {
+	public Masterkey load(InputStream in, CharSequence passphrase) throws IOException {
 		try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
-			if (parsedFile == null || !parsedFile.isValid()) {
-				throw new JsonParseException("Invalid key file");
+			if (!parsedFile.isValid()) {
+				throw new IOException("Invalid key file");
 			} else {
 				return unlock(parsedFile, passphrase);
 			}
-		} catch (JsonParseException e) {
-			throw new MasterkeyLoadingFailedException("Unreadable JSON", e);
-		} catch (IllegalArgumentException e) {
-			throw new MasterkeyLoadingFailedException("Invalid JSON content", e);
 		}
 	}
 
@@ -202,8 +188,6 @@ public class MasterkeyFileAccess {
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
 			fileContent.write(writer);
-		} catch (JsonIOException e) {
-			throw new IOException(e);
 		}
 	}
 
@@ -241,7 +225,6 @@ public class MasterkeyFileAccess {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}
 	}
-
 
 
 }

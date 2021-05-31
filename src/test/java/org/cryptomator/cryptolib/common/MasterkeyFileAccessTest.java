@@ -104,7 +104,7 @@ public class MasterkeyFileAccessTest {
 			String content = "{\"foo\": 42}";
 			InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-			Assertions.assertThrows(MasterkeyLoadingFailedException.class, () -> {
+			Assertions.assertThrows(IOException.class, () -> {
 				masterkeyFileAccess.load(in, "asd");
 			});
 		}
@@ -115,7 +115,7 @@ public class MasterkeyFileAccessTest {
 			final String content = "not even json";
 			InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
-			Assertions.assertThrows(MasterkeyLoadingFailedException.class, () -> {
+			Assertions.assertThrows(IOException.class, () -> {
 				masterkeyFileAccess.load(in, "asd");
 			});
 		}

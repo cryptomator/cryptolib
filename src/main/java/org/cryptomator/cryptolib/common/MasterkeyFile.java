@@ -3,6 +3,7 @@ package org.cryptomator.cryptolib.common;
 import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonParseException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.SerializedName;
@@ -46,12 +47,27 @@ public class MasterkeyFile {
 	@SerializedName("versionMac")
 	public byte[] versionMac;
 
-	public static MasterkeyFile read(Reader reader) throws JsonParseException {
-		return GSON.fromJson(reader, MasterkeyFile.class);
+	public static MasterkeyFile read(Reader reader) throws IOException {
+		try {
+			MasterkeyFile result = GSON.fromJson(reader, MasterkeyFile.class);
+			if (result == null) {
+				throw new IOException("JSON EOF");
+			} else {
+				return result;
+			}
+		} catch (JsonParseException e) {
+			throw new IOException("Unreadable JSON", e);
+		} catch (IllegalArgumentException e) {
+			throw new IOException("Invalid JSON content", e);
+		}
 	}
 
-	public void write(Writer writer) throws JsonParseException {
-		GSON.toJson(this, writer);
+	public void write(Writer writer) throws IOException {
+		try {
+			GSON.toJson(this, writer);
+		} catch (JsonIOException e) {
+			throw new IOException(e);
+		}
 	}
 
 	boolean isValid() {
