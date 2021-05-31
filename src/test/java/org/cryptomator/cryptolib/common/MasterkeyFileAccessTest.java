@@ -4,7 +4,6 @@ import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.api.MasterkeyLoader;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
@@ -32,7 +31,7 @@ public class MasterkeyFileAccessTest {
 	private static final byte[] DEFAULT_PEPPER = new byte[0];
 
 	private Masterkey key = new Masterkey(new byte[64]);
-	private MasterkeyFileAccess.MasterkeyFile keyFile = new MasterkeyFileAccess.MasterkeyFile();
+	private MasterkeyFile keyFile = new MasterkeyFile();
 	private MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
 
 	@BeforeEach
@@ -49,8 +48,8 @@ public class MasterkeyFileAccessTest {
 	@Test
 	@DisplayName("changePassphrase(MasterkeyFile, ...)")
 	public void testChangePassphraseWithMasterkeyFile() throws CryptoException {
-		MasterkeyFileAccess.MasterkeyFile changed1 = masterkeyFileAccess.changePassphrase(keyFile, "asd", "qwe");
-		MasterkeyFileAccess.MasterkeyFile changed2 = masterkeyFileAccess.changePassphrase(changed1, "qwe", "asd");
+		MasterkeyFile changed1 = masterkeyFileAccess.changePassphrase(keyFile, "asd", "qwe");
+		MasterkeyFile changed2 = masterkeyFileAccess.changePassphrase(changed1, "qwe", "asd");
 
 		MatcherAssert.assertThat(keyFile.encMasterKey, not(equalTo(changed1.encMasterKey)));
 		Assertions.assertArrayEquals(keyFile.encMasterKey, changed2.encMasterKey);
@@ -162,7 +161,7 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("creates expected values")
 		public void testLock() {
-			MasterkeyFileAccess.MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 3, 2);
+			MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 3, 2);
 
 			Assertions.assertEquals(3, keyFile.version);
 			Assertions.assertArrayEquals(new byte[8], keyFile.scryptSalt);
@@ -176,8 +175,8 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("different passwords -> different wrapped keys")
 		public void testLockWithDifferentPasswords() {
-			MasterkeyFileAccess.MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 8, 2);
-			MasterkeyFileAccess.MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 8, 2);
+			MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 8, 2);
+			MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 8, 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
@@ -190,8 +189,8 @@ public class MasterkeyFileAccessTest {
 			MasterkeyFileAccess masterkeyFileAccess1 = new MasterkeyFileAccess(pepper1, RANDOM_MOCK);
 			MasterkeyFileAccess masterkeyFileAccess2 = new MasterkeyFileAccess(pepper2, RANDOM_MOCK);
 
-			MasterkeyFileAccess.MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 8, 2);
-			MasterkeyFileAccess.MasterkeyFile keyFile2 = masterkeyFileAccess2.lock(key, "asd", 8, 2);
+			MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 8, 2);
+			MasterkeyFile keyFile2 = masterkeyFileAccess2.lock(key, "asd", 8, 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}

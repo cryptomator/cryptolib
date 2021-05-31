@@ -1,23 +1,13 @@
 package org.cryptomator.cryptolib.common;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.BaseEncoding;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonParseException;
-import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.SerializedName;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.api.MasterkeyLoader;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 
 import javax.crypto.Mac;
-import javax.crypto.SecretKey;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -55,11 +45,6 @@ public class MasterkeyFileAccess {
 	private static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
 	private static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
 	private static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
-	private static final Gson GSON = new GsonBuilder() //
-			.setPrettyPrinting() //
-			.disableHtmlEscaping() //
-			.registerTypeHierarchyAdapter(byte[].class, new MasterkeyFileAccess.ByteArrayJsonAdapter()) //
-			.create();
 
 	private final byte[] pepper;
 	private final SecureRandom csprng;
@@ -81,7 +66,7 @@ public class MasterkeyFileAccess {
 	public static int readAllegedVaultVersion(byte[] masterkey) throws IOException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
 			 Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-			MasterkeyFile parsedFile = GSON.fromJson(reader, MasterkeyFile.class);
+			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			return parsedFile.version;
 		} catch (JsonParseException e) {
 			throw new IOException("Unreadable JSON", e);
@@ -111,9 +96,9 @@ public class MasterkeyFileAccess {
 	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
 		try (Reader reader = new InputStreamReader(oldIn, StandardCharsets.UTF_8);
 			 Writer writer = new OutputStreamWriter(newOut, StandardCharsets.UTF_8)) {
-			MasterkeyFile original = GSON.fromJson(reader, MasterkeyFile.class);
+			MasterkeyFile original = MasterkeyFile.read(reader);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
-			GSON.toJson(updated, writer);
+			updated.write(writer);
 		} catch (JsonParseException e) {
 			throw new IOException("Unreadable JSON", e);
 		} catch (IllegalArgumentException e) {
@@ -148,7 +133,7 @@ public class MasterkeyFileAccess {
 
 	public Masterkey load(InputStream in, CharSequence passphrase) throws MasterkeyLoadingFailedException, IOException {
 		try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
-			MasterkeyFile parsedFile = GSON.fromJson(reader, MasterkeyFile.class);
+			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			if (parsedFile == null || !parsedFile.isValid()) {
 				throw new JsonParseException("Invalid key file");
 			} else {
@@ -216,7 +201,7 @@ public class MasterkeyFileAccess {
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-			GSON.toJson(fileContent, writer);
+			fileContent.write(writer);
 		} catch (JsonIOException e) {
 			throw new IOException(e);
 		}
@@ -257,64 +242,6 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	// visible for testing
-	static class MasterkeyFile {
 
-		@SerializedName("version")
-		int version;
-
-		@SerializedName("scryptSalt")
-		byte[] scryptSalt;
-
-		@SerializedName("scryptCostParam")
-		int scryptCostParam;
-
-		@SerializedName("scryptBlockSize")
-		int scryptBlockSize;
-
-		@SerializedName("primaryMasterKey")
-		byte[] encMasterKey;
-
-		@SerializedName("hmacMasterKey")
-		byte[] macMasterKey;
-
-		@SerializedName("versionMac")
-		byte[] versionMac;
-
-		private boolean isValid() {
-			return version != 0
-					&& scryptSalt != null
-					&& scryptCostParam > 1
-					&& scryptBlockSize > 0
-					&& encMasterKey != null
-					&& macMasterKey != null
-					&& versionMac != null;
-		}
-
-	}
-
-	private static class ByteArrayJsonAdapter extends TypeAdapter<byte[]> {
-
-		private static final BaseEncoding BASE64 = BaseEncoding.base64();
-
-		@Override
-		public void write(JsonWriter writer, byte[] value) throws IOException {
-			if (value == null) {
-				writer.nullValue();
-			} else {
-				writer.value(BASE64.encode(value));
-			}
-		}
-
-		@Override
-		public byte[] read(JsonReader reader) throws IOException {
-			if (reader.peek() == JsonToken.NULL) {
-				reader.nextNull();
-				return null;
-			} else {
-				return BASE64.decode(reader.nextString());
-			}
-		}
-	}
 
 }
