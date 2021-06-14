@@ -23,13 +23,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-public class DecryptingReadableByteChannelTest {
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-	private static final Charset UTF_8 = StandardCharsets.UTF_8;
+public class DecryptingReadableByteChannelTest {
 
 	private Cryptor cryptor;
 	private FileContentCryptor contentCryptor;

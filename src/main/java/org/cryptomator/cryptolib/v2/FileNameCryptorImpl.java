@@ -18,11 +18,11 @@ import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
 import javax.crypto.IllegalBlockSizeException;
-import java.nio.charset.Charset;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 class FileNameCryptorImpl implements FileNameCryptor {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final ThreadLocal<SivMode> AES_SIV = new ThreadLocal<SivMode>() {
 		@Override

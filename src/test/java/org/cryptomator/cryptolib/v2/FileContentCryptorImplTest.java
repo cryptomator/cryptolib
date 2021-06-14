@@ -42,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
@@ -71,11 +72,11 @@ public class FileContentCryptorImplTest {
 		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
 		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
-		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey);
+		fileContentCryptor.encryptChunk(UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey);
 		ciphertext.flip();
 		fileContentCryptor.decryptChunk(ciphertext, cleartext, 42l, new byte[12], fileKey);
 		cleartext.flip();
-		Assertions.assertEquals(StandardCharsets.UTF_8.encode("asd"), cleartext);
+		Assertions.assertEquals(UTF_8.encode("asd"), cleartext);
 	}
 
 	@Nested

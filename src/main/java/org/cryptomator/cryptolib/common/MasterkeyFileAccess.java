@@ -16,7 +16,6 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -24,6 +23,8 @@ import java.nio.file.StandardOpenOption;
 import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Allow loading and persisting of {@link Masterkey masterkeys} from and to encrypted json files.
@@ -63,7 +64,7 @@ public class MasterkeyFileAccess {
 	@Deprecated
 	public static int readAllegedVaultVersion(byte[] masterkey) throws IOException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
-			 Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+			 Reader reader = new InputStreamReader(in, UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			return parsedFile.version;
 		}
@@ -88,8 +89,8 @@ public class MasterkeyFileAccess {
 	}
 
 	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
-		try (Reader reader = new InputStreamReader(oldIn, StandardCharsets.UTF_8);
-			 Writer writer = new OutputStreamWriter(newOut, StandardCharsets.UTF_8)) {
+		try (Reader reader = new InputStreamReader(oldIn, UTF_8);
+			 Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
 			MasterkeyFile original = MasterkeyFile.read(reader);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			updated.write(writer);
@@ -122,7 +123,7 @@ public class MasterkeyFileAccess {
 	}
 
 	public Masterkey load(InputStream in, CharSequence passphrase) throws IOException {
-		try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+		try (Reader reader = new InputStreamReader(in, UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			if (!parsedFile.isValid()) {
 				throw new IOException("Invalid key file");
@@ -186,7 +187,7 @@ public class MasterkeyFileAccess {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
-		try (Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+		try (Writer writer = new OutputStreamWriter(out, UTF_8)) {
 			fileContent.write(writer);
 		}
 	}

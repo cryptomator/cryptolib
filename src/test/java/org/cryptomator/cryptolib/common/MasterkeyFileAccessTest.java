@@ -18,10 +18,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 
@@ -58,7 +58,7 @@ public class MasterkeyFileAccessTest {
 	@Test
 	@DisplayName("readAllegedVaultVersion()")
 	public void testReadAllegedVaultVersion() throws IOException {
-		byte[] content = "{\"version\": 1337}".getBytes(StandardCharsets.UTF_8);
+		byte[] content = "{\"version\": 1337}".getBytes(UTF_8);
 
 		int version = MasterkeyFileAccess.readAllegedVaultVersion(content);
 
@@ -102,7 +102,7 @@ public class MasterkeyFileAccessTest {
 		@DisplayName("load() unrelated json file")
 		public void testLoadInvalid() {
 			String content = "{\"foo\": 42}";
-			InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+			InputStream in = new ByteArrayInputStream(content.getBytes(UTF_8));
 
 			Assertions.assertThrows(IOException.class, () -> {
 				masterkeyFileAccess.load(in, "asd");
@@ -113,7 +113,7 @@ public class MasterkeyFileAccessTest {
 		@DisplayName("load() non-json file")
 		public void testLoadMalformed() {
 			final String content = "not even json";
-			InputStream in = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+			InputStream in = new ByteArrayInputStream(content.getBytes(UTF_8));
 
 			Assertions.assertThrows(IOException.class, () -> {
 				masterkeyFileAccess.load(in, "asd");

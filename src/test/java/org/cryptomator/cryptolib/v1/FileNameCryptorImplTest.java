@@ -21,14 +21,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class FileNameCryptorImplTest {
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-	private static final Charset UTF_8 = StandardCharsets.UTF_8;
+public class FileNameCryptorImplTest {
 
 	private final Masterkey masterkey = new Masterkey(new byte[64]);
 	private final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(masterkey);

@@ -11,12 +11,12 @@ package org.cryptomator.cryptolib.common;
 import javax.crypto.Mac;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.util.Arrays;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Scrypt {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final int P = 1; // scrypt parallelization parameter
 
 	/**

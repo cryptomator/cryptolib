@@ -15,12 +15,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
-class EncryptingReadableByteChannelTest {
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
+class EncryptingReadableByteChannelTest {
 
 	private ByteBuffer dstFile;
 	private ReadableByteChannel srcFileChannel;
