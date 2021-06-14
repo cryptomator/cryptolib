@@ -23,8 +23,8 @@
  *
  * // Encrypt and decrypt file name:
  * String cleartextFileName = "foo.txt";
- * String encryptedName = cryptor.{@link org.cryptomator.cryptolib.api.Cryptor#fileNameCryptor() fileNameCryptor()}.{@link org.cryptomator.cryptolib.api.FileNameCryptor#encryptFilename(String, byte[][])  encryptFilename(cleartextFileName, uniqueIdOfDirectory.getBytes())};
- * String decryptedName = cryptor.fileNameCryptor().{@link org.cryptomator.cryptolib.api.FileNameCryptor#decryptFilename(String, byte[][])  decryptFilename(encryptedName, uniqueIdOfDirectory.getBytes())};
+ * String encryptedName = cryptor.{@link org.cryptomator.cryptolib.api.Cryptor#fileNameCryptor() fileNameCryptor()}.{@link org.cryptomator.cryptolib.api.FileNameCryptor#encryptFilename(com.google.common.io.BaseEncoding, String, byte[][])  encryptFilename(base32, cleartextFileName, uniqueIdOfDirectory.getBytes())};
+ * String decryptedName = cryptor.fileNameCryptor().{@link org.cryptomator.cryptolib.api.FileNameCryptor#decryptFilename(com.google.common.io.BaseEncoding, String, byte[][])  decryptFilename(base32, encryptedName, uniqueIdOfDirectory.getBytes())};
  *
  * // Encrypt file contents:
  * ByteBuffer plaintext = ...;

@@ -48,22 +48,12 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	}
 
 	@Override
-	public String encryptFilename(String cleartextName, byte[]... associatedData) {
-		return encryptFilename(BASE32, cleartextName, associatedData);
-	}
-
-	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
 			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes, associatedData);
 			return encoding.encode(encryptedBytes);
 		}
-	}
-
-	@Override
-	public String decryptFilename(String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
-		return decryptFilename(BASE32, ciphertextName, associatedData);
 	}
 
 	@Override

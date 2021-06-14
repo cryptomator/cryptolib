@@ -28,6 +28,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class FileNameCryptorImplTest {
 
+	private static final BaseEncoding BASE32 = BaseEncoding.base32();
+
 	private final Masterkey masterkey = new Masterkey(new byte[64]);
 	private final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(masterkey);
 
@@ -39,9 +41,9 @@ public class FileNameCryptorImplTest {
 	@ParameterizedTest(name = "decrypt(encrypt({0}))")
 	@MethodSource("filenameGenerator")
 	public void testDeterministicEncryptionOfFilenames(String origName) throws AuthenticationFailedException {
-		String encrypted1 = filenameCryptor.encryptFilename(origName);
-		String encrypted2 = filenameCryptor.encryptFilename(origName);
-		String decrypted = filenameCryptor.decryptFilename(encrypted1);
+		String encrypted1 = filenameCryptor.encryptFilename(BASE32, origName);
+		String encrypted2 = filenameCryptor.encryptFilename(BASE32, origName);
+		String decrypted = filenameCryptor.decryptFilename(BASE32, encrypted1);
 
 		Assertions.assertEquals(encrypted1, encrypted2);
 		Assertions.assertEquals(origName, decrypted);
@@ -65,9 +67,9 @@ public class FileNameCryptorImplTest {
 	public void testDeterministicEncryptionOf128bitFilename() throws AuthenticationFailedException {
 		// block size length file names
 		String originalPath3 = "aaaabbbbccccdddd"; // 128 bit ascii
-		String encryptedPath3a = filenameCryptor.encryptFilename(originalPath3);
-		String encryptedPath3b = filenameCryptor.encryptFilename(originalPath3);
-		String decryptedPath3 = filenameCryptor.decryptFilename(encryptedPath3a);
+		String encryptedPath3a = filenameCryptor.encryptFilename(BASE32, originalPath3);
+		String encryptedPath3b = filenameCryptor.encryptFilename(BASE32, originalPath3);
+		String decryptedPath3 = filenameCryptor.decryptFilename(BASE32, encryptedPath3a);
 
 		Assertions.assertEquals(encryptedPath3a, encryptedPath3b);
 		Assertions.assertEquals(originalPath3, decryptedPath3);
@@ -86,7 +88,7 @@ public class FileNameCryptorImplTest {
 	@DisplayName("decrypt non-ciphertext")
 	public void testDecryptionOfMalformedFilename() {
 		AuthenticationFailedException e = Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			filenameCryptor.decryptFilename("lol");
+			filenameCryptor.decryptFilename(BASE32, "lol");
 		});
 		MatcherAssert.assertThat(e.getCause(), CoreMatchers.instanceOf(IllegalArgumentException.class));
 	}
@@ -94,11 +96,11 @@ public class FileNameCryptorImplTest {
 	@Test
 	@DisplayName("decrypt tampered ciphertext")
 	public void testDecryptionOfManipulatedFilename() {
-		final byte[] encrypted = filenameCryptor.encryptFilename("test").getBytes(UTF_8);
+		final byte[] encrypted = filenameCryptor.encryptFilename(BASE32, "test").getBytes(UTF_8);
 		encrypted[0] ^= (byte) 0x01; // change 1 bit in first byte
 
 		AuthenticationFailedException e = Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			filenameCryptor.decryptFilename(new String(encrypted, UTF_8));
+			filenameCryptor.decryptFilename(BASE32, new String(encrypted, UTF_8));
 		});
 		MatcherAssert.assertThat(e.getCause(), CoreMatchers.instanceOf(UnauthenticCiphertextException.class));
 	}
@@ -106,26 +108,26 @@ public class FileNameCryptorImplTest {
 	@Test
 	@DisplayName("encrypt with different AD")
 	public void testEncryptionOfSameFilenamesWithDifferentAssociatedData() {
-		final String encrypted1 = filenameCryptor.encryptFilename("test", "ad1".getBytes(UTF_8));
-		final String encrypted2 = filenameCryptor.encryptFilename("test", "ad2".getBytes(UTF_8));
+		final String encrypted1 = filenameCryptor.encryptFilename(BASE32, "test", "ad1".getBytes(UTF_8));
+		final String encrypted2 = filenameCryptor.encryptFilename(BASE32, "test", "ad2".getBytes(UTF_8));
 		Assertions.assertNotEquals(encrypted1, encrypted2);
 	}
 
 	@Test
 	@DisplayName("decrypt ciphertext with correct AD")
 	public void testDeterministicEncryptionOfFilenamesWithAssociatedData() throws AuthenticationFailedException {
-		final String encrypted = filenameCryptor.encryptFilename("test", "ad".getBytes(UTF_8));
-		final String decrypted = filenameCryptor.decryptFilename(encrypted, "ad".getBytes(UTF_8));
+		final String encrypted = filenameCryptor.encryptFilename(BASE32, "test", "ad".getBytes(UTF_8));
+		final String decrypted = filenameCryptor.decryptFilename(BASE32, encrypted, "ad".getBytes(UTF_8));
 		Assertions.assertEquals("test", decrypted);
 	}
 
 	@Test
 	@DisplayName("decrypt ciphertext with incorrect AD")
 	public void testDeterministicEncryptionOfFilenamesWithWrongAssociatedData() {
-		final String encrypted = filenameCryptor.encryptFilename("test", "right".getBytes(UTF_8));
+		final String encrypted = filenameCryptor.encryptFilename(BASE32, "test", "right".getBytes(UTF_8));
 
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			filenameCryptor.decryptFilename(encrypted, "wrong".getBytes(UTF_8));
+			filenameCryptor.decryptFilename(BASE32, encrypted, "wrong".getBytes(UTF_8));
 		});
 	}
 
