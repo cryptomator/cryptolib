@@ -139,20 +139,12 @@ public class MasterkeyFileAccess {
 		Preconditions.checkArgument(parsedFile.isValid(), "Invalid masterkey file");
 		Preconditions.checkNotNull(passphrase);
 
-		byte[] encKey = new byte[0], macKey = new byte[0], combined = new byte[0];
-		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize)) {
-			encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG).getEncoded();
-			macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG).getEncoded();
-			combined = new byte[encKey.length + macKey.length];
-			System.arraycopy(encKey, 0, combined, 0, encKey.length);
-			System.arraycopy(macKey, 0, combined, encKey.length, macKey.length);
-			return new Masterkey(combined);
+		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize);
+			 DestroyableSecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG);
+			 DestroyableSecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG)) {
+			return Masterkey.from(encKey, macKey);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();
-		} finally {
-			Arrays.fill(encKey, (byte) 0x00);
-			Arrays.fill(macKey, (byte) 0x00);
-			Arrays.fill(combined, (byte) 0x00);
 		}
 	}
 

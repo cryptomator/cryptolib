@@ -32,6 +32,19 @@ public class Masterkey extends DestroyableSecretKey {
 		}
 	}
 
+	public static Masterkey from(DestroyableSecretKey encKey, DestroyableSecretKey macKey) {
+		Preconditions.checkArgument(encKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of encKey");
+		Preconditions.checkArgument(macKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of macKey");
+		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
+		try {
+			System.arraycopy(encKey.getEncoded(), 0, key, 0, SUBKEY_LEN_BYTES);
+			System.arraycopy(macKey.getEncoded(), 0, key, SUBKEY_LEN_BYTES, SUBKEY_LEN_BYTES);
+			return new Masterkey(key);
+		} finally {
+			Arrays.fill(key, (byte) 0x00);
+		}
+	}
+
 	@Override
 	public Masterkey clone() {
 		return new Masterkey(getEncoded());

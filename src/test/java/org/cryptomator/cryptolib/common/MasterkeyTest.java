@@ -35,6 +35,24 @@ public class MasterkeyTest {
 	}
 
 	@Test
+	public void testFrom() {
+		byte[] encKeyBytes = new byte[32];
+		byte[] macKeyBytes = new byte[32];
+		Arrays.fill(encKeyBytes, (byte) 0x55);
+		Arrays.fill(macKeyBytes, (byte) 0x77);
+		DestroyableSecretKey encKey = Mockito.mock(DestroyableSecretKey.class);
+		DestroyableSecretKey macKey = Mockito.mock(DestroyableSecretKey.class);
+		Mockito.when(encKey.getEncoded()).thenReturn(encKeyBytes);
+		Mockito.when(macKey.getEncoded()).thenReturn(macKeyBytes);
+
+		Masterkey masterkey = Masterkey.from(encKey, macKey);
+
+		Assertions.assertNotNull(masterkey);
+		Assertions.assertArrayEquals(encKeyBytes, masterkey.getEncKey().getEncoded());
+		Assertions.assertArrayEquals(macKeyBytes, masterkey.getMacKey().getEncoded());
+	}
+
+	@Test
 	public void testGetEncKey() {
 		SecretKey encKey = masterkey.getEncKey();
 

@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 
 import javax.crypto.SecretKey;
 import javax.security.auth.Destroyable;
+import java.security.Key;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -66,7 +67,7 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 	 * @param secretKey The secret key
 	 * @return Either the provided or a new key, depending on whether the provided key is already a DestroyableSecretKey
 	 */
-	public static DestroyableSecretKey from(SecretKey secretKey) {
+	public static DestroyableSecretKey from(Key secretKey) {
 		if (secretKey instanceof DestroyableSecretKey) {
 			return (DestroyableSecretKey) secretKey;
 		} else {

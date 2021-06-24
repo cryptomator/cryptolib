@@ -20,7 +20,7 @@ public class AesKeyWrapTest {
 
 	@Test
 	public void wrapAndUnwrap() throws InvalidKeyException {
-		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
+		DestroyableSecretKey kek = new DestroyableSecretKey(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[32], "AES");
 		byte[] wrapped = AesKeyWrap.wrap(kek, key);
 		SecretKey unwrapped = AesKeyWrap.unwrap(kek, wrapped, "AES");
@@ -29,7 +29,7 @@ public class AesKeyWrapTest {
 
 	@Test
 	public void wrapWithInvalidKey() {
-		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
+		DestroyableSecretKey kek = new DestroyableSecretKey(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[17], "AES");
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			AesKeyWrap.wrap(kek, key);
@@ -38,7 +38,7 @@ public class AesKeyWrapTest {
 
 	@Test
 	public void unwrapWithInvalidKey() {
-		SecretKey kek = new SecretKeySpec(new byte[32], "AES");
+		DestroyableSecretKey kek = new DestroyableSecretKey(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[32], "AES");
 		byte[] wrapped = AesKeyWrap.wrap(kek, key);
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
