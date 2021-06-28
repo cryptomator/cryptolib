@@ -43,7 +43,8 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		random.nextBytes(nonce);
 		byte[] contentKey = new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN];
 		random.nextBytes(contentKey);
-		return new FileHeaderImpl(nonce, contentKey);
+		FileHeaderImpl.Payload payload = new FileHeaderImpl.Payload(-1, contentKey);
+		return new FileHeaderImpl(nonce, payload);
 	}
 
 	@Override
@@ -54,10 +55,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	@Override
 	public ByteBuffer encryptHeader(FileHeader header) {
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
-		payloadCleartextBuf.putLong(-1l);
-		payloadCleartextBuf.put(headerImpl.getPayload().getContentKeyBytes());
-		payloadCleartextBuf.flip();
+		ByteBuffer payloadCleartextBuf = headerImpl.getPayload().encode();
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			ByteBuffer result = ByteBuffer.allocate(FileHeaderImpl.SIZE);
 			result.put(headerImpl.getNonce());
@@ -95,18 +93,13 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
 			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			assert cipher.getOutputSize(ciphertextAndTag.length) == payloadCleartextBuf.remaining();
 			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
 			assert decrypted == FileHeaderImpl.Payload.SIZE;
+			payloadCleartextBuf.flip();
+			FileHeaderImpl.Payload payload = FileHeaderImpl.Payload.decode(payloadCleartextBuf);
 
-			payloadCleartextBuf.position(FileHeaderImpl.Payload.FILESIZE_POS);
-			long fileSize = payloadCleartextBuf.getLong();
-			payloadCleartextBuf.position(FileHeaderImpl.Payload.CONTENT_KEY_POS);
-			byte[] contentKey = new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN];
-			payloadCleartextBuf.get(contentKey);
-
-			final FileHeaderImpl header = new FileHeaderImpl(nonce, contentKey);
-			header.setFilesize(fileSize);
-			return header;
+			return new FileHeaderImpl(nonce, payload);
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Header tag mismatch.", e);
 		} catch (ShortBufferException e) {

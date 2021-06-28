@@ -101,7 +101,7 @@ public interface FileContentCryptor {
 	 *
 	 * @param cleartextSize Length of a unencrypted payload.
 	 * @return Ciphertext length of a <code>cleartextSize</code>-sized cleartext encrypted with <code>cryptor</code>.
-	 * Not including the {@link FileHeader#getFilesize() length of the header}.
+	 * Not including the length of the header.
 	 */
 	default long ciphertextSize(long cleartextSize) {
 		checkArgument(cleartextSize >= 0, "expected cleartextSize to be positive, but was %s", cleartextSize);

@@ -13,7 +13,6 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +50,8 @@ public class FileHeaderCryptorImplTest {
 	public void testEncryption() {
 		// set nonce to: AAAAAAAAAAAAAAAA
 		// set payload to: //////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-		FileHeader header = new FileHeaderImpl(new byte[12], new byte[32]);
+		FileHeaderImpl.Payload payload = new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]);
+		FileHeader header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], payload);
 		// encrypt payload:
 		// echo -n "//////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode \
 		// | openssl enc -aes-256-gcm -K 0000000000000000000000000000000000000000000000000000000000000000 -iv 00000000000000000000000000000000 -a
@@ -76,7 +76,7 @@ public class FileHeaderCryptorImplTest {
 	public void testDecryption() throws AuthenticationFailedException {
 		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjU0=");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
-		Assertions.assertEquals(header.getFilesize(), -1l);
+		Assertions.assertEquals(header.getReserved(), -1l);
 	}
 
 	@Test
