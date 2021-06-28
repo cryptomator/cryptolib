@@ -29,13 +29,13 @@
  * // Encrypt file contents:
  * ByteBuffer plaintext = ...;
  * SeekableByteChannel ciphertextOut = ...;
- * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
+ * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.common.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
  * 	ch.write(plaintext);
  * }
  *
  * // Decrypt file contents:
  * ReadableByteChannel ciphertextIn = ...;
- * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
+ * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.common.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
  * 	ch.read(plaintext);
  * }
  * </pre>
