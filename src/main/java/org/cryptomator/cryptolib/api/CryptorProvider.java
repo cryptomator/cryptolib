@@ -13,6 +13,9 @@ import java.util.ServiceLoader;
 
 public interface CryptorProvider {
 
+	/**
+	 * A combination of ciphers to use for filename and file content encryption
+	 */
 	enum Scheme {
 		/**
 		 * AES-SIV for file name encryption
@@ -27,6 +30,13 @@ public interface CryptorProvider {
 		SIV_GCM
 	}
 
+	/**
+	 * Finds a CryptorProvider implementation for the given combination of ciphers.
+	 *
+	 * @param scheme A cipher combination
+	 * @return A CryptorProvider implementation supporting the requestes <code>scheme</code>
+	 * @throws UnsupportedOperationException If the <code>scheme</code> is not implemented
+	 */
 	static CryptorProvider forScheme(Scheme scheme) {
 		for (CryptorProvider provider : ServiceLoader.load(CryptorProvider.class)) {
 			if (provider.scheme().equals(scheme)) {

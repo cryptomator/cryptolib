@@ -4,7 +4,6 @@ module org.cryptomator.cryptolib {
 	requires com.google.common;
 	requires org.slf4j;
 
-	exports org.cryptomator.cryptolib;
 	exports org.cryptomator.cryptolib.api;
 	exports org.cryptomator.cryptolib.common;
 

@@ -10,13 +10,13 @@
  * // Create new masterkey and safe it to a file:
  * SecureRandom csprng = SecureRandom.getInstanceStrong();
  * Masterkey masterkey = {@link org.cryptomator.cryptolib.api.Masterkey#generate(java.security.SecureRandom) Masterkey.generate(csprng)};
- * {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#persist(org.cryptomator.cryptolib.api.Masterkey, java.nio.file.Path, java.lang.CharSequence, int) masterkeyFileAccess.persist(masterkey, path, passphrase, vaultVersion)};
+ * {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#persist(org.cryptomator.cryptolib.api.Masterkey, java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.persist(masterkey, path, passphrase)};
  *
  * // Load a masterkey from a file:
- * Masterkey masterkey = {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#load(java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.load(path, passphrase};
+ * Masterkey masterkey = {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#load(java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.load(path, passphrase)};
  *
  * // Create new cryptor:
- * {@link org.cryptomator.cryptolib.api.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#forScheme(org.cryptomator.cryptolib.api.CryptorProvider.Scheme) CryptorProvider.forScheme(scheme)}.{@link org.cryptomator.cryptolib.api.CryptorProvider#provide(org.cryptomator.cryptolib.api.Masterkey, java.security.SecureRandom) provide(masterkey, SecureRandom.getInstanceStrong())};
+ * {@link org.cryptomator.cryptolib.api.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#forScheme(org.cryptomator.cryptolib.api.CryptorProvider.Scheme) CryptorProvider.forScheme(SIV_GCM)}.{@link org.cryptomator.cryptolib.api.CryptorProvider#provide(org.cryptomator.cryptolib.api.Masterkey, java.security.SecureRandom) provide(masterkey, csprng)};
  *
  * // Each directory needs a (relatively) unique ID, which affects the encryption/decryption of child names:
  * String uniqueIdOfDirectory = UUID.randomUUID().toString();
@@ -40,4 +40,4 @@
  * }
  * </pre>
  */
-package org.cryptomator.cryptolib;
+package org.cryptomator.cryptolib.api;
