@@ -7,18 +7,16 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-public class CryptorTest {
+public class FileContentCryptorTest {
 
-	private final Cryptor cryptor = Mockito.mock(Cryptor.class);
+	private final FileContentCryptor contentCryptor = Mockito.mock(FileContentCryptor.class);
 
 	@BeforeEach
 	public void setup() {
-		FileContentCryptor contentCryptor = Mockito.mock(FileContentCryptor.class);
-		Mockito.when(cryptor.fileContentCryptor()).thenReturn(contentCryptor);
 		Mockito.when(contentCryptor.cleartextChunkSize()).thenReturn(32);
 		Mockito.when(contentCryptor.ciphertextChunkSize()).thenReturn(40);
-		Mockito.doCallRealMethod().when(cryptor).cleartextSize(Mockito.anyLong());
-		Mockito.doCallRealMethod().when(cryptor).ciphertextSize(Mockito.anyLong());
+		Mockito.doCallRealMethod().when(contentCryptor).cleartextSize(Mockito.anyLong());
+		Mockito.doCallRealMethod().when(contentCryptor).ciphertextSize(Mockito.anyLong());
 	}
 
 	@ParameterizedTest(name = "cleartextSize({1}) == {0}")
@@ -34,14 +32,14 @@ public class CryptorTest {
 			"65,89"
 	})
 	public void testCleartextSize(int cleartextSize, int ciphertextSize) {
-		Assertions.assertEquals(cleartextSize, cryptor.cleartextSize(ciphertextSize));
+		Assertions.assertEquals(cleartextSize, contentCryptor.cleartextSize(ciphertextSize));
 	}
 
 	@ParameterizedTest(name = "cleartextSize({0}) == undefined")
 	@ValueSource(ints = {-1, 1, 8, 41, 48, 81, 88})
 	public void testCleartextSizeWithInvalidCiphertextSize(int invalidCiphertextSize) {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			cryptor.cleartextSize(invalidCiphertextSize);
+			contentCryptor.cleartextSize(invalidCiphertextSize);
 		});
 	}
 
@@ -58,14 +56,14 @@ public class CryptorTest {
 			"65,89"
 	})
 	public void testCiphertextSize(int cleartextSize, int ciphertextSize) {
-		Assertions.assertEquals(ciphertextSize, cryptor.ciphertextSize(cleartextSize));
+		Assertions.assertEquals(ciphertextSize, contentCryptor.ciphertextSize(cleartextSize));
 	}
 
 	@ParameterizedTest(name = "ciphertextSize({0}) == undefined")
 	@ValueSource(ints = {-1})
 	public void testCiphertextSizewithInvalidCleartextSize(int invalidCleartextSize) {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			cryptor.ciphertextSize(invalidCleartextSize);
+			contentCryptor.ciphertextSize(invalidCleartextSize);
 		});
 	}
 
