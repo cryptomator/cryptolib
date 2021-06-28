@@ -10,6 +10,7 @@ package org.cryptomator.cryptolib;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
@@ -35,8 +36,8 @@ public class CryptoLibIntegrationTest {
 
 	private static Stream<Cryptor> getCryptors() {
 		return Stream.of(
-				Cryptors.version1(RANDOM_MOCK).withKey(MASTERKEY),
-				Cryptors.version2(RANDOM_MOCK).withKey(MASTERKEY)
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(MASTERKEY, RANDOM_MOCK),
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(MASTERKEY, RANDOM_MOCK)
 		);
 	}
 

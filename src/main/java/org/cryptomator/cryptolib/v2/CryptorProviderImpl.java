@@ -10,20 +10,20 @@ package org.cryptomator.cryptolib.v2;
 
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 
 import java.security.SecureRandom;
 
 public class CryptorProviderImpl implements CryptorProvider {
 
-	private final SecureRandom random;
-
-	public CryptorProviderImpl(SecureRandom random) {
-		this.random = random;
+	@Override
+	public Scheme scheme() {
+		return Scheme.SIV_GCM;
 	}
 
 	@Override
-	public CryptorImpl withKey(Masterkey masterkey) {
-		return new CryptorImpl(masterkey, random);
+	public CryptorImpl provide(Masterkey masterkey, SecureRandom random) {
+		return new CryptorImpl(masterkey, ReseedingSecureRandom.create(random));
 	}
 
 }

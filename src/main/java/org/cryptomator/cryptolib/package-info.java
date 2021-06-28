@@ -16,7 +16,7 @@
  * Masterkey masterkey = {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#load(java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.load(path, passphrase};
  *
  * // Create new cryptor:
- * {@link org.cryptomator.cryptolib.api.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.Cryptors#version1(java.security.SecureRandom) Cryptors.version1(SecureRandom.getInstanceStrong())}.{@link org.cryptomator.cryptolib.api.CryptorProvider#withKey(org.cryptomator.cryptolib.api.Masterkey) withKey(masterkey)};
+ * {@link org.cryptomator.cryptolib.api.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#forScheme(org.cryptomator.cryptolib.api.CryptorProvider.Scheme) CryptorProvider.forScheme(scheme)}.{@link org.cryptomator.cryptolib.api.CryptorProvider#provide(org.cryptomator.cryptolib.api.Masterkey, java.security.SecureRandom) provide(masterkey, SecureRandom.getInstanceStrong())};
  *
  * // Each directory needs a (relatively) unique ID, which affects the encryption/decryption of child names:
  * String uniqueIdOfDirectory = UUID.randomUUID().toString();

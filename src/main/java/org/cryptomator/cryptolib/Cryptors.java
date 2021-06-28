@@ -9,34 +9,12 @@
 package org.cryptomator.cryptolib;
 
 import org.cryptomator.cryptolib.api.Cryptor;
-import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
-
-import java.security.SecureRandom;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 public final class Cryptors {
-
-	/**
-	 * @param seeder A native (if possible) SecureRandom used to seed internal CSPRNGs.
-	 * @return A version 1 CryptorProvider
-	 */
-	public static CryptorProvider version1(SecureRandom seeder) {
-		SecureRandom csprng = ReseedingSecureRandom.create(seeder);
-		return new org.cryptomator.cryptolib.v1.CryptorProviderImpl(csprng);
-	}
-
-	/**
-	 * @param seeder A native (if possible) SecureRandom used to seed internal CSPRNGs.
-	 * @return A version 2 CryptorProvider
-	 */
-	public static CryptorProvider version2(SecureRandom seeder) {
-		SecureRandom csprng = ReseedingSecureRandom.create(seeder);
-		return new org.cryptomator.cryptolib.v2.CryptorProviderImpl(csprng);
-	}
 
 	/**
 	 * Calculates the size of the cleartext resulting from the given ciphertext decrypted with the given cryptor.

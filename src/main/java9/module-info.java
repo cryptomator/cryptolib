@@ -9,4 +9,9 @@ module org.cryptomator.cryptolib {
 	exports org.cryptomator.cryptolib.common;
 
 	opens org.cryptomator.cryptolib.common to com.google.gson;
+
+	uses org.cryptomator.cryptolib.api.CryptorProvider;
+
+	provides org.cryptomator.cryptolib.api.CryptorProvider
+			with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
 }

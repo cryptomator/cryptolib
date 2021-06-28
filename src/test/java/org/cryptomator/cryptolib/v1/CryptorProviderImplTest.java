@@ -11,7 +11,6 @@ package org.cryptomator.cryptolib.v1;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -21,17 +20,10 @@ public class CryptorProviderImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 
-	private CryptorProviderImpl cryptorProvider;
-
-	@BeforeEach
-	public void setup() {
-		cryptorProvider = new CryptorProviderImpl(RANDOM_MOCK);
-	}
-
 	@Test
-	public void testWithKey() {
+	public void testProvide() {
 		Masterkey masterkey = Mockito.mock(Masterkey.class);
-		CryptorImpl cryptor = cryptorProvider.withKey(masterkey);
+		CryptorImpl cryptor = new CryptorProviderImpl().provide(masterkey, RANDOM_MOCK);
 		Assertions.assertNotNull(cryptor);
 	}
 
