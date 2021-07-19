@@ -8,20 +8,15 @@ package org.cryptomator.cryptolib.common;
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
 
+import javax.crypto.Mac;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
-import javax.crypto.Mac;
-import javax.crypto.SecretKey;
-import javax.security.auth.Destroyable;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Scrypt {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final int P = 1; // scrypt parallelization parameter
 
 	/**
@@ -75,71 +70,24 @@ public class Scrypt {
 			throw new IllegalArgumentException("Parameter r is too large");
 		}
 
-		CascadingDestroyableSecretKey key = new CascadingDestroyableSecretKey(passphrase, "HmacSHA256");
-		Mac mac = MacSupplier.HMAC_SHA256.withKey(key);
+		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256")) {
+			Mac mac = MacSupplier.HMAC_SHA256.withKey(key);
 
-		byte[] DK = new byte[keyLengthInBytes];
-		byte[] B = new byte[128 * blockSize * P];
-		byte[] XY = new byte[256 * blockSize];
-		byte[] V = new byte[128 * blockSize * costParam];
+			byte[] DK = new byte[keyLengthInBytes];
+			byte[] B = new byte[128 * blockSize * P];
+			byte[] XY = new byte[256 * blockSize];
+			byte[] V = new byte[128 * blockSize * costParam];
 
-		pbkdf2(mac, salt, 1, B, P * 128 * blockSize);
+			pbkdf2(mac, salt, 1, B, P * 128 * blockSize);
 
-		for (int i = 0; i < P; i++) {
-			smix(B, i * 128 * blockSize, blockSize, costParam, V, XY);
-		}
-
-		pbkdf2(mac, B, 1, DK, keyLengthInBytes);
-
-		key.destroy();
-
-		return DK;
-	}
-
-	private static class CascadingDestroyableSecretKey implements SecretKey, Destroyable {
-
-		private final byte[] key;
-		private final String algorithm;
-		private final Collection<byte[]> clones = new ArrayList<>();
-		private boolean destroyed;
-
-		public CascadingDestroyableSecretKey(byte[] key, String algorithm) {
-			this.key = key;
-			this.algorithm = algorithm;
-			this.destroyed = false;
-		}
-
-		@Override
-		public String getAlgorithm() {
-			return algorithm;
-		}
-
-		@Override
-		public String getFormat() {
-			return "RAW";
-		}
-
-		@Override
-		public byte[] getEncoded() {
-			byte[] clone = key.clone();
-			clones.add(clone);
-			return clone;
-		}
-
-		@Override
-		public void destroy() {
-			for (byte[] clone : clones) {
-				Arrays.fill(clone, (byte) 0x00);
+			for (int i = 0; i < P; i++) {
+				smix(B, i * 128 * blockSize, blockSize, costParam, V, XY);
 			}
-			Arrays.fill(key, (byte) 0x00);
-			destroyed = true;
-		}
 
-		@Override
-		public boolean isDestroyed() {
-			return destroyed;
-		}
+			pbkdf2(mac, B, 1, DK, keyLengthInBytes);
 
+			return DK;
+		}
 	}
 
 	/**

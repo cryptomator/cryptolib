@@ -1,97 +1,71 @@
 package org.cryptomator.cryptolib.api;
 
 import com.google.common.base.Preconditions;
-import org.cryptomator.cryptolib.common.Destroyables;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-public class Masterkey implements AutoCloseable, SecretKey {
+public class Masterkey extends DestroyableSecretKey {
 
+	private static final String KEY_ALGORITHM = "MASTERKEY";
 	public static final String ENC_ALG = "AES";
 	public static final String MAC_ALG = "HmacSHA256";
-	public static final int KEY_LEN_BYTES = 32;
+	public static final int SUBKEY_LEN_BYTES = 32;
 
-	private final SecretKey encKey;
-	private final SecretKey macKey;
-
-	public Masterkey(SecretKey encKey, SecretKey macKey) {
-		this.encKey = encKey;
-		this.macKey = macKey;
+	public Masterkey(byte[] key) {
+		super(checkKeyLength(key), KEY_ALGORITHM);
 	}
 
-	public static Masterkey createNew(SecureRandom random) {
+	private static byte[] checkKeyLength(byte[] key) {
+		Preconditions.checkArgument(key.length == SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES, "Invalid raw key length %s", key.length);
+		return key;
+	}
+
+	public static Masterkey generate(SecureRandom csprng) {
+		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
 		try {
-			KeyGenerator encKeyGen = KeyGenerator.getInstance(ENC_ALG);
-			encKeyGen.init(KEY_LEN_BYTES * Byte.SIZE, random);
-			SecretKey encKey = encKeyGen.generateKey();
-			KeyGenerator macKeyGen = KeyGenerator.getInstance(MAC_ALG);
-			macKeyGen.init(KEY_LEN_BYTES * Byte.SIZE, random);
-			SecretKey macKey = macKeyGen.generateKey();
-			return new Masterkey(encKey, macKey);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("Hard-coded algorithm doesn't exist.", e);
-		}
-	}
-
-	public static Masterkey createFromRaw(byte[] encoded) {
-		Preconditions.checkArgument(encoded.length == KEY_LEN_BYTES + KEY_LEN_BYTES, "Invalid raw key length %s", encoded.length);
-		SecretKey encKey = new SecretKeySpec(encoded, 0, KEY_LEN_BYTES, ENC_ALG);
-		SecretKey macKey = new SecretKeySpec(encoded, KEY_LEN_BYTES, KEY_LEN_BYTES, MAC_ALG);
-		return new Masterkey(encKey, macKey);
-	}
-
-	public SecretKey getEncKey() {
-		return encKey;
-	}
-
-	public SecretKey getMacKey() {
-		return macKey;
-	}
-
-	@Override
-	public String getAlgorithm() {
-		return "private";
-	}
-
-	@Override
-	public String getFormat() {
-		return "RAW";
-	}
-
-	@Override
-	public byte[] getEncoded() {
-		byte[] rawEncKey = encKey.getEncoded();
-		byte[] rawMacKey = macKey.getEncoded();
-		try {
-			byte[] rawKey = new byte[rawEncKey.length + rawMacKey.length];
-			System.arraycopy(rawEncKey, 0, rawKey, 0, rawEncKey.length);
-			System.arraycopy(rawMacKey, 0, rawKey, rawEncKey.length, rawMacKey.length);
-			return rawKey;
+			csprng.nextBytes(key);
+			return new Masterkey(key);
 		} finally {
-			Arrays.fill(rawEncKey, (byte) 0x00);
-			Arrays.fill(rawMacKey, (byte) 0x00);
+			Arrays.fill(key, (byte) 0x00);
+		}
+	}
+
+	public static Masterkey from(DestroyableSecretKey encKey, DestroyableSecretKey macKey) {
+		Preconditions.checkArgument(encKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of encKey");
+		Preconditions.checkArgument(macKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of macKey");
+		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
+		try {
+			System.arraycopy(encKey.getEncoded(), 0, key, 0, SUBKEY_LEN_BYTES);
+			System.arraycopy(macKey.getEncoded(), 0, key, SUBKEY_LEN_BYTES, SUBKEY_LEN_BYTES);
+			return new Masterkey(key);
+		} finally {
+			Arrays.fill(key, (byte) 0x00);
 		}
 	}
 
 	@Override
-	public void close() {
-		destroy();
+	public Masterkey clone() {
+		return new Masterkey(getEncoded());
 	}
 
-	@Override
-	public boolean isDestroyed() {
-		return encKey.isDestroyed() && macKey.isDestroyed();
+	/**
+	 * Get the encryption subkey.
+	 *
+	 * @return A new copy of the subkey used for encryption
+	 */
+	public DestroyableSecretKey getEncKey() {
+		return new DestroyableSecretKey(getEncoded(), 0, SUBKEY_LEN_BYTES, ENC_ALG);
 	}
 
-	@Override
-	public void destroy() {
-		Destroyables.destroySilently(encKey);
-		Destroyables.destroySilently(macKey);
+	/**
+	 * Get the MAC subkey.
+	 *
+	 * @return A new copy of the subkey used for message authentication
+	 */
+	public DestroyableSecretKey getMacKey() {
+		return new DestroyableSecretKey(getEncoded(), SUBKEY_LEN_BYTES, SUBKEY_LEN_BYTES, MAC_ALG);
 	}
 
 }

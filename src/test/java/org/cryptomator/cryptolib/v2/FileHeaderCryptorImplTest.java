@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.v2;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
@@ -18,9 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
@@ -36,14 +35,14 @@ public class FileHeaderCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
-		headerCryptor = new FileHeaderCryptorImpl(encKey, RANDOM_MOCK);
+		Masterkey masterkey = new Masterkey(new byte[64]);
+		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
 
 		// create new (unused) cipher, just to cipher.init() internally. This is an attempt to avoid
 		// InvalidAlgorithmParameterExceptions due to IV-reuse, when the actual unit tests use constant IVs
 		byte[] nonce = new byte[GCM_NONCE_SIZE];
 		ANTI_REUSE_PRNG.nextBytes(nonce);
-		Cipher cipher = CipherSupplier.AES_GCM.forEncryption(encKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+		Cipher cipher = CipherSupplier.AES_GCM.forEncryption(masterkey.getEncKey(), new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 		Assertions.assertNotNull(cipher);
 	}
 
@@ -51,7 +50,8 @@ public class FileHeaderCryptorImplTest {
 	public void testEncryption() {
 		// set nonce to: AAAAAAAAAAAAAAAA
 		// set payload to: //////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-		FileHeader header = new FileHeaderImpl(new byte[12], new byte[32]);
+		FileHeaderImpl.Payload payload = new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]);
+		FileHeader header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], payload);
 		// encrypt payload:
 		// echo -n "//////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" | base64 --decode \
 		// | openssl enc -aes-256-gcm -K 0000000000000000000000000000000000000000000000000000000000000000 -iv 00000000000000000000000000000000 -a
@@ -76,7 +76,7 @@ public class FileHeaderCryptorImplTest {
 	public void testDecryption() throws AuthenticationFailedException {
 		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjU0=");
 		FileHeader header = headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
-		Assertions.assertEquals(header.getFilesize(), -1l);
+		Assertions.assertEquals(header.getReserved(), -1l);
 	}
 
 	@Test

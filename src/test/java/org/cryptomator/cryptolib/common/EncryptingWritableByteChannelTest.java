@@ -6,13 +6,12 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib;
+package org.cryptomator.cryptolib.common;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,12 +20,11 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
-public class EncryptingWritableByteChannelTest {
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
+public class EncryptingWritableByteChannelTest {
 
 	private ByteBuffer dstFile;
 	private WritableByteChannel dstFileChannel;

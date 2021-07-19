@@ -1,0 +1,46 @@
+[
+  {
+    "name":"byte[]"
+  },
+  {
+    "name":"com.sun.crypto.provider.AESWrapCipher$General",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"com.sun.crypto.provider.HmacCore$HmacSHA256",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"java.lang.reflect.AccessibleObject",
+    "fields":[{"name":"override"}]
+  },
+  {
+    "name":"java.security.MessageDigestSpi"
+  },
+  {
+    "name":"java.security.SecureRandomParameters"
+  },
+  {
+    "name":"org.cryptomator.cryptolib.common.MasterkeyFile",
+    "allDeclaredFields":true,
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"sun.misc.Unsafe",
+    "fields":[{"name":"theUnsafe"}],
+    "methods":[
+      {"name":"objectFieldOffset","parameterTypes":["java.lang.reflect.Field"] },
+      {"name":"putBoolean","parameterTypes":["java.lang.Object","long","boolean"] }
+    ]
+  },
+  {
+    "name":"sun.security.provider.NativePRNG",
+    "methods":[{"name":"<init>","parameterTypes":[] }]
+  },
+  {
+    "name":"sun.security.provider.SHA2$SHA256",
+    "methods":[
+      {"name":"<init>","parameterTypes":[] }
+    ]
+  }
+]

@@ -9,11 +9,13 @@
 package org.cryptomator.cryptolib.v2;
 
 import com.google.common.io.BaseEncoding;
-import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
+import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
@@ -27,8 +29,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -42,12 +42,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 public class FileContentCryptorImplTest {
 
-	private SecureRandom csprng;
+	// AES-GCM implementation requires non-repeating nonces, still we need deterministic nonces for testing
+	private static final SecureRandom CSPRNG = Mockito.spy(SecureRandomMock.cycle((byte) 0xF0, (byte) 0x0F));
+
 	private FileHeaderImpl header;
 	private FileHeaderCryptorImpl headerCryptor;
 	private FileContentCryptorImpl fileContentCryptor;
@@ -55,11 +58,10 @@ public class FileContentCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		csprng = SecureRandomMock.cycle((byte) 0x55, (byte) 0x77); // AES-GCM implementation requires non-repeating nonces, still we need deterministic nonces for testing
-		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
-		header = new FileHeaderImpl(new byte[12], new byte[32]);
-		headerCryptor = new FileHeaderCryptorImpl(encKey, csprng);
-		fileContentCryptor = new FileContentCryptorImpl(csprng);
+		Masterkey masterkey = new Masterkey(new byte[64]);
+		header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]));
+		headerCryptor = new FileHeaderCryptorImpl(masterkey, CSPRNG);
+		fileContentCryptor = new FileContentCryptorImpl(CSPRNG);
 		cryptor = Mockito.mock(Cryptor.class);
 		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);
 		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);
@@ -67,14 +69,14 @@ public class FileContentCryptorImplTest {
 
 	@Test
 	public void testDecryptedEncryptedEqualsPlaintext() throws AuthenticationFailedException {
-		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
+		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
 		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
-		fileContentCryptor.encryptChunk(StandardCharsets.UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey);
+		fileContentCryptor.encryptChunk(UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey);
 		ciphertext.flip();
 		fileContentCryptor.decryptChunk(ciphertext, cleartext, 42l, new byte[12], fileKey);
 		cleartext.flip();
-		Assertions.assertEquals(StandardCharsets.UTF_8.encode("asd"), cleartext);
+		Assertions.assertEquals(UTF_8.encode("asd"), cleartext);
 	}
 
 	@Nested
@@ -94,10 +96,15 @@ public class FileContentCryptorImplTest {
 		@Test
 		@DisplayName("encrypt chunk")
 		public void testChunkEncryption() {
+			Mockito.doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x33);
+				return null;
+			}).when(CSPRNG).nextBytes(Mockito.any());
 			ByteBuffer cleartext = StandardCharsets.US_ASCII.encode(CharBuffer.wrap("hello world"));
 			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
-			// echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 555555555555555555555555 -a
-			byte[] expected = BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv");
+			// echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 333333333333333333333333 -a
+			byte[] expected = BaseEncoding.base64().decode("MzMzMzMzMzMzMzMzbYvL7CusRmzk70Kn1QxFA5WQg/hgKeba4bln");
 			Assertions.assertEquals(ByteBuffer.wrap(expected), ciphertext);
 		}
 
@@ -114,6 +121,19 @@ public class FileContentCryptorImplTest {
 		@Test
 		@DisplayName("encrypt file")
 		public void testFileEncryption() throws IOException {
+			Mockito.doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x55);
+				return null;
+			}).doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x77);
+				return null;
+			}).doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x55);
+				return null;
+			}).when(CSPRNG).nextBytes(Mockito.any());
 			ByteBuffer dst = ByteBuffer.allocate(200);
 			SeekableByteChannel dstCh = new SeekableByteChannelMock(dst);
 			try (WritableByteChannel ch = new EncryptingWritableByteChannel(dstCh, cryptor)) {

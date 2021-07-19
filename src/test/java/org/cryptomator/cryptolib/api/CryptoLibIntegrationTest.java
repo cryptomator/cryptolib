@@ -6,18 +6,20 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib;
+package org.cryptomator.cryptolib.api;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -32,12 +34,12 @@ import java.util.stream.Stream;
 public class CryptoLibIntegrationTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final Masterkey MASTERKEY = Masterkey.createNew(RANDOM_MOCK);
+	private static final Masterkey MASTERKEY = Masterkey.generate(RANDOM_MOCK);
 
 	private static Stream<Cryptor> getCryptors() {
 		return Stream.of(
-				Cryptors.version1(RANDOM_MOCK).withKey(MASTERKEY),
-				Cryptors.version2(RANDOM_MOCK).withKey(MASTERKEY)
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(MASTERKEY, RANDOM_MOCK),
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(MASTERKEY, RANDOM_MOCK)
 		);
 	}
 

@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
-public abstract class CryptoException extends Exception {
+public abstract class CryptoException extends RuntimeException {
 
 	protected CryptoException() {
 		super();

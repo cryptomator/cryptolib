@@ -15,10 +15,7 @@ import java.nio.channels.WritableByteChannel;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -43,7 +40,7 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentEncryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
+	private static final Masterkey MASTERKEY = new Masterkey(new byte[64]);
 
 	private CryptorImpl cryptor;
 

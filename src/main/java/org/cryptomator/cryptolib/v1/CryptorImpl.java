@@ -22,13 +22,13 @@ class CryptorImpl implements Cryptor {
 
 	/**
 	 * Package-private constructor.
-	 * Use {@link CryptorProviderImpl#withKey(Masterkey)} to obtain a Cryptor instance.
+	 * Use {@link CryptorProviderImpl#provide(Masterkey, SecureRandom)} to obtain a Cryptor instance.
 	 */
 	CryptorImpl(Masterkey masterkey, SecureRandom random) {
 		this.masterkey = masterkey;
-		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey.getEncKey(), masterkey.getMacKey(), random);
-		this.fileContentCryptor = new FileContentCryptorImpl(masterkey.getMacKey(), random);
-		this.fileNameCryptor = new FileNameCryptorImpl(masterkey.getEncKey(), masterkey.getMacKey());
+		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey, random);
+		this.fileContentCryptor = new FileContentCryptorImpl(masterkey, random);
+		this.fileNameCryptor = new FileNameCryptorImpl(masterkey);
 	}
 
 	@Override

@@ -13,6 +13,7 @@ import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -21,25 +22,31 @@ import java.security.SecureRandom;
 public class CryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private static final Masterkey MASTERKEY = Masterkey.createFromRaw(new byte[64]);
+
+	private Masterkey masterkey;
+
+	@BeforeEach
+	public void setup() {
+		this.masterkey = new Masterkey(new byte[64]);
+	}
 
 	@Test
 	public void testGetFileContentCryptor() {
-		try (CryptorImpl cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK)) {
+		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
 			MatcherAssert.assertThat(cryptor.fileContentCryptor(), CoreMatchers.instanceOf(FileContentCryptorImpl.class));
 		}
 	}
 
 	@Test
 	public void testGetFileHeaderCryptor() {
-		try (CryptorImpl cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK)) {
+		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
 			MatcherAssert.assertThat(cryptor.fileHeaderCryptor(), CoreMatchers.instanceOf(FileHeaderCryptorImpl.class));
 		}
 	}
 
 	@Test
 	public void testGetFileNameCryptor() {
-		try (CryptorImpl cryptor = new CryptorImpl(MASTERKEY, RANDOM_MOCK)) {
+		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
 			MatcherAssert.assertThat(cryptor.fileNameCryptor(), CoreMatchers.instanceOf(FileNameCryptorImpl.class));
 		}
 	}
