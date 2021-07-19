@@ -17,8 +17,8 @@ public class ByteBuffers {
 	/**
 	 * Copies as many bytes as possible from the given source to the destination buffer.
 	 * The position of both buffers will be incremented by as many bytes as have been copied.
-	 * 
-	 * @param source ByteBuffer from which bytes are read
+	 *
+	 * @param source      ByteBuffer from which bytes are read
 	 * @param destination ByteBuffer into which bytes are written
 	 * @return number of bytes copied, i.e. {@link ByteBuffer#remaining() source.remaining()} or {@link ByteBuffer#remaining() destination.remaining()}, whatever is less.
 	 */
@@ -33,11 +33,12 @@ public class ByteBuffers {
 
 	/**
 	 * Fills the given <code>buffer</code> by reading from the given source until either reaching EOF
-	 * or <code>buffer</code> has no more {@link ByteBuffer#hasRemaining() remaining space}. 
+	 * or <code>buffer</code> has no more {@link ByteBuffer#hasRemaining() remaining space}.
+	 *
 	 * @param source The channel to read from
 	 * @param buffer The buffer to fill
 	 * @return Number of bytes read. Will only be less than remaining space in <code>buffer</code> if reaching EOF.
-	 * @throws IOException
+	 * @throws IOException In case of I/O errors
 	 */
 	public static int fill(ReadableByteChannel source, ByteBuffer buffer) throws IOException {
 		final int requested = buffer.remaining();

@@ -20,14 +20,7 @@ import com.google.common.primitives.Bytes;
 
 public class SecureRandomMock extends SecureRandom {
 
-	private static final ByteFiller NULL_FILLER = new ByteFiller() {
-
-		@Override
-		public void fill(byte[] bytes) {
-			Arrays.fill(bytes, (byte) 0x00);
-		}
-
-	};
+	private static final ByteFiller NULL_FILLER = bytes -> Arrays.fill(bytes, (byte) 0x00);
 	public static final SecureRandomMock NULL_RANDOM = new SecureRandomMock(NULL_FILLER);
 	private static final ByteFiller PRNG_FILLER = new ByteFiller() {
 

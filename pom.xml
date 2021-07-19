@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>1.4.1</version>
+	<version>2.0.0</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -15,18 +15,24 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.release>8</maven.compiler.release>
 
 		<!-- dependencies -->
-		<gson.version>2.8.6</gson.version>
-		<guava.version>30.1-jre</guava.version>
-		<siv-mode.version>1.4.1</siv-mode.version>
-		<slf4j.version>1.7.30</slf4j.version>
+		<gson.version>2.8.7</gson.version>
+		<guava.version>30.1.1-jre</guava.version>
+		<siv-mode.version>1.4.3</siv-mode.version>
+		<slf4j.version>1.7.31</slf4j.version>
 
 		<!-- test dependencies -->
-		<junit.jupiter.version>5.7.1</junit.jupiter.version>
-		<mockito.version>3.7.7</mockito.version>
+		<junit.jupiter.version>5.7.2</junit.jupiter.version>
+		<mockito.version>3.11.2</mockito.version>
 		<hamcrest.version>2.2</hamcrest.version>
-		<jmh.version>1.27</jmh.version>
+		<jmh.version>1.32</jmh.version>
+
+		<!-- build plugin dependencies -->
+		<dependency-check.version>6.2.2</dependency-check.version>
+		<jacoco.version>0.8.7</jacoco.version>
+		<nexus-staging.version>1.6.8</nexus-staging.version>
 	</properties>
 
 	<licenses>
@@ -138,10 +144,25 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
-					<release>8</release>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
+				<executions>
+					<execution>
+						<id>java9</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<release>9</release>
+							<compileSourceRoots>
+								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+							</compileSourceRoots>
+							<multiReleaseOutput>true</multiReleaseOutput>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -155,7 +176,8 @@
 				<configuration>
 					<archive>
 						<manifestEntries>
-							<Automatic-Module-Name>org.cryptomator.cryptolib</Automatic-Module-Name>
+							<Multi-Release>true</Multi-Release>
+							<Sealed>true</Sealed>
 						</manifestEntries>
 					</archive>
 				</configuration>
@@ -174,7 +196,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.2.0</version>
+				<version>3.3.0</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -222,7 +244,7 @@
 					<plugin>
 						<groupId>org.owasp</groupId>
 						<artifactId>dependency-check-maven</artifactId>
-						<version>6.1.0</version>
+						<version>${dependency-check.version}</version>
 						<configuration>
 							<cveValidForHours>24</cveValidForHours>
 							<failBuildOnCVSS>0</failBuildOnCVSS>
@@ -249,7 +271,7 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.6</version>
+						<version>${jacoco.version}</version>
 						<executions>
 							<execution>
 								<id>prepare-agent</id>
@@ -275,7 +297,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.6</version>
+						<version>3.0.1</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
@@ -310,7 +332,7 @@
 					<plugin>
 						<groupId>org.sonatype.plugins</groupId>
 						<artifactId>nexus-staging-maven-plugin</artifactId>
-						<version>1.6.8</version>
+						<version>${nexus-staging.version}</version>
 						<extensions>true</extensions>
 						<configuration>
 							<serverId>ossrh</serverId>

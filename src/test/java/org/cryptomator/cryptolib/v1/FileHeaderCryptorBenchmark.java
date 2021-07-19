@@ -8,15 +8,10 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
-
-import javax.crypto.AEADBadTagException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -29,6 +24,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Needs to be compiled via maven as the JMH annotation processor needs to do stuff...
  */
@@ -40,9 +39,8 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileHeaderCryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
-	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
-	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(ENC_KEY, MAC_KEY, RANDOM_MOCK);
+	private static final Masterkey MASTERKEY = new Masterkey(new byte[64]);
+	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(MASTERKEY, RANDOM_MOCK);
 	private FileHeader header;
 	private ByteBuffer validHeaderCiphertextBuf;
 
@@ -58,7 +56,7 @@ public class FileHeaderCryptorBenchmark {
 	}
 
 	@Benchmark
-	public void benchmarkDecryption() throws AEADBadTagException {
+	public void benchmarkDecryption() throws AuthenticationFailedException {
 		HEADER_CRYPTOR.decryptHeader(validHeaderCiphertextBuf);
 	}
 

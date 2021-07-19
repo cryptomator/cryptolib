@@ -6,8 +6,9 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib;
+package org.cryptomator.cryptolib.common;
 
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
@@ -22,13 +23,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-public class DecryptingReadableByteChannelTest {
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-	private static final Charset UTF_8 = StandardCharsets.UTF_8;
+public class DecryptingReadableByteChannelTest {
 
 	private Cryptor cryptor;
 	private FileContentCryptor contentCryptor;
@@ -36,7 +35,7 @@ public class DecryptingReadableByteChannelTest {
 	private FileHeader header;
 
 	@BeforeEach
-	public void setup() {
+	public void setup() throws AuthenticationFailedException {
 		cryptor = Mockito.mock(Cryptor.class);
 		contentCryptor = Mockito.mock(FileContentCryptor.class);
 		headerCryptor = Mockito.mock(FileHeaderCryptor.class);
@@ -55,7 +54,7 @@ public class DecryptingReadableByteChannelTest {
 	}
 
 	@Test
-	public void testDecryption() throws IOException {
+	public void testDecryption() throws IOException, AuthenticationFailedException {
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("hhhhhTOPSECRET!TOPSECRET!".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(30);
 		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true)) {
@@ -70,7 +69,7 @@ public class DecryptingReadableByteChannelTest {
 	}
 
 	@Test
-	public void testRandomAccessDecryption() throws IOException {
+	public void testRandomAccessDecryption() throws IOException, AuthenticationFailedException {
 		ReadableByteChannel src = Channels.newChannel(new ByteArrayInputStream("TOPSECRET!".getBytes()));
 		ByteBuffer result = ByteBuffer.allocate(30);
 		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(src, cryptor, true, header, 1)) {

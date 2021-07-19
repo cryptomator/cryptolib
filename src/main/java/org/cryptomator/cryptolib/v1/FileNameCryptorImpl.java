@@ -8,22 +8,21 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.nio.charset.Charset;
-
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.SecretKey;
-
+import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
-import com.google.common.io.BaseEncoding;
+import javax.crypto.IllegalBlockSizeException;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 class FileNameCryptorImpl implements FileNameCryptor {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final ThreadLocal<SivMode> AES_SIV = new ThreadLocal<SivMode>() {
 		@Override
@@ -32,44 +31,36 @@ class FileNameCryptorImpl implements FileNameCryptor {
 		};
 	};
 
-	private final SecretKey encryptionKey;
-	private final SecretKey macKey;
+	private final Masterkey masterkey;
 
-	FileNameCryptorImpl(SecretKey encryptionKey, SecretKey macKey) {
-		this.encryptionKey = encryptionKey;
-		this.macKey = macKey;
+	FileNameCryptorImpl(Masterkey masterkey) {
+		this.masterkey = masterkey;
 	}
 
 	@Override
 	public String hashDirectoryId(String cleartextDirectoryId) {
-		byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
-		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes);
-		byte[] hashedBytes = MessageDigestSupplier.SHA1.get().digest(encryptedBytes);
-		return BASE32.encode(hashedBytes);
-	}
-
-	@Override
-	public String encryptFilename(String cleartextName, byte[]... associatedData) {
-		return encryptFilename(BASE32, cleartextName, associatedData);
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
+			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes);
+			byte[] hashedBytes = MessageDigestSupplier.SHA1.get().digest(encryptedBytes);
+			return BASE32.encode(hashedBytes);
+		}
 	}
 
 	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
-		byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
-		byte[] encryptedBytes = AES_SIV.get().encrypt(encryptionKey, macKey, cleartextBytes, associatedData);
-		return encoding.encode(encryptedBytes);
-	}
-
-	@Override
-	public String decryptFilename(String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
-		return decryptFilename(BASE32, ciphertextName, associatedData);
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
+			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes, associatedData);
+			return encoding.encode(encryptedBytes);
+		}
 	}
 
 	@Override
 	public String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
-		try {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] encryptedBytes = encoding.decode(ciphertextName);
-			byte[] cleartextBytes = AES_SIV.get().decrypt(encryptionKey, macKey, encryptedBytes, associatedData);
+			byte[] cleartextBytes = AES_SIV.get().decrypt(ek, mk, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);

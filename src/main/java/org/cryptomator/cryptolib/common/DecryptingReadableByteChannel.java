@@ -6,16 +6,17 @@
  * Contributors:
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
-package org.cryptomator.cryptolib;
+package org.cryptomator.cryptolib.common;
+
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.ByteBuffers;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
-
-import org.cryptomator.cryptolib.api.Cryptor;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.common.ByteBuffers;
 
 public class DecryptingReadableByteChannel implements ReadableByteChannel {
 
@@ -69,15 +70,19 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 
 	@Override
 	public synchronized int read(ByteBuffer dst) throws IOException {
-		loadHeaderIfNecessary();
-		if (reachedEof) {
-			return -1;
-		} else {
-			return readInternal(dst);
+		try {
+			loadHeaderIfNecessary();
+			if (reachedEof) {
+				return -1;
+			} else {
+				return readInternal(dst);
+			}
+		} catch (AuthenticationFailedException e) {
+			throw new IOException("Unauthentic ciphertext", e);
 		}
 	}
 
-	private int readInternal(ByteBuffer dst) throws IOException {
+	private int readInternal(ByteBuffer dst) throws IOException, AuthenticationFailedException {
 		assert header != null : "header must be initialized";
 
 		int result = 0;
@@ -91,7 +96,7 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 		return result;
 	}
 
-	private void loadHeaderIfNecessary() throws IOException {
+	private void loadHeaderIfNecessary() throws IOException, AuthenticationFailedException {
 		if (header == null) {
 			ByteBuffer headerBuf = ByteBuffer.allocate(cryptor.fileHeaderCryptor().headerSize());
 			int read = ByteBuffers.fill(delegate, headerBuf);
@@ -103,7 +108,7 @@ public class DecryptingReadableByteChannel implements ReadableByteChannel {
 		}
 	}
 
-	private boolean loadNextCleartextChunk() throws IOException {
+	private boolean loadNextCleartextChunk() throws IOException, AuthenticationFailedException {
 		ByteBuffer ciphertextChunk = ByteBuffer.allocate(cryptor.fileContentCryptor().ciphertextChunkSize());
 		int read = ByteBuffers.fill(delegate, ciphertextChunk);
 		if (read == 0) {

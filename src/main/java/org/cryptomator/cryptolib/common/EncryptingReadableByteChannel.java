@@ -1,4 +1,4 @@
-package org.cryptomator.cryptolib;
+package org.cryptomator.cryptolib.common;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;

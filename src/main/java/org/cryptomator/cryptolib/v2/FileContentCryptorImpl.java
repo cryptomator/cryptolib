@@ -12,12 +12,12 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
@@ -35,6 +35,11 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	FileContentCryptorImpl(SecureRandom random) {
 		this.random = random;
+	}
+
+	@Override
+	public boolean canSkipAuthentication() {
+		return false;
 	}
 
 	@Override
@@ -91,14 +96,14 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	// visible for testing
-	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
-		try {
+	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
+		try (DestroyableSecretKey fk = fileKey.clone()) {
 			// nonce:
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
 			random.nextBytes(nonce);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_GCM.forEncryption(fileKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			final Cipher cipher = CipherSupplier.AES_GCM.forEncryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 			cipher.updateAAD(chunkNumberBigEndian);
 			cipher.updateAAD(headerNonce);
@@ -113,10 +118,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	// visible for testing
-	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, SecretKey fileKey) {
+	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) throws AuthenticationFailedException {
 		assert ciphertextChunk.remaining() >= GCM_NONCE_SIZE + GCM_TAG_SIZE;
 
-		try {
+		try (DestroyableSecretKey fk = fileKey.clone()) {
 			// nonce:
 			final byte[] nonce = new byte[GCM_NONCE_SIZE];
 			final ByteBuffer chunkNonceBuf = ciphertextChunk.asReadOnlyBuffer();
@@ -129,7 +134,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_GCM.forDecryption(fileKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			final Cipher cipher = CipherSupplier.AES_GCM.forDecryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 			cipher.updateAAD(chunkNumberBigEndian);
 			cipher.updateAAD(headerNonce);

@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -38,12 +40,11 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentCryptorImplBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final SecretKey ENC_KEY = new SecretKeySpec(new byte[16], "AES");
-	private static final SecretKey MAC_KEY = new SecretKeySpec(new byte[16], "HmacSHA256");
+	private static final Masterkey MASTERKEY = new Masterkey(new byte[64]);;
 	private final byte[] headerNonce = new byte[Constants.NONCE_SIZE];
 	private final ByteBuffer cleartextChunk = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
 	private final ByteBuffer ciphertextChunk = ByteBuffer.allocate(Constants.CHUNK_SIZE);
-	private final FileContentCryptorImpl fileContentCryptor = new FileContentCryptorImpl(MAC_KEY, RANDOM_MOCK);
+	private final FileContentCryptorImpl fileContentCryptor = new FileContentCryptorImpl(MASTERKEY, RANDOM_MOCK);
 	private long chunkNumber;
 
 	@Setup(Level.Invocation)
@@ -58,7 +59,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, ENC_KEY);
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, MASTERKEY.getEncKey());
 	}
 
 	@Benchmark
@@ -68,7 +69,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkDecryption() {
-		fileContentCryptor.decryptChunk(ciphertextChunk, ciphertextChunk, ENC_KEY);
+		fileContentCryptor.decryptChunk(ciphertextChunk, ciphertextChunk, MASTERKEY.getEncKey());
 	}
 
 }
