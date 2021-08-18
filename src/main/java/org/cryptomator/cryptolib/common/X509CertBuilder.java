@@ -24,13 +24,13 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
-class X509Helper {
+class X509CertBuilder {
 
 	private static final X500Name ISSUER = new X500Name("CN=Cryptomator");
 	private static final X500Name SUBJECT = new X500Name("CN=Self Signed Cert");
 	private static final ASN1ObjectIdentifier ASN1_SUBJECT_KEY_ID = new ASN1ObjectIdentifier("2.5.29.14");
 
-	private X509Helper() {}
+	private X509CertBuilder() {}
 
 	/**
 	 * Creates a self-signed X509Certificate containing the public key and signed with the private key of a given key pair.

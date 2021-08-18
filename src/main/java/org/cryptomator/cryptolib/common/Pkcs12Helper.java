@@ -34,7 +34,7 @@ class Pkcs12Helper {
 		try {
 			KeyStore keyStore = getKeyStore();
 			keyStore.load(null, pw);
-			X509Certificate cert = X509Helper.createSelfSignedCert(keyPair, signatureAlg);
+			X509Certificate cert = X509CertBuilder.createSelfSignedCert(keyPair, signatureAlg);
 			X509Certificate[] chain = new X509Certificate[]{cert};
 			keyStore.setKeyEntry(KEYSTORE_ALIAS_KEY, keyPair.getPrivate(), pw, chain);
 			keyStore.setCertificateEntry(KEYSTORE_ALIAS_CERT, cert);
