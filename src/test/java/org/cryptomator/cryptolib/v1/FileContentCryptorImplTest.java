@@ -25,6 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
@@ -199,71 +200,31 @@ public class FileContentCryptorImplTest {
 			}
 		}
 
-		@Test
-		@DisplayName("decrypt chunk with unauthentic NONCE")
-		public void testChunkDecryptionWithUnauthenticNonce() {
-			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("aAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
+		@DisplayName("decrypt unauthentic chunk")
+		@ParameterizedTest(name = "unauthentic {1}")
+		@CsvSource(value = {
+				"aAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, NONCE",
+				"AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3YTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, CONTENT",
+				"AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG=, MAC",
+		})
+		public void testUnauthenticChunkDecryption(String chunkData, String ignored) {
+			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode(chunkData));
 
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
 				fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			});
 		}
 
-		@Test
-		@DisplayName("decrypt file with unauthentic NONCE in first chunk")
-		public void testDecryptionWithUnauthenticNonce() throws InterruptedException, IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
-			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
+		@DisplayName("decrypt unauthentic file")
+		@ParameterizedTest(name = "unauthentic {1} in first chunk")
+		@CsvSource(value = {
+				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, NONCE",
+				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, CONTENT",
+				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO, MAC",
+		})
+		public void testDecryptionWithUnauthenticFirstChunk(String fileData, String ignored) throws IOException {
+			byte[] ciphertext = BaseEncoding.base64().decode(fileData);
 
-			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
-					cleartextCh.read(ByteBuffer.allocate(3));
-				});
-				MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
-			}
-		}
-
-		@Test
-		@DisplayName("decrypt chunk with unauthentic CONTENT")
-		public void testChunkDecryptionWithUnauthenticContent() {
-			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3YTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
-
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
-			});
-		}
-
-		@Test
-		@DisplayName("decrypt file with unauthentic CONTENT in first chunk")
-		public void testDecryptionWithUnauthenticContent() throws InterruptedException, IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
-			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
-
-			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
-					cleartextCh.read(ByteBuffer.allocate(3));
-				});
-				MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
-			}
-		}
-
-		@Test
-		@DisplayName("decrypt chunk with unauthentic MAC")
-		public void testChunkDecryptionWithUnauthenticMac() {
-			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG="));
-
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
-			});
-		}
-
-		@Test
-		@DisplayName("decrypt file with unauthentic MAC in first chunk")
-		public void testDecryptionWithUnauthenticMac() throws InterruptedException, IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {

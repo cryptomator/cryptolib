@@ -17,7 +17,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 public class BenchmarkTest {
 
-	@Disabled
+	@Disabled("only on demand")
 	@Test
 	public void runBenchmarks() throws RunnerException {
 		// Taken from http://stackoverflow.com/a/30486197/4014509:
