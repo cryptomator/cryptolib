@@ -40,7 +40,7 @@ public class P384KeyPair extends ECKeyPair {
 	 */
 	public static P384KeyPair load(Path p12File, char[] passphrase) throws IOException, Pkcs12PasswordException, Pkcs12Exception {
 		try (InputStream in = Files.newInputStream(p12File, StandardOpenOption.READ)) {
-			KeyPair keyPair = Pkcs12Helper.load(in, passphrase);
+			KeyPair keyPair = Pkcs12Helper.importFrom(in, passphrase);
 			return new P384KeyPair(keyPair);
 		}
 	}
@@ -56,7 +56,7 @@ public class P384KeyPair extends ECKeyPair {
 	public void store(Path p12File, char[] passphrase) throws IOException, Pkcs12Exception {
 		Path tmpFile = p12File.resolveSibling(p12File.getFileName().toString() + ".tmp");
 		try (OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
-			Pkcs12Helper.export(this.keyPair(), out, passphrase, SIGNATURE_ALG);
+			Pkcs12Helper.exportTo(keyPair(), out, passphrase, SIGNATURE_ALG);
 		}
 		Files.move(tmpFile, p12File, StandardCopyOption.REPLACE_EXISTING);
 	}

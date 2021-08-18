@@ -19,7 +19,7 @@ class Pkcs12Helper {
 
 	private static final String X509_ISSUER = "CN=Cryptomator";
 	private static final String X509_SUBJECT = "CN=Self Signed Cert";
-	private static final int X509_VALID_MONTHS = 120;
+	private static final int X509_VALID_DAYS = 3560;
 	private static final String KEYSTORE_ALIAS_KEY = "key";
 	private static final String KEYSTORE_ALIAS_CERT = "crt";
 
@@ -36,7 +36,7 @@ class Pkcs12Helper {
 	 * @throws IOException     In case of I/O errors
 	 * @throws Pkcs12Exception If any cryptographic operation fails
 	 */
-	public static void export(KeyPair keyPair, OutputStream out, char[] pw, String signatureAlg) throws IOException, Pkcs12Exception {
+	public static void exportTo(KeyPair keyPair, OutputStream out, char[] pw, String signatureAlg) throws IOException, Pkcs12Exception {
 		try {
 			KeyStore keyStore = getKeyStore();
 			keyStore.load(null, pw);
@@ -44,13 +44,13 @@ class Pkcs12Helper {
 					.withIssuer(X509_ISSUER) //
 					.withSubject(X509_SUBJECT) //
 					.withNotBefore(Instant.now()) //
-					.withNotAfter(Instant.now().plus(Period.ofMonths(X509_VALID_MONTHS)))
+					.withNotAfter(Instant.now().plus(Period.ofDays(X509_VALID_DAYS)))
 					.build();
 			X509Certificate[] chain = new X509Certificate[]{cert};
 			keyStore.setKeyEntry(KEYSTORE_ALIAS_KEY, keyPair.getPrivate(), pw, chain);
 			keyStore.setCertificateEntry(KEYSTORE_ALIAS_CERT, cert);
 			keyStore.store(out, pw);
-		} catch (GeneralSecurityException e) {
+		} catch (IllegalArgumentException | GeneralSecurityException e) {
 			throw new Pkcs12Exception("Failed to store PKCS12 file.", e);
 		}
 	}
@@ -64,7 +64,7 @@ class Pkcs12Helper {
 	 * @throws Pkcs12PasswordException If the supplied password is incorrect
 	 * @throws Pkcs12Exception         If any cryptographic operation fails
 	 */
-	public static KeyPair load(InputStream in, char[] pw) throws IOException, Pkcs12PasswordException, Pkcs12Exception {
+	public static KeyPair importFrom(InputStream in, char[] pw) throws IOException, Pkcs12PasswordException, Pkcs12Exception {
 		try {
 			KeyStore keyStore = getKeyStore();
 			keyStore.load(in, pw);
