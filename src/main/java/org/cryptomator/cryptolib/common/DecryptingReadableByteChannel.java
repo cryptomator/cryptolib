@@ -11,7 +11,6 @@ package org.cryptomator.cryptolib.common;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.common.ByteBuffers;
 
 import java.io.EOFException;
 import java.io.IOException;

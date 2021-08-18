@@ -28,7 +28,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 		@Override
 		protected SivMode initialValue() {
 			return new SivMode();
-		};
+		}
 	};
 
 	private final Masterkey masterkey;

@@ -8,13 +8,12 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
+import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.FileHeader;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-
-import org.cryptomator.cryptolib.api.Cryptor;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.common.ByteBuffers;
 
 public class EncryptingWritableByteChannel implements WritableByteChannel {
 

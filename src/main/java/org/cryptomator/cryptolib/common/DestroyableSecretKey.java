@@ -29,7 +29,7 @@ import java.util.Objects;
  */
 public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable {
 
-	private transient final byte[] key;
+	private final transient byte[] key;
 	private final String algorithm;
 	private boolean destroyed;
 
