@@ -11,9 +11,15 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
+import java.time.Period;
+import java.time.temporal.TemporalAmount;
 
 class Pkcs12Helper {
 
+	private static final String X509_ISSUER = "CN=Cryptomator";
+	private static final String X509_SUBJECT = "CN=Self Signed Cert";
+	private static final int X509_VALID_MONTHS = 120;
 	private static final String KEYSTORE_ALIAS_KEY = "key";
 	private static final String KEYSTORE_ALIAS_CERT = "crt";
 
@@ -34,7 +40,12 @@ class Pkcs12Helper {
 		try {
 			KeyStore keyStore = getKeyStore();
 			keyStore.load(null, pw);
-			X509Certificate cert = X509CertBuilder.createSelfSignedCert(keyPair, signatureAlg);
+			X509Certificate cert = X509CertBuilder.init(keyPair, signatureAlg) //
+					.withIssuer(X509_ISSUER) //
+					.withSubject(X509_SUBJECT) //
+					.withNotBefore(Instant.now()) //
+					.withNotAfter(Instant.now().plus(Period.ofMonths(X509_VALID_MONTHS)))
+					.build();
 			X509Certificate[] chain = new X509Certificate[]{cert};
 			keyStore.setKeyEntry(KEYSTORE_ALIAS_KEY, keyPair.getPrivate(), pw, chain);
 			keyStore.setCertificateEntry(KEYSTORE_ALIAS_CERT, cert);
