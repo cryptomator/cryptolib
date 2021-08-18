@@ -47,8 +47,9 @@ public class P384KeyPairTest {
 
 		@Test
 		public void testLoadWithInvalidPassphrase() {
+			char[] wrongPassphrase = "bottompublic".toCharArray();
 			Assertions.assertThrows(Pkcs12PasswordException.class, () -> {
-				P384KeyPair.load(p12File, "bottompublic".toCharArray());
+				P384KeyPair.load(p12File, wrongPassphrase);
 			});
 		}
 

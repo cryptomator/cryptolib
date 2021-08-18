@@ -13,7 +13,6 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.Period;
-import java.time.temporal.TemporalAmount;
 
 class Pkcs12Helper {
 

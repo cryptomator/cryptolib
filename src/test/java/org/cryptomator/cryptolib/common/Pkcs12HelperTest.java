@@ -33,8 +33,9 @@ public class Pkcs12HelperTest {
 	public void testExportWithInappropriateSignatureAlg() throws NoSuchAlgorithmException, IOException {
 		KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 		try (OutputStream out = Files.newOutputStream(p12File, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
+			char[] passphrase = "topsecret".toCharArray();
 			Assertions.assertThrows(Pkcs12Exception.class, () -> {
-				Pkcs12Helper.exportTo(keyPair, out, "topsecret".toCharArray(), "SHA256withECDSA");
+				Pkcs12Helper.exportTo(keyPair, out, passphrase, "SHA256withECDSA");
 			});
 		}
 	}
@@ -44,8 +45,9 @@ public class Pkcs12HelperTest {
 	public void testExport() throws NoSuchAlgorithmException, IOException {
 		KeyPair keyPair = KeyPairGenerator.getInstance("EC").generateKeyPair();
 		try (OutputStream out = Files.newOutputStream(p12File, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
+			char[] passphrase = "topsecret".toCharArray();
 			Assertions.assertDoesNotThrow(() -> {
-				Pkcs12Helper.exportTo(keyPair, out, "topsecret".toCharArray(), "SHA256withECDSA");
+				Pkcs12Helper.exportTo(keyPair, out, passphrase, "SHA256withECDSA");
 			});
 		}
 	}
@@ -71,8 +73,9 @@ public class Pkcs12HelperTest {
 		@DisplayName("attempt import with invalid passphrase")
 		public void testImportWithInvalidPassphrase() throws IOException {
 			try (InputStream in = Files.newInputStream(p12File, StandardOpenOption.READ)) {
+				char[] wrongPassphrase = "bottompublic".toCharArray();
 				Assertions.assertThrows(Pkcs12PasswordException.class, () -> {
-					Pkcs12Helper.importFrom(in, "bottompublic".toCharArray());
+					Pkcs12Helper.importFrom(in, wrongPassphrase);
 				});
 			}
 		}
