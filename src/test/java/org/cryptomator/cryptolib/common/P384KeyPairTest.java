@@ -13,6 +13,7 @@ import java.nio.file.Path;
 public class P384KeyPairTest {
 
 	@Test
+	@DisplayName("generate()")
 	public void testGenerate() {
 		P384KeyPair keyPair1 = P384KeyPair.generate();
 		P384KeyPair keyPair2 = P384KeyPair.generate();
@@ -22,6 +23,7 @@ public class P384KeyPairTest {
 	}
 
 	@Test
+	@DisplayName("store(...)")
 	public void testStore(@TempDir Path tmpDir) {
 		Path p12File = tmpDir.resolve("test.p12");
 		P384KeyPair keyPair = P384KeyPair.generate();
@@ -46,6 +48,7 @@ public class P384KeyPairTest {
 		}
 
 		@Test
+		@DisplayName("load(...) with invalid passphrase")
 		public void testLoadWithInvalidPassphrase() {
 			char[] wrongPassphrase = "bottompublic".toCharArray();
 			Assertions.assertThrows(Pkcs12PasswordException.class, () -> {
@@ -54,6 +57,7 @@ public class P384KeyPairTest {
 		}
 
 		@Test
+		@DisplayName("load(...) with valid passphrase")
 		public void testLoadWithValidPassphrase() throws IOException {
 			P384KeyPair keyPair = P384KeyPair.load(p12File, "topsecret".toCharArray());
 			Assertions.assertEquals(origKeyPair, keyPair);
