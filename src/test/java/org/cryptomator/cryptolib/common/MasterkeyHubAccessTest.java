@@ -14,7 +14,7 @@ import java.util.Arrays;
 
 public class MasterkeyHubAccessTest {
 
-	private static final byte[] devicePkcs12 = BaseEncoding.base64Url().decode("MIIFhAIBAzCCBT0GCSqGSIb3DQEHAaCCBS" //
+	private static final byte[] DEVICE_PKCS12 = BaseEncoding.base64Url().decode("MIIFhAIBAzCCBT0GCSqGSIb3DQEHAaCCBS" //
 			+ "4EggUqMIIFJjCB6wYJKoZIhvcNAQcBoIHdBIHaMIHXMIHUBgsqhkiG9w0BDAoBAqCBiDCBhTApBgoqhkiG9w0BDAEDMBsEFGAM85ETk7ydc" //
 			+ "BZlJOEO4_4t7LcGAgMAw1AEWLu-1SdjZkqjOdwiQBOFYJkrtZimD0AHst3LxOmdVJZGJ2my4hgxQJH2sIcEnpNwQnrlBcI80xy4bozDxZ6W" //
 			+ "Asu-BymbjAqg86xpB6XBIQZj9NQ24OA1NuwxOjAVBgkqhkiG9w0BCRQxCB4GAGsAZQB5MCEGCSqGSIb3DQEJFTEUBBJUaW1lIDE2MjkzNjg" //
@@ -38,7 +38,7 @@ public class MasterkeyHubAccessTest {
 
 	@BeforeEach
 	public void setup() throws IOException {
-		this.deviceKey = P384KeyPair.load(new ByteArrayInputStream(devicePkcs12), "secret".toCharArray());
+		this.deviceKey = P384KeyPair.load(new ByteArrayInputStream(DEVICE_PKCS12), "secret".toCharArray());
 	}
 
 	@Test
