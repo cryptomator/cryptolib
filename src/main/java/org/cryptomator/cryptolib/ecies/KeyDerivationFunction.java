@@ -36,7 +36,7 @@ public interface KeyDerivationFunction {
 		int hashLen = digest.getDigestLength();
 
 		// These two checks must be performed according to spec. However with 32 bit integers, we can't exceed any limits anyway:
-		assert BigInteger.valueOf(sharedSecret.length + sharedInfo.length + 4).compareTo(BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE)) < 0 : "input larger than hashmaxlen";
+		assert BigInteger.valueOf(sharedSecret.length + sharedInfo.length + 4l).compareTo(BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE)) < 0 : "input larger than hashmaxlen";
 		assert keyDataLen < (2L << 32 - 1) * hashLen : "keyDataLen larger than hashLen × (2^32 − 1)";
 
 		ByteBuffer counter = ByteBuffer.allocate(Integer.BYTES);
