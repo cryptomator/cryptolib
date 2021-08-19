@@ -21,6 +21,7 @@
 		<gson.version>2.8.7</gson.version>
 		<guava.version>30.1.1-jre</guava.version>
 		<siv-mode.version>1.4.3</siv-mode.version>
+		<bouncycastle.version>1.69</bouncycastle.version>
 		<slf4j.version>1.7.31</slf4j.version>
 
 		<!-- test dependencies -->
@@ -58,6 +59,14 @@
 			<groupId>org.cryptomator</groupId>
 			<artifactId>siv-mode</artifactId>
 			<version>${siv-mode.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>${bouncycastle.version}</version>
+			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -160,6 +169,43 @@
 								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
 							</compileSourceRoots>
 							<multiReleaseOutput>true</multiReleaseOutput>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.4</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<minimizeJar>true</minimizeJar>
+							<keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<createSourcesJar>false</createSourcesJar>
+							<artifactSet>
+								<includes>
+									<include>org.bouncycastle:*</include>
+								</includes>
+							</artifactSet>
+							<relocations>
+								<relocation>
+									<pattern>org.bouncycastle</pattern>
+									<shadedPattern>org.cryptomator.cryptolib.org.bouncycastle</shadedPattern>
+								</relocation>
+							</relocations>
+							<filters>
+								<filter>
+									<artifact>org.bouncycastle:*</artifact>
+									<excludes>
+										<exclude>META-INF/**</exclude>
+									</excludes>
+								</filter>
+							</filters>
 						</configuration>
 					</execution>
 				</executions>

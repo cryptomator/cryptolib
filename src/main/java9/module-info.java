@@ -3,6 +3,8 @@ module org.cryptomator.cryptolib {
 	requires com.google.gson;
 	requires com.google.common;
 	requires org.slf4j;
+	requires static org.bouncycastle.provider;
+	requires static org.bouncycastle.pkix;
 
 	exports org.cryptomator.cryptolib.api;
 	exports org.cryptomator.cryptolib.common;
