@@ -60,7 +60,7 @@ public class P384KeyPair extends ECKeyPair {
 	}
 
 	/**
-	 * in PKCS#12 format at the given path.
+	 * Stores this key pair in PKCS#12 format at the given path
 	 *
 	 * @param p12File    The path of the .p12 file
 	 * @param passphrase The password to protect the key material
@@ -76,7 +76,7 @@ public class P384KeyPair extends ECKeyPair {
 	}
 
 	/**
-	 * in PKCS#12 format at the given path.
+	 * Stores this key in PKCS#12 format to the given output stream
 	 *
 	 * @param out        The output stream to which the data will be written
 	 * @param passphrase The password to protect the key material
