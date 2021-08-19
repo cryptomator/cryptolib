@@ -31,7 +31,7 @@ public class P384KeyPair extends ECKeyPair {
 	/**
 	 * Loads a key pair from the given file
 	 *
-	 * @param p12File    A PKCS12 file
+	 * @param p12File    A .p12 file
 	 * @param passphrase The password to protect the key material
 	 * @return
 	 * @throws IOException             In case of I/O errors
@@ -40,9 +40,23 @@ public class P384KeyPair extends ECKeyPair {
 	 */
 	public static P384KeyPair load(Path p12File, char[] passphrase) throws IOException, Pkcs12PasswordException, Pkcs12Exception {
 		try (InputStream in = Files.newInputStream(p12File, StandardOpenOption.READ)) {
-			KeyPair keyPair = Pkcs12Helper.importFrom(in, passphrase);
-			return new P384KeyPair(keyPair);
+			return load(in, passphrase);
 		}
+	}
+
+	/**
+	 * Loads a key pair from the given input stream
+	 *
+	 * @param in         An input stream providing PKCS#12 formatted data
+	 * @param passphrase The password to protect the key material
+	 * @return
+	 * @throws IOException             In case of I/O errors
+	 * @throws Pkcs12PasswordException If the supplied password is incorrect
+	 * @throws Pkcs12Exception         If any cryptographic operation fails
+	 */
+	public static P384KeyPair load(InputStream in, char[] passphrase) throws IOException, Pkcs12PasswordException, Pkcs12Exception {
+		KeyPair keyPair = Pkcs12Helper.importFrom(in, passphrase);
+		return new P384KeyPair(keyPair);
 	}
 
 	/**
@@ -56,9 +70,21 @@ public class P384KeyPair extends ECKeyPair {
 	public void store(Path p12File, char[] passphrase) throws IOException, Pkcs12Exception {
 		Path tmpFile = p12File.resolveSibling(p12File.getFileName().toString() + ".tmp");
 		try (OutputStream out = Files.newOutputStream(tmpFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
-			Pkcs12Helper.exportTo(keyPair(), out, passphrase, SIGNATURE_ALG);
+			store(out, passphrase);
 		}
 		Files.move(tmpFile, p12File, StandardCopyOption.REPLACE_EXISTING);
+	}
+
+	/**
+	 * in PKCS#12 format at the given path.
+	 *
+	 * @param out        The output stream to which the data will be written
+	 * @param passphrase The password to protect the key material
+	 * @throws IOException     In case of I/O errors
+	 * @throws Pkcs12Exception If any cryptographic operation fails
+	 */
+	public void store(OutputStream out, char[] passphrase) throws IOException, Pkcs12Exception {
+		Pkcs12Helper.exportTo(keyPair(), out, passphrase, SIGNATURE_ALG);
 	}
 
 	private static KeyPairGenerator getKeyPairGenerator() {
