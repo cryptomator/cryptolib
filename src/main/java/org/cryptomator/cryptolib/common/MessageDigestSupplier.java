@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 public final class MessageDigestSupplier {
 
 	public static final MessageDigestSupplier SHA1 = new MessageDigestSupplier("SHA-1");
+	public static final MessageDigestSupplier SHA256 = new MessageDigestSupplier("SHA-256");
 
 	private final String digestAlgorithm;
 	private final ThreadLocal<MessageDigest> threadLocal;
