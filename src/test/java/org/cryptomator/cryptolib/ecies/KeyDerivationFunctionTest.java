@@ -1,14 +1,10 @@
 package org.cryptomator.cryptolib.ecies;
 
 import com.google.common.io.BaseEncoding;
-import org.cryptomator.cryptolib.ecies.KeyDerivationFunction;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.converter.ArgumentConversionException;
-import org.junit.jupiter.params.converter.ArgumentConverter;
 import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -37,20 +33,6 @@ public class KeyDerivationFunctionTest {
 
 		byte[] expected =  BaseEncoding.base16().lowerCase().decode("443024c3dae66b95e6f5670601558f71");
 		Assertions.assertArrayEquals(expected, result);
-	}
-
-	public static class HexConverter implements ArgumentConverter {
-
-		@Override
-		public byte[] convert(Object source, ParameterContext context) throws ArgumentConversionException {
-			if (source == null) {
-				return new byte[0];
-			} else if (source instanceof String) {
-				return BaseEncoding.base16().lowerCase().decode((String) source);
-			} else {
-				return null;
-			}
-		}
 	}
 
 }
