@@ -189,8 +189,7 @@
 							<createSourcesJar>false</createSourcesJar>
 							<artifactSet>
 								<includes>
-									<include>org.bouncycastle:bcpkix-jdk15on</include>
-									<include>org.bouncycastle:bcprov-jdk15on</include>
+									<include>org.bouncycastle:*</include>
 								</includes>
 							</artifactSet>
 							<relocations>
