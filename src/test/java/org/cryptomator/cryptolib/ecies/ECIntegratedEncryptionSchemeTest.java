@@ -52,7 +52,7 @@ public class ECIntegratedEncryptionSchemeTest {
 			Mockito.doAnswer(invocation -> invocation.getArgument(1)).when(ae).decrypt(Mockito.any(), Mockito.any());
 
 			// set up null KDF
-			Mockito.doReturn(derivedSecret).when(kdf).deriveKey(Mockito.eq(expectedSharedSecret), Mockito.eq(32));
+			Mockito.doReturn(derivedSecret).when(kdf).deriveKey(expectedSharedSecret, 32);
 		}
 
 		@Test
@@ -118,9 +118,10 @@ public class ECIntegratedEncryptionSchemeTest {
 		public void testEncryptWithInvalidKeyGen() throws NoSuchAlgorithmException {
 			KeyPairGenerator rsaKeyGen = KeyPairGenerator.getInstance("RSA");
 			byte[] cleartext = "hello world".getBytes(StandardCharsets.UTF_8);
+			ECPublicKey receiverPublicKey = (ECPublicKey) receiverKeyPair.getPublic();
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
-				ecies.encrypt(rsaKeyGen, (ECPublicKey) receiverKeyPair.getPublic(), cleartext);
+				ecies.encrypt(rsaKeyGen, receiverPublicKey, cleartext);
 			});
 		}
 

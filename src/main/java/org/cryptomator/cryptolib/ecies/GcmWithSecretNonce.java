@@ -1,8 +1,6 @@
 package org.cryptomator.cryptolib.ecies;
 
 import com.google.common.base.Throwables;
-import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 

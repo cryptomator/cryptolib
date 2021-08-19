@@ -22,7 +22,7 @@ public class ECIntegratedEncryptionScheme {
 	 *     <li>Cut shared secret into 256 bit key + 96 bit nonce used for AES-GCM to encrypt/decrypt</li>
 	 * </ul>
 	 */
-	public static ECIntegratedEncryptionScheme HUB = new ECIntegratedEncryptionScheme(AuthenticatedEncryption.GCM_WITH_SECRET_NONCE, KeyDerivationFunction.ANSI_X963_SHA256_KDF);
+	public static final ECIntegratedEncryptionScheme HUB = new ECIntegratedEncryptionScheme(AuthenticatedEncryption.GCM_WITH_SECRET_NONCE, KeyDerivationFunction.ANSI_X963_SHA256_KDF);
 
 	private final AuthenticatedEncryption ae;
 	private final KeyDerivationFunction kdf;
