@@ -33,7 +33,7 @@ public class P384KeyPair extends ECKeyPair {
 	 *
 	 * @param p12File    A .p12 file
 	 * @param passphrase The password to protect the key material
-	 * @return
+	 * @return loaded key pair
 	 * @throws IOException             In case of I/O errors
 	 * @throws Pkcs12PasswordException If the supplied password is incorrect
 	 * @throws Pkcs12Exception         If any cryptographic operation fails
@@ -49,7 +49,7 @@ public class P384KeyPair extends ECKeyPair {
 	 *
 	 * @param in         An input stream providing PKCS#12 formatted data
 	 * @param passphrase The password to protect the key material
-	 * @return
+	 * @return loaded key pair
 	 * @throws IOException             In case of I/O errors
 	 * @throws Pkcs12PasswordException If the supplied password is incorrect
 	 * @throws Pkcs12Exception         If any cryptographic operation fails
