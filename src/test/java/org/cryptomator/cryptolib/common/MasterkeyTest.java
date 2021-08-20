@@ -67,16 +67,16 @@ public class MasterkeyTest {
 	}
 
 	@Test
-	public void testClone() {
+	public void testCopy() {
 		byte[] raw = new byte[64];
 		Arrays.fill(raw, (byte) 0x55);
 		Masterkey original = new Masterkey(raw);
 
-		Masterkey clone = original.clone();
+		Masterkey copy = original.copy();
 
-		Assertions.assertEquals(original, clone);
-		clone.destroy();
-		Assertions.assertNotEquals(original, clone);
+		Assertions.assertEquals(original, copy);
+		copy.destroy();
+		Assertions.assertNotEquals(original, copy);
 	}
 
 }
