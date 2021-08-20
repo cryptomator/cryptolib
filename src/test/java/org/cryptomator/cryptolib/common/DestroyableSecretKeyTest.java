@@ -74,7 +74,7 @@ public class DestroyableSecretKeyTest {
 	}
 
 	@Test
-	public void testConstructorClonesKey() {
+	public void testConstructorCopiesKey() {
 		byte[] empty = new byte[32];
 		byte[] rawKey = new byte[32];
 		new Random(42).nextBytes(rawKey);
@@ -135,12 +135,12 @@ public class DestroyableSecretKeyTest {
 		}
 
 		@Test
-		@DisplayName("clone() returns equal copy")
-		public void testClone() {
-			DestroyableSecretKey clone = key.clone();
+		@DisplayName("copy() returns equal copy")
+		public void testCopy() {
+			DestroyableSecretKey copy = key.copy();
 
-			Assertions.assertEquals(key, clone);
-			Assertions.assertNotSame(key, clone);
+			Assertions.assertEquals(key, copy);
+			Assertions.assertNotSame(key, copy);
 		}
 
 		@Test
@@ -194,9 +194,9 @@ public class DestroyableSecretKeyTest {
 			}
 
 			@Test
-			@DisplayName("clone() throws IllegalStateException")
-			public void testClone() {
-				Assertions.assertThrows(IllegalStateException.class, key::clone);
+			@DisplayName("copy() throws IllegalStateException")
+			public void testCopy() {
+				Assertions.assertThrows(IllegalStateException.class, key::copy);
 			}
 
 		}

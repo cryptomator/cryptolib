@@ -10,10 +10,12 @@ package org.cryptomator.cryptolib.common;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.function.Function;
 
 public final class CipherSupplier {
 
@@ -41,27 +43,27 @@ public final class CipherSupplier {
 		}
 	}
 
-	public Cipher forEncryption(DestroyableSecretKey key, AlgorithmParameterSpec params) {
+	public Cipher forEncryption(SecretKey key, AlgorithmParameterSpec params) {
 		return forMode(Cipher.ENCRYPT_MODE, key, params);
 	}
 
-	public Cipher forDecryption(DestroyableSecretKey key, AlgorithmParameterSpec params) {
+	public Cipher forDecryption(SecretKey key, AlgorithmParameterSpec params) {
 		return forMode(Cipher.DECRYPT_MODE, key, params);
 	}
 
-	public Cipher forWrapping(DestroyableSecretKey kek) {
+	public Cipher forWrapping(SecretKey kek) {
 		return forMode(Cipher.WRAP_MODE, kek, null);
 	}
 
-	public Cipher forUnwrapping(DestroyableSecretKey kek) {
+	public Cipher forUnwrapping(SecretKey kek) {
 		return forMode(Cipher.UNWRAP_MODE, kek, null);
 	}
 
 	// visible for testing
-	Cipher forMode(int ciphermode, DestroyableSecretKey key, AlgorithmParameterSpec params) {
+	Cipher forMode(int ciphermode, SecretKey key, AlgorithmParameterSpec params) {
 		final Cipher cipher = threadLocal.get();
-		try (DestroyableSecretKey clone = key.clone()) {
-			cipher.init(ciphermode, clone, params); // use cloned key, as this may destroy key.getEncoded()
+		try {
+			cipher.init(ciphermode, key, params);
 			return cipher;
 		} catch (InvalidKeyException e) {
 			throw new IllegalArgumentException("Invalid key.", e);
