@@ -10,6 +10,7 @@ import javax.crypto.AEADBadTagException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -25,17 +26,17 @@ public class MasterkeyHubAccess {
 	/**
 	 * Decrypts a masterkey retrieved from Cryptomator Hub
 	 *
-	 * @param deviceKey         Key of the device this ciphertext is intended for
+	 * @param devicePrivateKey  Private key of the device this ciphertext is intended for
 	 * @param encodedCiphertext The encrypted masterkey
 	 * @param encodedEphPubKey  The ephemeral public key to be used to derive a secret shared between message sender and this device
 	 * @return The decrypted masterkey
 	 * @throws MasterkeyLoadingFailedException If the parameters don't match and decryption fails
 	 */
-	public static Masterkey decryptMasterkey(P384KeyPair deviceKey, String encodedCiphertext, String encodedEphPubKey) throws MasterkeyLoadingFailedException {
+	public static Masterkey decryptMasterkey(ECPrivateKey devicePrivateKey, String encodedCiphertext, String encodedEphPubKey) throws MasterkeyLoadingFailedException {
 		byte[] cleartext = new byte[0];
 		try {
 			EncryptedMessage message = decode(encodedCiphertext, encodedEphPubKey);
-			cleartext = ECIntegratedEncryptionScheme.HUB.decrypt(deviceKey.getPrivate(), message);
+			cleartext = ECIntegratedEncryptionScheme.HUB.decrypt(devicePrivateKey, message);
 			return new Masterkey(cleartext);
 		} catch (IllegalArgumentException | AEADBadTagException e) {
 			throw new MasterkeyLoadingFailedException("Key and ciphertext don't match", e);
