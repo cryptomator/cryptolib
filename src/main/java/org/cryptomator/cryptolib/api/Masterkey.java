@@ -46,7 +46,7 @@ public class Masterkey extends DestroyableSecretKey {
 	}
 
 	@Override
-	public Masterkey clone() {
+	public Masterkey copy() {
 		return new Masterkey(getEncoded());
 	}
 
