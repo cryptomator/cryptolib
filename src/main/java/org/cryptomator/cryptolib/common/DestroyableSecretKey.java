@@ -15,19 +15,19 @@ import java.util.Objects;
  * actually implements {@link Destroyable}.
  * <p>
  * Furthermore, this implementation will not create copies when accessing {@link #getEncoded()}.
- * Instead it implements {@link AutoCloseable} and {@link Cloneable} in an exception-free manner. To prevent mutation of the exposed key,
+ * Instead it implements {@link #copy} and {@link AutoCloseable} in an exception-free manner. To prevent mutation of the exposed key,
  * you would want to make sure to always work on scoped copies, such as in this example:
  *
  * <pre>
- *     // clone "key" to protect it from unwanted modifications:
- *     try (DestroyableSecretKey k = key.clone()) {
+ *     // copy "key" to protect it from unwanted modifications:
+ *     try (DestroyableSecretKey k = key.copy()) {
  *         // use "k":
  *         Cipher cipher = Cipher.init(k, ...)
  *         cipher.doFinal(...)
  *     } // "k" will get destroyed here
  * </pre>
  */
-public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable {
+public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 
 	private transient final byte[] key;
 	private final String algorithm;
@@ -109,7 +109,7 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 	 * Returns the raw key bytes this instance wraps.
 	 * <p>
 	 * <b>Important:</b> Any change to the returned array will reflect in this key. Make sure to
-	 * {@link #clone() make a local copy} if you can't rule out mutations.
+	 * {@link #copy() make a local copy} if you can't rule out mutations.
 	 *
 	 * @return A byte array holding the secret key
 	 */
@@ -119,8 +119,11 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable, Cloneable
 		return key;
 	}
 
-	@Override
-	public DestroyableSecretKey clone() {
+	/**
+	 * Returns an independent copy of this key
+	 * @return New copy of <code>this</code>
+	 */
+	public DestroyableSecretKey copy() {
 		Preconditions.checkState(!destroyed, "Key has been destroyed");
 		return new DestroyableSecretKey(key, algorithm); // key will get copied by the constructor as per contract
 	}

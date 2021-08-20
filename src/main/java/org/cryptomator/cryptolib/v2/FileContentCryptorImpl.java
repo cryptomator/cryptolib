@@ -97,7 +97,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	// visible for testing
 	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
-		try (DestroyableSecretKey fk = fileKey.clone()) {
+		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
 			random.nextBytes(nonce);
@@ -121,7 +121,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) throws AuthenticationFailedException {
 		assert ciphertextChunk.remaining() >= GCM_NONCE_SIZE + GCM_TAG_SIZE;
 
-		try (DestroyableSecretKey fk = fileKey.clone()) {
+		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
 			final byte[] nonce = new byte[GCM_NONCE_SIZE];
 			final ByteBuffer chunkNonceBuf = ciphertextChunk.asReadOnlyBuffer();
