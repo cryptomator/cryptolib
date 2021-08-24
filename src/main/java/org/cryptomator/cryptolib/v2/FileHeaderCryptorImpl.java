@@ -89,11 +89,11 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.position(FileHeaderImpl.PAYLOAD_POS);
 		buf.get(ciphertextAndTag);
 
-		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
+		// FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888
+		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
 			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			assert cipher.getOutputSize(ciphertextAndTag.length) == payloadCleartextBuf.remaining();
 			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
 			assert decrypted == FileHeaderImpl.Payload.SIZE;
 			payloadCleartextBuf.flip();
