@@ -13,23 +13,18 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.GcmTestHelper;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-
-import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
-import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 public class FileHeaderCryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private static final SecureRandom ANTI_REUSE_PRNG = SecureRandomMock.PRNG_RANDOM;
 
 	private FileHeaderCryptorImpl headerCryptor;
 
@@ -38,12 +33,10 @@ public class FileHeaderCryptorImplTest {
 		Masterkey masterkey = new Masterkey(new byte[64]);
 		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
 
-		// create new (unused) cipher, just to cipher.init() internally. This is an attempt to avoid
-		// InvalidAlgorithmParameterExceptions due to IV-reuse, when the actual unit tests use constant IVs
-		byte[] nonce = new byte[GCM_NONCE_SIZE];
-		ANTI_REUSE_PRNG.nextBytes(nonce);
-		Cipher cipher = CipherSupplier.AES_GCM.forEncryption(masterkey.getEncKey(), new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-		Assertions.assertNotNull(cipher);
+		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
+		GcmTestHelper.reset((mode, key, params) -> {
+			CipherSupplier.AES_GCM.forEncryption(key, params);
+		});
 	}
 
 	@Test
