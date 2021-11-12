@@ -66,7 +66,8 @@ public class ReseedingSecureRandom extends SecureRandom {
 
 	private static class ReseedingSecureRandomSpi extends SecureRandomSpi {
 
-		private final SecureRandom seeder, csprng;
+		private final SecureRandom seeder;
+		private final SecureRandom csprng;
 		private final long reseedAfter;
 		private final int seedLength;
 		private long counter;

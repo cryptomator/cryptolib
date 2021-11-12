@@ -1,7 +1,7 @@
 [![Build](https://github.com/cryptomator/cryptolib/workflows/Build/badge.svg)](https://github.com/cryptomator/cryptolib/actions?query=workflow%3ABuild)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/9d736fe3e9e14dfb8a65949abbe8f712)](https://www.codacy.com/gh/cryptomator/cryptolib/dashboard)
-[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/9d736fe3e9e14dfb8a65949abbe8f712)](https://www.codacy.com/gh/cryptomator/cryptolib/dashboard)
-[![Known Vulnerabilities](https://snyk.io/test/github/cryptomator/cryptolib/badge.svg)](https://snyk.io/test/github/cryptomator/cryptolib)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=cryptomator_cryptolib&metric=alert_status)](https://sonarcloud.io/dashboard?id=cryptomator_cryptolib)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=cryptomator_cryptolib&metric=coverage)](https://sonarcloud.io/dashboard?id=cryptomator_cryptolib)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=cryptomator_cryptolib&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=cryptomator_cryptolib)
 [![Maven Central](https://img.shields.io/maven-central/v/org.cryptomator/cryptolib.svg?maxAge=86400)](https://repo1.maven.org/maven2/org/cryptomator/cryptolib/)
 [![Javadocs](http://www.javadoc.io/badge/org.cryptomator/cryptolib.svg)](http://www.javadoc.io/doc/org.cryptomator/cryptolib)
 

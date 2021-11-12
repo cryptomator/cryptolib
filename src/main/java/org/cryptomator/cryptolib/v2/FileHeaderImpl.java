@@ -14,7 +14,6 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.security.auth.Destroyable;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 class FileHeaderImpl implements FileHeader, Destroyable {
 

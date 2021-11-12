@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.0.2</version>
+	<version>2.0.3</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -18,9 +18,10 @@
 		<maven.compiler.release>8</maven.compiler.release>
 
 		<!-- dependencies -->
-		<gson.version>2.8.7</gson.version>
+		<gson.version>2.8.9</gson.version>
 		<guava.version>30.1.1-jre</guava.version>
 		<siv-mode.version>1.4.3</siv-mode.version>
+		<bouncycastle.version>1.69</bouncycastle.version>
 		<slf4j.version>1.7.31</slf4j.version>
 
 		<!-- test dependencies -->
@@ -58,6 +59,14 @@
 			<groupId>org.cryptomator</groupId>
 			<artifactId>siv-mode</artifactId>
 			<version>${siv-mode.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>${bouncycastle.version}</version>
+			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -147,19 +156,81 @@
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.4</version>
 				<executions>
 					<execution>
-						<id>java9</id>
-						<phase>compile</phase>
+						<phase>package</phase>
 						<goals>
-							<goal>compile</goal>
+							<goal>shade</goal>
 						</goals>
 						<configuration>
-							<release>9</release>
-							<compileSourceRoots>
-								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
-							</compileSourceRoots>
-							<multiReleaseOutput>true</multiReleaseOutput>
+							<minimizeJar>true</minimizeJar>
+							<keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<createSourcesJar>false</createSourcesJar>
+							<artifactSet>
+								<includes>
+									<include>org.bouncycastle:*</include>
+								</includes>
+							</artifactSet>
+							<relocations>
+								<relocation>
+									<pattern>org.bouncycastle</pattern>
+									<shadedPattern>org.cryptomator.cryptolib.org.bouncycastle</shadedPattern>
+								</relocation>
+							</relocations>
+							<filters>
+								<filter>
+									<artifact>org.bouncycastle:*</artifact>
+									<excludes>
+										<exclude>META-INF/**</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.moditect</groupId>
+				<artifactId>moditect-maven-plugin</artifactId>
+				<version>1.0.0.RC1</version>
+				<executions>
+					<execution>
+						<id>add-module-infos</id>
+						<phase>package</phase>
+						<goals>
+							<goal>add-module-info</goal>
+						</goals>
+						<configuration>
+							<jvmVersion>9</jvmVersion>
+							<overwriteExistingFiles>true</overwriteExistingFiles>
+							<module>
+								<moduleInfoSource>
+									module org.cryptomator.cryptolib {
+										requires org.cryptomator.siv;
+										requires com.google.gson;
+										requires com.google.common;
+										requires org.slf4j;
+
+										exports org.cryptomator.cryptolib.api;
+										exports org.cryptomator.cryptolib.common;
+
+										opens org.cryptomator.cryptolib.common to com.google.gson;
+
+										uses org.cryptomator.cryptolib.api.CryptorProvider;
+
+										provides org.cryptomator.cryptolib.api.CryptorProvider
+											with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
+									}
+								</moduleInfoSource>
+							</module>
+							<jdepsExtraArgs>
+								<arg>--multi-release=9</arg>
+							</jdepsExtraArgs>
 						</configuration>
 					</execution>
 				</executions>
@@ -336,7 +407,7 @@
 						<extensions>true</extensions>
 						<configuration>
 							<serverId>ossrh</serverId>
-							<nexusUrl>https://oss.sonatype.org/</nexusUrl>
+							<nexusUrl>https://s01.oss.sonatype.org</nexusUrl>
 							<autoReleaseAfterClose>true</autoReleaseAfterClose>
 						</configuration>
 					</plugin>

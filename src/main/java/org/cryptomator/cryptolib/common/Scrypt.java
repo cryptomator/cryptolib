@@ -19,14 +19,17 @@ public class Scrypt {
 
 	private static final int P = 1; // scrypt parallelization parameter
 
+	private Scrypt() {
+	}
+
 	/**
 	 * Derives a key from the given passphrase.
 	 * This implementation makes sure, any copies of the passphrase used during key derivation are overwritten in memory asap (before next GC cycle).
-	 * 
-	 * @param passphrase The passphrase, whose characters will get UTF-8 encoded during key derivation.
-	 * @param salt Salt, ideally randomly generated
-	 * @param costParam Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
-	 * @param blockSize Block size <code>r</code>
+	 *
+	 * @param passphrase       The passphrase, whose characters will get UTF-8 encoded during key derivation.
+	 * @param salt             Salt, ideally randomly generated
+	 * @param costParam        Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
+	 * @param blockSize        Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
 	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
@@ -37,7 +40,6 @@ public class Scrypt {
 		final byte[] pw = new byte[buf.remaining()];
 		buf.get(pw);
 		try {
-			// return SCrypt.generate(pw, salt, costParam, blockSize, 1, keyLengthInBytes);
 			return scrypt(pw, salt, costParam, blockSize, keyLengthInBytes);
 		} finally {
 			Arrays.fill(pw, (byte) 0); // overwrite bytes
@@ -49,15 +51,15 @@ public class Scrypt {
 	/**
 	 * Derives a key from the given passphrase.
 	 * This implementation makes sure, any copies of the passphrase used during key derivation are overwritten in memory asap (before next GC cycle).
-	 * 
-	 * @param passphrase The passphrase,
-	 * @param salt Salt, ideally randomly generated
-	 * @param costParam Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
-	 * @param blockSize Block size <code>r</code>
+	 *
+	 * @param passphrase       The passphrase,
+	 * @param salt             Salt, ideally randomly generated
+	 * @param costParam        Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
+	 * @param blockSize        Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
-	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 * @author Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
+	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 */
 	public static byte[] scrypt(byte[] passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
 		if (costParam < 2 || (costParam & (costParam - 1)) != 0) {
@@ -93,10 +95,10 @@ public class Scrypt {
 	/**
 	 * Implementation of PBKDF2 (RFC2898).
 	 *
-	 * @param mac Pre-initialized {@link Mac} instance to use.
-	 * @param S Salt.
-	 * @param c Iteration count.
-	 * @param DK Byte array that derived key will be placed in.
+	 * @param mac   Pre-initialized {@link Mac} instance to use.
+	 * @param S     Salt.
+	 * @param c     Iteration count.
+	 * @param DK    Byte array that derived key will be placed in.
 	 * @param dkLen Intended length, in octets, of the derived key.
 	 * @author Derived from com.lambdaworks.crypto.PBKDF, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 */
