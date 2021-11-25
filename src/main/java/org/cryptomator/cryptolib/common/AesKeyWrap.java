@@ -8,12 +8,11 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 public class AesKeyWrap {
 
@@ -22,9 +21,9 @@ public class AesKeyWrap {
 	 * @param key Key to be wrapped
 	 * @return Wrapped key
 	 */
-	public static byte[] wrap(SecretKey kek, SecretKey key) {
-		try {
-			final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forWrapping(kek);
+	public static byte[] wrap(DestroyableSecretKey kek, SecretKey key) {
+		try (DestroyableSecretKey kekCopy = kek.copy()) {
+			final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forWrapping(kekCopy);
 			return cipher.wrap(key);
 		} catch (InvalidKeyException | IllegalBlockSizeException e) {
 			throw new IllegalArgumentException("Unable to wrap key.", e);
@@ -38,15 +37,15 @@ public class AesKeyWrap {
 	 * @return Unwrapped key
 	 * @throws InvalidKeyException If unwrapping failed (i.e. wrong kek)
 	 */
-	public static SecretKey unwrap(SecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm) throws InvalidKeyException {
+	public static DestroyableSecretKey unwrap(DestroyableSecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm) throws InvalidKeyException {
 		return unwrap(kek, wrappedKey, wrappedKeyAlgorithm, Cipher.SECRET_KEY);
 	}
 
 	// visible for testing
-	static SecretKey unwrap(SecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException {
-		final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forUnwrapping(kek);
-		try {
-			return (SecretKey) cipher.unwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType);
+	static DestroyableSecretKey unwrap(DestroyableSecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException {
+		try (DestroyableSecretKey kekCopy = kek.copy()) {
+			final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forUnwrapping(kekCopy);
+			return DestroyableSecretKey.from(cipher.unwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType));
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalArgumentException("Invalid algorithm: " + wrappedKeyAlgorithm, e);
 		}

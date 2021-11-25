@@ -8,30 +8,28 @@ package org.cryptomator.cryptolib.common;
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
 
+import javax.crypto.Mac;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
-import javax.crypto.Mac;
-import javax.crypto.SecretKey;
-import javax.security.auth.Destroyable;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Scrypt {
 
-	private static final Charset UTF_8 = Charset.forName("UTF-8");
 	private static final int P = 1; // scrypt parallelization parameter
+
+	private Scrypt() {
+	}
 
 	/**
 	 * Derives a key from the given passphrase.
 	 * This implementation makes sure, any copies of the passphrase used during key derivation are overwritten in memory asap (before next GC cycle).
-	 * 
-	 * @param passphrase The passphrase, whose characters will get UTF-8 encoded during key derivation.
-	 * @param salt Salt, ideally randomly generated
-	 * @param costParam Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
-	 * @param blockSize Block size <code>r</code>
+	 *
+	 * @param passphrase       The passphrase, whose characters will get UTF-8 encoded during key derivation.
+	 * @param salt             Salt, ideally randomly generated
+	 * @param costParam        Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
+	 * @param blockSize        Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
 	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
@@ -42,7 +40,6 @@ public class Scrypt {
 		final byte[] pw = new byte[buf.remaining()];
 		buf.get(pw);
 		try {
-			// return SCrypt.generate(pw, salt, costParam, blockSize, 1, keyLengthInBytes);
 			return scrypt(pw, salt, costParam, blockSize, keyLengthInBytes);
 		} finally {
 			Arrays.fill(pw, (byte) 0); // overwrite bytes
@@ -54,15 +51,15 @@ public class Scrypt {
 	/**
 	 * Derives a key from the given passphrase.
 	 * This implementation makes sure, any copies of the passphrase used during key derivation are overwritten in memory asap (before next GC cycle).
-	 * 
-	 * @param passphrase The passphrase,
-	 * @param salt Salt, ideally randomly generated
-	 * @param costParam Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
-	 * @param blockSize Block size <code>r</code>
+	 *
+	 * @param passphrase       The passphrase,
+	 * @param salt             Salt, ideally randomly generated
+	 * @param costParam        Cost parameter <code>N</code>, larger than 1, a power of 2 and less than <code>2^(128 * blockSize / 8)</code>
+	 * @param blockSize        Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
-	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 * @author Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
+	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 */
 	public static byte[] scrypt(byte[] passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
 		if (costParam < 2 || (costParam & (costParam - 1)) != 0) {
@@ -75,80 +72,33 @@ public class Scrypt {
 			throw new IllegalArgumentException("Parameter r is too large");
 		}
 
-		CascadingDestroyableSecretKey key = new CascadingDestroyableSecretKey(passphrase, "HmacSHA256");
-		Mac mac = MacSupplier.HMAC_SHA256.withKey(key);
+		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256")) {
+			Mac mac = MacSupplier.HMAC_SHA256.withKey(key);
 
-		byte[] DK = new byte[keyLengthInBytes];
-		byte[] B = new byte[128 * blockSize * P];
-		byte[] XY = new byte[256 * blockSize];
-		byte[] V = new byte[128 * blockSize * costParam];
+			byte[] DK = new byte[keyLengthInBytes];
+			byte[] B = new byte[128 * blockSize * P];
+			byte[] XY = new byte[256 * blockSize];
+			byte[] V = new byte[128 * blockSize * costParam];
 
-		pbkdf2(mac, salt, 1, B, P * 128 * blockSize);
+			pbkdf2(mac, salt, 1, B, P * 128 * blockSize);
 
-		for (int i = 0; i < P; i++) {
-			smix(B, i * 128 * blockSize, blockSize, costParam, V, XY);
-		}
-
-		pbkdf2(mac, B, 1, DK, keyLengthInBytes);
-
-		key.destroy();
-
-		return DK;
-	}
-
-	private static class CascadingDestroyableSecretKey implements SecretKey, Destroyable {
-
-		private final byte[] key;
-		private final String algorithm;
-		private final Collection<byte[]> clones = new ArrayList<>();
-		private boolean destroyed;
-
-		public CascadingDestroyableSecretKey(byte[] key, String algorithm) {
-			this.key = key;
-			this.algorithm = algorithm;
-			this.destroyed = false;
-		}
-
-		@Override
-		public String getAlgorithm() {
-			return algorithm;
-		}
-
-		@Override
-		public String getFormat() {
-			return "RAW";
-		}
-
-		@Override
-		public byte[] getEncoded() {
-			byte[] clone = key.clone();
-			clones.add(clone);
-			return clone;
-		}
-
-		@Override
-		public void destroy() {
-			for (byte[] clone : clones) {
-				Arrays.fill(clone, (byte) 0x00);
+			for (int i = 0; i < P; i++) {
+				smix(B, i * 128 * blockSize, blockSize, costParam, V, XY);
 			}
-			Arrays.fill(key, (byte) 0x00);
-			destroyed = true;
-		}
 
-		@Override
-		public boolean isDestroyed() {
-			return destroyed;
-		}
+			pbkdf2(mac, B, 1, DK, keyLengthInBytes);
 
+			return DK;
+		}
 	}
 
 	/**
 	 * Implementation of PBKDF2 (RFC2898).
 	 *
-	 * @param mac Pre-initialized {@link Mac} instance to use.
-	 * @param S Salt.
-	 * @param c Iteration count.
-	 * @param DK Byte array that derived key will be placed in.
+	 * @param mac   Pre-initialized {@link Mac} instance to use.
+	 * @param S     Salt.
+	 * @param c     Iteration count.
+	 * @param DK    Byte array that derived key will be placed in.
 	 * @param dkLen Intended length, in octets, of the derived key.
 	 * @author Derived from com.lambdaworks.crypto.PBKDF, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 */

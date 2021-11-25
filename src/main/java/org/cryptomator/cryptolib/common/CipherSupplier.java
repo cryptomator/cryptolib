@@ -8,18 +8,19 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
-
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
+import java.util.function.Function;
 
 public final class CipherSupplier {
 
 	public static final CipherSupplier AES_CTR = new CipherSupplier("AES/CTR/NoPadding");
+	public static final CipherSupplier AES_GCM = new CipherSupplier("AES/GCM/NoPadding");
 	public static final CipherSupplier RFC3394_KEYWRAP = new CipherSupplier("AESWrap");
 
 	private final String cipherAlgorithm;

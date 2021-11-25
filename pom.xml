@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.iterate.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>1.4.0-SNAPSHOT</version>
+	<version>2.1.0-SNAPSHOT</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -27,11 +27,26 @@
 	</distributionManagement>
 
 	<properties>
-		<gson.version>2.8.6</gson.version>
-		<guava.version>28.1-android</guava.version> <!-- JDK7 -->
-		<siv-mode.version>1.3.1</siv-mode.version>
-		<slf4j.version>1.7.28</slf4j.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.release>8</maven.compiler.release>
+
+		<!-- dependencies -->
+		<gson.version>2.8.9</gson.version>
+		<guava.version>30.1.1-jre</guava.version>
+		<siv-mode.version>1.4.3</siv-mode.version>
+		<bouncycastle.version>1.69</bouncycastle.version>
+		<slf4j.version>1.7.31</slf4j.version>
+
+		<!-- test dependencies -->
+		<junit.jupiter.version>5.7.2</junit.jupiter.version>
+		<mockito.version>3.11.2</mockito.version>
+		<hamcrest.version>2.2</hamcrest.version>
+		<jmh.version>1.32</jmh.version>
+
+		<!-- build plugin dependencies -->
+		<dependency-check.version>6.2.2</dependency-check.version>
+		<jacoco.version>0.8.7</jacoco.version>
+		<nexus-staging.version>1.6.8</nexus-staging.version>
 	</properties>
 
 	<licenses>
@@ -52,19 +67,19 @@
 		</developer>
 	</developers>
 
-	<repositories>
-		<repository>
-			<id>bintray</id>
-			<name>bintray</name>
-			<url>http://jcenter.bintray.com</url>
-		</repository>
-	</repositories>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.cryptomator</groupId>
 			<artifactId>siv-mode</artifactId>
 			<version>${siv-mode.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcpkix-jdk15on</artifactId>
+			<version>${bouncycastle.version}</version>
+			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -89,19 +104,19 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
-			<version>5.5.2</version>
+			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>3.1.0</version>
+			<version>${mockito.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
-			<version>2.2</version>
+			<version>${hamcrest.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -113,13 +128,13 @@
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>
-			<version>1.22</version>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-generator-annprocess</artifactId>
-			<version>1.22</version>
+			<version>${jmh.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -142,6 +157,27 @@
 		</pluginManagement>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>3.0.0-M3</version>
+				<executions>
+					<execution>
+						<id>enforce-java</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<requireJavaVersion>
+									<message>You need at least JDK 11.0.3 to build this project.</message>
+									<version>[11.0.3,)</version>
+								</requireJavaVersion>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.1</version>
 				<configuration>
@@ -152,39 +188,156 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.4</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<minimizeJar>true</minimizeJar>
+							<keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<createSourcesJar>false</createSourcesJar>
+							<artifactSet>
+								<includes>
+									<include>org.bouncycastle:*</include>
+								</includes>
+							</artifactSet>
+							<relocations>
+								<relocation>
+									<pattern>org.bouncycastle</pattern>
+									<shadedPattern>org.cryptomator.cryptolib.org.bouncycastle</shadedPattern>
+								</relocation>
+							</relocations>
+							<filters>
+								<filter>
+									<artifact>org.bouncycastle:*</artifact>
+									<excludes>
+										<exclude>META-INF/**</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.moditect</groupId>
+				<artifactId>moditect-maven-plugin</artifactId>
+				<version>1.0.0.RC1</version>
+				<executions>
+					<execution>
+						<id>add-module-infos</id>
+						<phase>package</phase>
+						<goals>
+							<goal>add-module-info</goal>
+						</goals>
+						<configuration>
+							<jvmVersion>9</jvmVersion>
+							<overwriteExistingFiles>true</overwriteExistingFiles>
+							<module>
+								<moduleInfoSource>
+									module org.cryptomator.cryptolib {
+										requires org.cryptomator.siv;
+										requires com.google.gson;
+										requires com.google.common;
+										requires org.slf4j;
+
+										exports org.cryptomator.cryptolib.api;
+										exports org.cryptomator.cryptolib.common;
+
+										opens org.cryptomator.cryptolib.common to com.google.gson;
+
+										uses org.cryptomator.cryptolib.api.CryptorProvider;
+
+										provides org.cryptomator.cryptolib.api.CryptorProvider
+											with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
+									}
+								</moduleInfoSource>
+							</module>
+							<jdepsExtraArgs>
+								<arg>--multi-release=9</arg>
+							</jdepsExtraArgs>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.22.1</version>
+				<version>2.22.2</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.2.0</version>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Multi-Release>true</Multi-Release>
+							<Sealed>true</Sealed>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.3.0</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<tags>
+						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
+						<tag>
+							<name>apiNote</name>
+							<placement>a</placement>
+							<head>API Note:</head>
+						</tag>
+						<tag>
+							<name>implSpec</name>
+							<placement>a</placement>
+							<head>Implementation Requirements:</head>
+						</tag>
+						<tag>
+							<name>implNote</name>
+							<placement>a</placement>
+							<head>Implementation Note:</head>
+						</tag>
+						<tag><name>param</name></tag>
+						<tag><name>return</name></tag>
+						<tag><name>throws</name></tag>
+						<tag><name>since</name></tag>
+						<tag><name>version</name></tag>
+						<tag><name>serialData</name></tag>
+						<tag><name>see</name></tag>
+					</tags>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
-		<profile>
-			<id>intellij</id>
-			<!-- workaround for intellij bug: https://youtrack.jetbrains.com/issue/IDEA-85478 -->
-			<activation>
-				<activeByDefault>false</activeByDefault>
-				<property>
-					<name>idea.maven.embedder.version</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.8.1</version>
-						<configuration>
-							<release>8</release>
-							<source>1.8</source>
-							<target>1.8</target>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
 		<profile>
 			<id>dependency-check</id>
 			<build>
@@ -192,7 +345,7 @@
 					<plugin>
 						<groupId>org.owasp</groupId>
 						<artifactId>dependency-check-maven</artifactId>
-						<version>5.2.2</version>
+						<version>${dependency-check.version}</version>
 						<configuration>
 							<cveValidForHours>24</cveValidForHours>
 							<failBuildOnCVSS>0</failBuildOnCVSS>
@@ -219,12 +372,18 @@
 					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
-						<version>0.8.5</version>
+						<version>${jacoco.version}</version>
 						<executions>
 							<execution>
 								<id>prepare-agent</id>
 								<goals>
 									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>report</id>
+								<goals>
+									<goal>report</goal>
 								</goals>
 							</execution>
 						</executions>
@@ -238,17 +397,39 @@
 			<build>
 				<plugins>
 					<plugin>
-						<artifactId>maven-source-plugin</artifactId>
-						<version>3.2.0</version>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.0.1</version>
 						<executions>
 							<execution>
-								<id>attach-sources</id>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
 								<goals>
-									<goal>jar-no-fork</goal>
+									<goal>sign</goal>
 								</goals>
+								<configuration>
+									<gpgArguments>
+										<arg>--pinentry-mode</arg>
+										<arg>loopback</arg>
+									</gpgArguments>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
+			<id>deploy-central</id>
+			<distributionManagement>
+				<repository>
+					<id>ossrh</id>
+					<name>Maven Central</name>
+					<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+				</repository>
+			</distributionManagement>
+			<build>
+				<plugins>
 					<plugin>
 						<artifactId>maven-javadoc-plugin</artifactId>
 						<version>3.1.1</version>
@@ -261,25 +442,19 @@
 							</execution>
 						</executions>
 					</plugin>
-					<plugin>
-						<artifactId>maven-dependency-plugin</artifactId>
-						<version>3.1.1</version>
-						<executions>
-							<execution>
-								<id>generate-dependency-list</id>
-								<phase>prepare-package</phase>
-								<goals>
-									<goal>list</goal>
-								</goals>
-								<configuration>
-									<includeScope>runtime</includeScope>
-									<outputFile>${project.build.directory}/dependency-list.txt</outputFile>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
 				</plugins>
 			</build>
+		</profile>
+
+		<profile>
+			<id>deploy-github</id>
+			<distributionManagement>
+				<repository>
+					<id>github</id>
+					<name>GitHub Packages</name>
+					<url>https://maven.pkg.github.com/cryptomator/cryptolib</url>
+				</repository>
+			</distributionManagement>
 		</profile>
 	</profiles>
 </project>

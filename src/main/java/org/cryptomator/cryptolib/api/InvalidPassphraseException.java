@@ -8,6 +8,9 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
-public class InvalidPassphraseException extends CryptoException {
+public class InvalidPassphraseException extends MasterkeyLoadingFailedException {
 
+	public InvalidPassphraseException() {
+		super(null);
+	}
 }

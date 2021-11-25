@@ -8,38 +8,43 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import static org.cryptomator.cryptolib.v1.Constants.CHUNK_SIZE;
-import static org.cryptomator.cryptolib.v1.Constants.MAC_SIZE;
-import static org.cryptomator.cryptolib.v1.Constants.NONCE_SIZE;
-import static org.cryptomator.cryptolib.v1.Constants.PAYLOAD_SIZE;
-
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
+import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.FileContentCryptor;
+import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.MacSupplier;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
-import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.FileContentCryptor;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.MacSupplier;
+import static org.cryptomator.cryptolib.v1.Constants.CHUNK_SIZE;
+import static org.cryptomator.cryptolib.v1.Constants.MAC_SIZE;
+import static org.cryptomator.cryptolib.v1.Constants.NONCE_SIZE;
+import static org.cryptomator.cryptolib.v1.Constants.PAYLOAD_SIZE;
 
 class FileContentCryptorImpl implements FileContentCryptor {
 
-	private final SecretKey macKey;
+	private final Masterkey masterkey;
 	private final SecureRandom random;
 
-	FileContentCryptorImpl(SecretKey macKey, SecureRandom random) {
-		this.macKey = macKey;
+	FileContentCryptorImpl(Masterkey masterkey, SecureRandom random) {
+		this.masterkey = masterkey;
 		this.random = random;
+	}
+
+	@Override
+	public boolean canSkipAuthentication() {
+		return true;
 	}
 
 	@Override
@@ -54,52 +59,67 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
-		byte[] chunkNonce = new byte[NONCE_SIZE];
-		random.nextBytes(chunkNonce);
-		return encryptChunk(cleartextChunk, chunkNumber, header, chunkNonce);
+		ByteBuffer ciphertextChunk = ByteBuffer.allocate(CHUNK_SIZE);
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header);
+		ciphertextChunk.flip();
+		return ciphertextChunk;
 	}
 
 	@Override
-	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce) {
-		if (cleartextChunk.remaining() == 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
-			throw new IllegalArgumentException("Invalid chunk");
+	public void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header) {
+		if (cleartextChunk.remaining() <= 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
+			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", expected range [1, " + PAYLOAD_SIZE + "]");
+		}
+		if (ciphertextChunk.remaining() < CHUNK_SIZE) {
+			throw new IllegalArgumentException("Invalid cipehrtext chunk size: " + ciphertextChunk.remaining() + ", must fit up to " + CHUNK_SIZE + " bytes.");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		return encryptChunk(cleartextChunk.asReadOnlyBuffer(), chunkNumber, headerImpl.getNonce(), chunkNonce, headerImpl.getPayload().getContentKey());
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
 	}
 
 	@Override
 	public ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
+		ByteBuffer cleartextChunk = ByteBuffer.allocate(PAYLOAD_SIZE);
+		decryptChunk(ciphertextChunk, cleartextChunk, chunkNumber, header, authenticate);
+		cleartextChunk.flip();
+		return cleartextChunk;
+	}
+
+	@Override
+	public void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
 		if (ciphertextChunk.remaining() < NONCE_SIZE + MAC_SIZE || ciphertextChunk.remaining() > CHUNK_SIZE) {
-			throw new IllegalArgumentException("Invalid chunk size: " + ciphertextChunk.remaining() + ", expected range [" + (NONCE_SIZE + MAC_SIZE) + ", " + CHUNK_SIZE + "]");
+			throw new IllegalArgumentException("Invalid ciphertext chunk size: " + ciphertextChunk.remaining() + ", expected range [" + (NONCE_SIZE + MAC_SIZE) + ", " + CHUNK_SIZE + "]");
+		}
+		if (cleartextChunk.remaining() < Constants.PAYLOAD_SIZE) {
+			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", must fit up to " + PAYLOAD_SIZE + " bytes.");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		if (authenticate && !checkChunkMac(headerImpl.getNonce(), chunkNumber, ciphertextChunk.asReadOnlyBuffer())) {
+		if (authenticate && !checkChunkMac(headerImpl.getNonce(), chunkNumber, ciphertextChunk)) {
 			throw new AuthenticationFailedException("Authentication of chunk " + chunkNumber + " failed.");
 		} else {
-			return decryptChunk(ciphertextChunk.asReadOnlyBuffer(), headerImpl.getPayload().getContentKey());
+			decryptChunk(ciphertextChunk, cleartextChunk, headerImpl.getPayload().getContentKey());
 		}
 	}
 
 	// visible for testing
-	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, byte[] chunkNonce, SecretKey fileKey) {
-		try {
+	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
+		try (DestroyableSecretKey fk = fileKey.copy()) {
+			// nonce:
+			byte[] nonce = new byte[NONCE_SIZE];
+			random.nextBytes(nonce);
+
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fileKey, new IvParameterSpec(chunkNonce));
-			final ByteBuffer outBuf = ByteBuffer.allocate(NONCE_SIZE + cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE);
-			outBuf.put(chunkNonce);
-			int bytesEncrypted = cipher.doFinal(cleartextChunk, outBuf);
+			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fk, new IvParameterSpec(nonce));
+			ciphertextChunk.put(nonce);
+			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
+			int bytesEncrypted = cipher.doFinal(cleartextChunk, ciphertextChunk);
 
 			// mac:
-			final ByteBuffer ciphertextBuf = outBuf.asReadOnlyBuffer();
+			final ByteBuffer ciphertextBuf = ciphertextChunk.asReadOnlyBuffer();
 			ciphertextBuf.position(NONCE_SIZE).limit(NONCE_SIZE + bytesEncrypted);
-			byte[] authenticationCode = calcChunkMac(macKey, headerNonce, chunkNumber, chunkNonce, ciphertextBuf);
+			byte[] authenticationCode = calcChunkMac(headerNonce, chunkNumber, nonce, ciphertextBuf);
 			assert authenticationCode.length == MAC_SIZE;
-			outBuf.put(authenticationCode);
-
-			// flip and return:
-			outBuf.flip();
-			return outBuf;
+			ciphertextChunk.put(authenticationCode);
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -108,10 +128,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	// visible for testing
-	ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, SecretKey fileKey) {
+	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, DestroyableSecretKey fileKey) {
 		assert ciphertextChunk.remaining() >= NONCE_SIZE + MAC_SIZE;
 
-		try {
+		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
 			final byte[] nonce = new byte[NONCE_SIZE];
 			final ByteBuffer chunkNonceBuf = ciphertextChunk.asReadOnlyBuffer();
@@ -123,13 +143,9 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forDecryption(fileKey, new IvParameterSpec(nonce));
-			final ByteBuffer outBuf = ByteBuffer.allocate(cipher.getOutputSize(payloadBuf.remaining()));
-			cipher.doFinal(payloadBuf, outBuf);
-
-			// flip and return:
-			outBuf.flip();
-			return outBuf;
+			final Cipher cipher = CipherSupplier.AES_CTR.forDecryption(fk, new IvParameterSpec(nonce));
+			assert cleartextChunk.remaining() >= cipher.getOutputSize(payloadBuf.remaining());
+			cipher.doFinal(payloadBuf, cleartextChunk);
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -158,20 +174,22 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		expectedMacBuf.get(expectedMac);
 
 		// get actual MAC:
-		final byte[] calculatedMac = calcChunkMac(macKey, headerNonce, chunkNumber, chunkNonce, payloadBuf);
+		final byte[] calculatedMac = calcChunkMac(headerNonce, chunkNumber, chunkNonce, payloadBuf);
 
 		// time-constant equality check of two MACs:
 		return MessageDigest.isEqual(expectedMac, calculatedMac);
 	}
 
-	private static byte[] calcChunkMac(SecretKey macKey, byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
-		final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
-		final Mac mac = MacSupplier.HMAC_SHA256.withKey(macKey);
-		mac.update(headerNonce);
-		mac.update(chunkNumberBigEndian);
-		mac.update(chunkNonce);
-		mac.update(ciphertext);
-		return mac.doFinal();
+	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+			final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
+			final Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
+			mac.update(headerNonce);
+			mac.update(chunkNumberBigEndian);
+			mac.update(chunkNonce);
+			mac.update(ciphertext);
+			return mac.doFinal();
+		}
 	}
 
 }
