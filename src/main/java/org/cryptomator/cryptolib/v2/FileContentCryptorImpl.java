@@ -54,6 +54,13 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
+		byte[] nonce = new byte[GCM_NONCE_SIZE];
+		random.nextBytes(nonce);
+		return encryptChunk(cleartextChunk, chunkNumber, header, nonce);
+	}
+
+	@Override
+	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce) {
 		ByteBuffer ciphertextChunk = ByteBuffer.allocate(CHUNK_SIZE);
 		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header);
 		ciphertextChunk.flip();
@@ -62,6 +69,13 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header) {
+		byte[] nonce = new byte[GCM_NONCE_SIZE];
+		random.nextBytes(nonce);
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header, nonce);
+	}
+
+	@Override
+	public void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, byte[] nonce) {
 		if (cleartextChunk.remaining() <= 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
 			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", expected range [1, " + PAYLOAD_SIZE + "]");
 		}
@@ -69,8 +83,9 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			throw new IllegalArgumentException("Invalid cipehrtext chunk size: " + ciphertextChunk.remaining() + ", must fit up to " + CHUNK_SIZE + " bytes.");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey(), nonce);
 	}
+
 
 	@Override
 	public ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
@@ -96,12 +111,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	// visible for testing
-	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
+	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey, byte[] nonce) {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
-			// nonce:
-			byte[] nonce = new byte[GCM_NONCE_SIZE];
-			random.nextBytes(nonce);
-
 			// payload:
 			final Cipher cipher = CipherSupplier.AES_GCM.forEncryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);

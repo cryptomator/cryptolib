@@ -43,11 +43,33 @@ public interface FileContentCryptor {
 	 * Encrypts a single chunk of cleartext.
 	 *
 	 * @param cleartextChunk Content to be encrypted
+	 * @param chunkNumber Number of the chunk to be encrypted
+	 * @param header Header of the file, this chunk belongs to
+	 * @param chunkNonce Nonce for this chunk
+	 * @return Encrypted content.
+	 */
+	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce);
+
+	/**
+	 * Encrypts a single chunk of cleartext.
+	 *
+	 * @param cleartextChunk Content to be encrypted
 	 * @param ciphertextChunk Encrypted content buffer (with at least {@link #ciphertextChunkSize()} remaining bytes)
 	 * @param chunkNumber Number of the chunk to be encrypted
 	 * @param header Header of the file, this chunk belongs to
 	 */
 	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header);
+
+	/**
+	 * Encrypts a single chunk of cleartext.
+	 *
+	 * @param cleartextChunk Content to be encrypted
+	 * @param ciphertextChunk Encrypted content buffer (with at least {@link #ciphertextChunkSize()} remaining bytes)
+	 * @param chunkNumber Number of the chunk to be encrypted
+	 * @param header Header of the file, this chunk belongs to
+	 * @param chunkNonce Nonce for this chunk
+	 */
+	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce);
 
 	/**
 	 * Decrypts a single chunk of ciphertext.

@@ -59,7 +59,7 @@ public class FileContentCryptorImplBenchmark {
 
 	@Benchmark
 	public void benchmarkEncryption() {
-		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, MASTERKEY.getEncKey());
+		fileContentCryptor.encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, headerNonce, MASTERKEY.getEncKey(), new byte[Constants.NONCE_SIZE]);
 	}
 
 	@Benchmark
