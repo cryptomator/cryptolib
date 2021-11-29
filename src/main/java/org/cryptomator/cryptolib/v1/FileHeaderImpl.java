@@ -8,13 +8,12 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import java.util.Arrays;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.Destroyable;
-
+import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.FileHeader;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+
+import javax.security.auth.Destroyable;
+import java.nio.ByteBuffer;
 
 class FileHeaderImpl implements FileHeader, Destroyable {
 
@@ -29,12 +28,12 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 	private final byte[] nonce;
 	private final Payload payload;
 
-	FileHeaderImpl(byte[] nonce, byte[] contentKey) {
+	FileHeaderImpl(byte[] nonce, Payload payload) {
 		if (nonce.length != NONCE_LEN) {
 			throw new IllegalArgumentException("Invalid nonce length. (was: " + nonce.length + ", required: " + NONCE_LEN + ")");
 		}
 		this.nonce = nonce;
-		this.payload = new Payload(contentKey);
+		this.payload = payload;
 	}
 
 	static FileHeaderImpl cast(FileHeader header) {
@@ -54,13 +53,13 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 	}
 
 	@Override
-	public long getFilesize() {
-		return payload.getFilesize();
+	public long getReserved() {
+		return payload.getReserved();
 	}
 
 	@Override
-	public void setFilesize(long filesize) {
-		payload.setFilesize(filesize);
+	public void setReserved(long reserved) {
+		payload.setReserved(reserved);
 	}
 
 	@Override
@@ -75,49 +74,55 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 
 	public static class Payload implements Destroyable {
 
-		static final int FILESIZE_POS = 0;
-		static final int FILESIZE_LEN = 8;
-		static final int CONTENT_KEY_POS = 8;
+		static final int REVERSED_LEN = Long.BYTES;
 		static final int CONTENT_KEY_LEN = 32;
-		static final int SIZE = FILESIZE_LEN + CONTENT_KEY_LEN;
-		private static final byte[] EMPTY_CONTENT_KEY = new byte[CONTENT_KEY_LEN];
+		static final int SIZE = REVERSED_LEN + CONTENT_KEY_LEN;
 
-		private long filesize = -1L;
-		private final byte[] contentKeyBytes;
-		private final SecretKey contentKey;
+		private long reserved;
+		private final DestroyableSecretKey contentKey;
 
-		private Payload(byte[] contentKeyBytes) {
-			if (contentKeyBytes.length != CONTENT_KEY_LEN) {
-				throw new IllegalArgumentException("Invalid key length. (was: " + contentKeyBytes.length + ", required: " + CONTENT_KEY_LEN + ")");
-			}
-			this.contentKeyBytes = contentKeyBytes;
-			this.contentKey = new SecretKeySpec(contentKeyBytes, Constants.ENC_ALG);
+		Payload(long reversed, byte[] contentKeyBytes) {
+			Preconditions.checkArgument(contentKeyBytes.length == CONTENT_KEY_LEN, "Invalid key length. (was: " + contentKeyBytes.length + ", required: " + CONTENT_KEY_LEN + ")");
+			this.reserved = reversed;
+			this.contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
 		}
 
-		private long getFilesize() {
-			return filesize;
+		static Payload decode(ByteBuffer cleartextPayloadBuf) {
+			Preconditions.checkArgument(cleartextPayloadBuf.remaining() == SIZE, "invalid payload buffer length");
+			long reserved = cleartextPayloadBuf.getLong();
+			byte[] contentKeyBytes = new byte[CONTENT_KEY_LEN];
+			cleartextPayloadBuf.get(contentKeyBytes);
+			return new Payload(reserved, contentKeyBytes);
 		}
 
-		private void setFilesize(long filesize) {
-			this.filesize = filesize;
+		ByteBuffer encode() {
+			ByteBuffer buf = ByteBuffer.allocate(SIZE);
+			buf.putLong(reserved);
+			buf.put(contentKey.getEncoded());
+			buf.flip();
+			return buf;
 		}
 
-		SecretKey getContentKey() {
+		private long getReserved() {
+			return reserved;
+		}
+
+		private void setReserved(long reserved) {
+			this.reserved = reserved;
+		}
+
+		DestroyableSecretKey getContentKey() {
 			return contentKey;
-		}
-
-		byte[] getContentKeyBytes() {
-			return contentKeyBytes;
 		}
 
 		@Override
 		public boolean isDestroyed() {
-			return Arrays.equals(contentKeyBytes, EMPTY_CONTENT_KEY);
+			return contentKey.isDestroyed();
 		}
 
 		@Override
 		public void destroy() {
-			Arrays.fill(contentKeyBytes, (byte) 0x00);
+			contentKey.destroy();
 		}
 
 	}

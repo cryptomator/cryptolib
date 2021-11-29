@@ -9,23 +9,28 @@
 package org.cryptomator.cryptolib.v1;
 
 import com.google.common.io.BaseEncoding;
-import org.cryptomator.cryptolib.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
+import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
+import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -33,44 +38,53 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class FileContentCryptorImplTest {
 
-	private static final Charset US_ASCII = Charset.forName("US-ASCII");
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
+
+	private FileHeaderImpl header;
 	private FileHeaderCryptorImpl headerCryptor;
 	private FileContentCryptorImpl fileContentCryptor;
 	private Cryptor cryptor;
 
 	@BeforeEach
 	public void setup() {
-		SecretKey encKey = new SecretKeySpec(new byte[32], "AES");
-		SecretKey macKey = new SecretKeySpec(new byte[32], "HmacSHA256");
-		headerCryptor = new FileHeaderCryptorImpl(encKey, macKey, RANDOM_MOCK);
-		fileContentCryptor = new FileContentCryptorImpl(macKey, RANDOM_MOCK);
+		Masterkey masterkey = new Masterkey(new byte[64]);
+		header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]));
+		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
+		fileContentCryptor = new FileContentCryptorImpl(masterkey, RANDOM_MOCK);
 		cryptor = Mockito.mock(Cryptor.class);
 		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);
 		Mockito.when(cryptor.fileHeaderCryptor()).thenReturn(headerCryptor);
 	}
 
 	@Test
-	public void testMacIsValidAfterEncryption() throws NoSuchAlgorithmException {
-		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
-		ByteBuffer result = fileContentCryptor.encryptChunk(ByteBuffer.wrap("asd".getBytes()), 42l, new byte[16], new byte[16], fileKey);
-		Assertions.assertTrue(fileContentCryptor.checkChunkMac(new byte[16], 42l, result));
-		Assertions.assertFalse(fileContentCryptor.checkChunkMac(new byte[16], 43l, result));
+	public void testMacIsValidAfterEncryption() {
+		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
+		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
+		fileContentCryptor.encryptChunk(UTF_8.encode("asd"), ciphertext, 42l, new byte[16], fileKey, new byte[16]);
+		ciphertext.flip();
+		Assertions.assertTrue(fileContentCryptor.checkChunkMac(new byte[16], 42l, ciphertext));
+		Assertions.assertFalse(fileContentCryptor.checkChunkMac(new byte[16], 43l, ciphertext));
 	}
 
 	@Test
-	public void testDecryptedEncryptedEqualsPlaintext() throws NoSuchAlgorithmException {
-		SecretKey fileKey = new SecretKeySpec(new byte[16], "AES");
-		ByteBuffer ciphertext = fileContentCryptor.encryptChunk(ByteBuffer.wrap("asd".getBytes()), 42l, new byte[16], new byte[16], fileKey);
-		ByteBuffer result = fileContentCryptor.decryptChunk(ciphertext, fileKey);
-		Assertions.assertArrayEquals("asd".getBytes(), result.array());
+	public void testDecryptedEncryptedEqualsPlaintext() {
+		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[16], "AES");
+		ByteBuffer ciphertext = ByteBuffer.allocate(fileContentCryptor.ciphertextChunkSize());
+		ByteBuffer cleartext = ByteBuffer.allocate(fileContentCryptor.cleartextChunkSize());
+		fileContentCryptor.encryptChunk(UTF_8.encode("asd"), ciphertext, 42l, new byte[12], fileKey, new byte[16]);
+		ciphertext.flip();
+		fileContentCryptor.decryptChunk(ciphertext, cleartext, fileKey);
+		cleartext.flip();
+		Assertions.assertEquals(UTF_8.encode("asd"), cleartext);
 	}
 
 	@Nested
@@ -83,7 +97,7 @@ public class FileContentCryptorImplTest {
 			ByteBuffer cleartext = ByteBuffer.allocate(size);
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
-				fileContentCryptor.encryptChunk(cleartext, 0, headerCryptor.create());
+				fileContentCryptor.encryptChunk(cleartext, 0, header);
 			});
 		}
 
@@ -91,9 +105,19 @@ public class FileContentCryptorImplTest {
 		@DisplayName("encrypt chunk")
 		public void testChunkEncryption() {
 			ByteBuffer cleartext = US_ASCII.encode(CharBuffer.wrap("hello world"));
-			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, headerCryptor.create());
+			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
 			ByteBuffer expected = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
-			Assertions.assertArrayEquals(expected.array(), ciphertext.array());
+			Assertions.assertEquals(expected, ciphertext);
+		}
+
+		@Test
+		@DisplayName("encrypt chunk with too small ciphertext buffer")
+		public void testChunkEncryptionWithBufferUnderflow() {
+			ByteBuffer cleartext = US_ASCII.encode(CharBuffer.wrap("hello world"));
+			ByteBuffer ciphertext = ByteBuffer.allocate(Constants.CHUNK_SIZE - 1);
+			Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				fileContentCryptor.encryptChunk(cleartext, ciphertext, 0, header);
+			});
 		}
 
 		@Test
@@ -124,17 +148,27 @@ public class FileContentCryptorImplTest {
 			ByteBuffer ciphertext = ByteBuffer.allocate(size);
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
-				fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
+				fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			});
 		}
 
 		@Test
 		@DisplayName("decrypt chunk")
-		public void testChunkDecryption() {
+		public void testChunkDecryption() throws AuthenticationFailedException {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
-			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
-			ByteBuffer expected = US_ASCII.encode(CharBuffer.wrap("hello world"));
-			Assertions.assertArrayEquals(expected.array(), cleartext.array());
+			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
+			ByteBuffer expected = US_ASCII.encode("hello world");
+			Assertions.assertEquals(expected, cleartext);
+		}
+
+		@Test
+		@DisplayName("decrypt chunk with too small cleartext buffer")
+		public void testChunkDecryptionWithBufferUnderflow() {
+			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAApsIsUSJAHAF1IqG66PAqEvceoFIiAj5736Xq"));
+			ByteBuffer cleartext = ByteBuffer.allocate(Constants.PAYLOAD_SIZE - 1);
+			Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				fileContentCryptor.decryptChunk(ciphertext, cleartext, 0, header, true);
+			});
 		}
 
 		@Test
@@ -160,91 +194,54 @@ public class FileContentCryptorImplTest {
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				Assertions.assertThrows(EOFException.class, () -> {
 					cleartextCh.read(ByteBuffer.allocate(3));
 				});
 			}
 		}
 
-		@Test
-		@DisplayName("decrypt chunk with unauthentic NONCE")
-		public void testChunkDecryptionWithUnauthenticNonce() {
-			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("aAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
+		@DisplayName("decrypt unauthentic chunk")
+		@ParameterizedTest(name = "unauthentic {1}")
+		@CsvSource(value = {
+				"aAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, NONCE",
+				"AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3YTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, CONTENT",
+				"AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG=, MAC",
+		})
+		public void testUnauthenticChunkDecryption(String chunkData, String ignored) {
+			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode(chunkData));
 
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
+				fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			});
 		}
 
-		@Test
-		@DisplayName("decrypt file with unauthentic NONCE in first chunk")
-		public void testDecryptionWithUnauthenticNonce() throws InterruptedException, IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+		@DisplayName("decrypt unauthentic file")
+		@ParameterizedTest(name = "unauthentic {1} in first chunk")
+		@CsvSource(value = {
+				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, NONCE",
+				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, CONTENT",
+				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO, MAC",
+		})
+		public void testDecryptionWithUnauthenticFirstChunk(String fileData, String ignored) throws IOException {
+			byte[] ciphertext = BaseEncoding.base64().decode(fileData);
+
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
+				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
 					cleartextCh.read(ByteBuffer.allocate(3));
 				});
-			}
-		}
-
-		@Test
-		@DisplayName("decrypt chunk with unauthentic CONTENT")
-		public void testChunkDecryptionWithUnauthenticContent() {
-			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3YTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
-
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
-			});
-		}
-
-		@Test
-		@DisplayName("decrypt file with unauthentic CONTENT in first chunk")
-		public void testDecryptionWithUnauthenticContent() throws InterruptedException, IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
-			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
-
-			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-					cleartextCh.read(ByteBuffer.allocate(3));
-				});
-			}
-		}
-
-		@Test
-		@DisplayName("decrypt chunk with unauthentic MAC")
-		public void testChunkDecryptionWithUnauthenticMac() {
-			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG="));
-
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), true);
-			});
-		}
-
-		@Test
-		@DisplayName("decrypt file with unauthentic MAC in first chunk")
-		public void testDecryptionWithUnauthenticMac() throws InterruptedException, IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
-			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
-
-			try (ReadableByteChannel cleartextCh = new DecryptingReadableByteChannel(ciphertextCh, cryptor, true)) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-					cleartextCh.read(ByteBuffer.allocate(3));
-				});
+				MatcherAssert.assertThat(thrown.getCause(), CoreMatchers.instanceOf(AuthenticationFailedException.class));
 			}
 		}
 
 		@Test
 		@DisplayName("decrypt chunk with unauthentic MAC but skipping MAC verficiation")
-		public void testChunkDecryptionWithUnauthenticMacSkipAuth() {
+		public void testChunkDecryptionWithUnauthenticMacSkipAuth() throws AuthenticationFailedException {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG="));
-			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, headerCryptor.create(), false);
+			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, false);
 			ByteBuffer expected = US_ASCII.encode(CharBuffer.wrap("hello world"));
-			Assertions.assertArrayEquals(expected.array(), cleartext.array());
+			Assertions.assertEquals(expected, cleartext);
 		}
 
 		@Test

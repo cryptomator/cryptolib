@@ -17,15 +17,16 @@ public class FileHeaderImplTest {
 
 	@Test
 	public void testConstructionFailsWithInvalidNonceSize() {
+		FileHeaderImpl.Payload payload = new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]);
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			new FileHeaderImpl(new byte[3], new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]);
+			new FileHeaderImpl(new byte[3], payload);
 		});
 	}
 
 	@Test
 	public void testConstructionFailsWithInvalidKeySize() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new byte[3]);
+			new FileHeaderImpl.Payload(-1, new byte[3]);
 		});
 	}
 
@@ -33,11 +34,13 @@ public class FileHeaderImplTest {
 	public void testDestruction() {
 		byte[] nonNullKey = new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN];
 		Arrays.fill(nonNullKey, (byte) 0x42);
-		FileHeaderImpl header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], nonNullKey);
+		FileHeaderImpl.Payload payload = new FileHeaderImpl.Payload(-1, nonNullKey);
+		FileHeaderImpl header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], payload);
 		Assertions.assertFalse(header.isDestroyed());
 		header.destroy();
 		Assertions.assertTrue(header.isDestroyed());
-		Assertions.assertArrayEquals(new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN], nonNullKey);
+		Assertions.assertTrue(payload.isDestroyed());
+		Assertions.assertTrue(payload.getContentKey().isDestroyed());
 	}
 
 }
