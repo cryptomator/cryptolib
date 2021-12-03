@@ -115,7 +115,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(ek, new IvParameterSpec(nonce))) {
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.decrypt(ek, new IvParameterSpec(nonce))) {
 				assert cipher.get().getOutputSize(ciphertextPayload.length) == payloadCleartextBuf.remaining();
 				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
 				assert decrypted == FileHeaderImpl.Payload.SIZE;

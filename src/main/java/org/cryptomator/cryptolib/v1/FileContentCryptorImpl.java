@@ -145,7 +145,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(fk, new IvParameterSpec(nonce))) {
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.decrypt(fk, new IvParameterSpec(nonce))) {
 				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
 				cipher.get().doFinal(payloadBuf, cleartextChunk);
 			}
