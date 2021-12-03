@@ -107,12 +107,14 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			// nonce:
 			byte[] nonce = new byte[NONCE_SIZE];
 			random.nextBytes(nonce);
+			ciphertextChunk.put(nonce);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fk, new IvParameterSpec(nonce));
-			ciphertextChunk.put(nonce);
-			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
-			int bytesEncrypted = cipher.doFinal(cleartextChunk, ciphertextChunk);
+			int bytesEncrypted;
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(fk, new IvParameterSpec(nonce))) {
+				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
+				bytesEncrypted = cipher.get().doFinal(cleartextChunk, ciphertextChunk);
+			}
 
 			// mac:
 			final ByteBuffer ciphertextBuf = ciphertextChunk.asReadOnlyBuffer();
@@ -143,9 +145,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forDecryption(fk, new IvParameterSpec(nonce));
-			assert cleartextChunk.remaining() >= cipher.getOutputSize(payloadBuf.remaining());
-			cipher.doFinal(payloadBuf, cleartextChunk);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(fk, new IvParameterSpec(nonce))) {
+				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
+				cipher.get().doFinal(payloadBuf, cleartextChunk);
+			}
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {

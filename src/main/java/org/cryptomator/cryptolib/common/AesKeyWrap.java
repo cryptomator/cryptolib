@@ -22,9 +22,9 @@ public class AesKeyWrap {
 	 * @return Wrapped key
 	 */
 	public static byte[] wrap(DestroyableSecretKey kek, SecretKey key) {
-		try (DestroyableSecretKey kekCopy = kek.copy()) {
-			final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forWrapping(kekCopy);
-			return cipher.wrap(key);
+		try (DestroyableSecretKey kekCopy = kek.copy();
+			 CipherSupplier.ReusableCipher cipher = CipherSupplier.RFC3394_KEYWRAP.wrap(kekCopy)) {
+			return cipher.get().wrap(key);
 		} catch (InvalidKeyException | IllegalBlockSizeException e) {
 			throw new IllegalArgumentException("Unable to wrap key.", e);
 		}
@@ -43,9 +43,9 @@ public class AesKeyWrap {
 
 	// visible for testing
 	static DestroyableSecretKey unwrap(DestroyableSecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException {
-		try (DestroyableSecretKey kekCopy = kek.copy()) {
-			final Cipher cipher = CipherSupplier.RFC3394_KEYWRAP.forUnwrapping(kekCopy);
-			return DestroyableSecretKey.from(cipher.unwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType));
+		try (DestroyableSecretKey kekCopy = kek.copy();
+			 CipherSupplier.ReusableCipher cipher = CipherSupplier.RFC3394_KEYWRAP.unwrap(kekCopy)) {
+			return DestroyableSecretKey.from(cipher.get().unwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType));
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalArgumentException("Invalid algorithm: " + wrappedKeyAlgorithm, e);
 		}

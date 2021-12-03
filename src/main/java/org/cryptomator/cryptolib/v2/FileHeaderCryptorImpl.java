@@ -61,10 +61,10 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()));
-			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
-			assert encrypted == FileHeaderImpl.PAYLOAD_LEN + FileHeaderImpl.TAG_LEN;
-
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()))) {
+				int encrypted = cipher.get().doFinal(payloadCleartextBuf, result);
+				assert encrypted == FileHeaderImpl.PAYLOAD_LEN + FileHeaderImpl.TAG_LEN;
+			}
 			result.flip();
 			return result;
 		} catch (ShortBufferException e) {
@@ -93,9 +93,10 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
-			assert decrypted == FileHeaderImpl.Payload.SIZE;
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.decrypt(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
+				assert decrypted == FileHeaderImpl.Payload.SIZE;
+			}
 			payloadCleartextBuf.flip();
 			FileHeaderImpl.Payload payload = FileHeaderImpl.Payload.decode(payloadCleartextBuf);
 

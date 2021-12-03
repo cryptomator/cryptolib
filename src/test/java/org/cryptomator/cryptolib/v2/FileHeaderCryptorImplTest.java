@@ -19,8 +19,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+
+import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 public class FileHeaderCryptorImplTest {
 
@@ -35,7 +38,9 @@ public class FileHeaderCryptorImplTest {
 
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		GcmTestHelper.reset((mode, key, params) -> {
-			CipherSupplier.AES_GCM.forEncryption(key, params);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(key, params)) {
+				cipher.get();
+			}
 		});
 	}
 

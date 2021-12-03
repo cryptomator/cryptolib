@@ -9,6 +9,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.IvParameterSpec;
 import java.util.Arrays;
 
 class GcmWithSecretNonce implements AuthenticatedEncryption {
@@ -26,8 +27,9 @@ class GcmWithSecretNonce implements AuthenticatedEncryption {
 	public byte[] encrypt(byte[] secret, byte[] plaintext) {
 		try (DestroyableSecretKey key = new DestroyableSecretKey(secret, 0, GCM_KEY_SIZE, "AES")) {
 			byte[] nonce = Arrays.copyOfRange(secret, GCM_KEY_SIZE, GCM_KEY_SIZE + GCM_NONCE_SIZE);
-			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			return cipher.doFinal(plaintext);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				return cipher.get().doFinal(plaintext);
+			}
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
 			throw new IllegalStateException("Unexpected exception during GCM decryption.", e);
 		}
@@ -37,8 +39,9 @@ class GcmWithSecretNonce implements AuthenticatedEncryption {
 	public byte[] decrypt(byte[] secret, byte[] ciphertext) throws AEADBadTagException {
 		try (DestroyableSecretKey key = new DestroyableSecretKey(secret, 0, GCM_KEY_SIZE, "AES")) {
 			byte[] nonce = Arrays.copyOfRange(secret, GCM_KEY_SIZE, GCM_KEY_SIZE + GCM_NONCE_SIZE);
-			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			return cipher.doFinal(ciphertext);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.decrypt(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				return cipher.get().doFinal(ciphertext);
+			}
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
 			Throwables.throwIfInstanceOf(e, AEADBadTagException.class);
 			throw new IllegalStateException("Unexpected exception during GCM decryption.", e);

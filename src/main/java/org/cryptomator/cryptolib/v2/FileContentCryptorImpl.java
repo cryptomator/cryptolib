@@ -103,13 +103,14 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			random.nextBytes(nonce);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_GCM.forEncryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
-			cipher.updateAAD(chunkNumberBigEndian);
-			cipher.updateAAD(headerNonce);
-			ciphertextChunk.put(nonce);
-			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining());
-			cipher.doFinal(cleartextChunk, ciphertextChunk);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
+				cipher.get().updateAAD(chunkNumberBigEndian);
+				cipher.get().updateAAD(headerNonce);
+				ciphertextChunk.put(nonce);
+				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining());
+				cipher.get().doFinal(cleartextChunk, ciphertextChunk);
+			}
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -134,12 +135,13 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_GCM.forDecryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
-			cipher.updateAAD(chunkNumberBigEndian);
-			cipher.updateAAD(headerNonce);
-			assert cleartextChunk.remaining() >= cipher.getOutputSize(payloadBuf.remaining());
-			cipher.doFinal(payloadBuf, cleartextChunk);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.decrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
+				cipher.get().updateAAD(chunkNumberBigEndian);
+				cipher.get().updateAAD(headerNonce);
+				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
+				cipher.get().doFinal(payloadBuf, cleartextChunk);
+			}
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Content tag mismatch.", e);
 		} catch (ShortBufferException e) {

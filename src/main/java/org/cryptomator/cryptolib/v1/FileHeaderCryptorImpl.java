@@ -17,7 +17,6 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import javax.crypto.ShortBufferException;
@@ -61,9 +60,10 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			Cipher cipher = CipherSupplier.AES_CTR.forEncryption(ek, new IvParameterSpec(headerImpl.getNonce()));
-			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
-			assert encrypted == FileHeaderImpl.Payload.SIZE;
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(ek, new IvParameterSpec(headerImpl.getNonce()))) {
+				int encrypted = cipher.get().doFinal(payloadCleartextBuf, result);
+				assert encrypted == FileHeaderImpl.Payload.SIZE;
+			}
 
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertextBuf = result.duplicate();
@@ -114,10 +114,11 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			Cipher cipher = CipherSupplier.AES_CTR.forDecryption(ek, new IvParameterSpec(nonce));
-			assert cipher.getOutputSize(ciphertextPayload.length) == payloadCleartextBuf.remaining();
-			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
-			assert decrypted == FileHeaderImpl.Payload.SIZE;
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(ek, new IvParameterSpec(nonce))) {
+				assert cipher.get().getOutputSize(ciphertextPayload.length) == payloadCleartextBuf.remaining();
+				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
+				assert decrypted == FileHeaderImpl.Payload.SIZE;
+			}
 			payloadCleartextBuf.flip();
 			FileHeaderImpl.Payload payload = FileHeaderImpl.Payload.decode(payloadCleartextBuf);
 

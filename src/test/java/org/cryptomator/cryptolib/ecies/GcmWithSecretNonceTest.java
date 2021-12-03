@@ -10,6 +10,7 @@ import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import javax.crypto.AEADBadTagException;
+import javax.crypto.spec.GCMParameterSpec;
 
 /**
  * Test vectors from https://csrc.nist.rip/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-spec.pdf
@@ -22,7 +23,9 @@ public class GcmWithSecretNonceTest {
 	public void setup() {
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		GcmTestHelper.reset((mode, key, params) -> {
-			CipherSupplier.AES_GCM.forEncryption(key, params);
+			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(key, params)) {
+				cipher.get();
+			}
 		});
 	}
 
