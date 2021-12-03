@@ -67,7 +67,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, byte[] chunkNonce) {
 		ByteBuffer ciphertextChunk = ByteBuffer.allocate(CHUNK_SIZE);
-		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header);
+		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header, chunkNonce);
 		ciphertextChunk.flip();
 		return ciphertextChunk;
 	}
