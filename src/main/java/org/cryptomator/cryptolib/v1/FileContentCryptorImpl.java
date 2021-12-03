@@ -184,14 +184,14 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
-		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey();
+			 MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
-			final Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
-			mac.update(headerNonce);
-			mac.update(chunkNumberBigEndian);
-			mac.update(chunkNonce);
-			mac.update(ciphertext);
-			return mac.doFinal();
+			mac.get().update(headerNonce);
+			mac.get().update(chunkNumberBigEndian);
+			mac.get().update(chunkNonce);
+			mac.get().update(ciphertext);
+			return mac.get().doFinal();
 		}
 	}
 

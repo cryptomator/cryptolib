@@ -68,9 +68,10 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertextBuf = result.duplicate();
 			nonceAndCiphertextBuf.flip();
-			Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
-			mac.update(nonceAndCiphertextBuf);
-			result.put(mac.doFinal());
+			try (MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+				mac.get().update(nonceAndCiphertextBuf);
+				result.put(mac.get().doFinal());
+			}
 
 			result.flip();
 			return result;
@@ -100,12 +101,12 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.get(expectedMac);
 
 		// check mac:
-		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey();
+			 MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			ByteBuffer nonceAndCiphertextBuf = buf.duplicate();
 			nonceAndCiphertextBuf.position(FileHeaderImpl.NONCE_POS).limit(FileHeaderImpl.NONCE_POS + FileHeaderImpl.NONCE_LEN + FileHeaderImpl.PAYLOAD_LEN);
-			Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
-			mac.update(nonceAndCiphertextBuf);
-			byte[] calculatedMac = mac.doFinal();
+			mac.get().update(nonceAndCiphertextBuf);
+			byte[] calculatedMac = mac.get().doFinal();
 			if (!MessageDigest.isEqual(expectedMac, calculatedMac)) {
 				throw new AuthenticationFailedException("Header MAC doesn't match.");
 			}
