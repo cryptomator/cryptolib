@@ -17,28 +17,52 @@ public final class MessageDigestSupplier {
 	public static final MessageDigestSupplier SHA256 = new MessageDigestSupplier("SHA-256");
 
 	private final String digestAlgorithm;
-	private final ThreadLocal<MessageDigest> threadLocal;
+	private final ObjectPool<MessageDigest> mdPool;
 
 	public MessageDigestSupplier(String digestAlgorithm) {
 		this.digestAlgorithm = digestAlgorithm;
-		this.threadLocal = new Provider();
-	}
-
-	private class Provider extends ThreadLocal<MessageDigest> {
-		@Override
-		protected MessageDigest initialValue() {
-			try {
-				return MessageDigest.getInstance(digestAlgorithm);
-			} catch (NoSuchAlgorithmException e) {
-				throw new IllegalArgumentException("Invalid digest algorithm.", e);
-			}
+		this.mdPool = new ObjectPool<>(this::createMessageDigest);
+		try (ObjectPool<MessageDigest>.Lease lease = mdPool.get()) {
+			lease.get(); // eagerly initialize to provoke exceptions
 		}
 	}
 
+	private MessageDigest createMessageDigest() {
+		try {
+			return MessageDigest.getInstance(digestAlgorithm);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalArgumentException("Invalid digest algorithm.", e);
+		}
+	}
+
+	public ReusableMessageDigest instance() {
+		ObjectPool<MessageDigest>.Lease lease = mdPool.get();
+		lease.get().reset();
+		return new ReusableMessageDigest(lease);
+	}
+
+	@Deprecated
 	public MessageDigest get() {
-		final MessageDigest result = threadLocal.get();
+		final MessageDigest result = createMessageDigest();
 		result.reset();
 		return result;
 	}
 
+	public static class ReusableMessageDigest implements AutoCloseable {
+
+		private final ObjectPool<MessageDigest>.Lease lease;
+
+		private ReusableMessageDigest(ObjectPool<MessageDigest>.Lease lease) {
+			this.lease = lease;
+		}
+
+		public MessageDigest get() {
+			return lease.get();
+		}
+
+		@Override
+		public void close() {
+			lease.close();
+		}
+	}
 }

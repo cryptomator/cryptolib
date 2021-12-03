@@ -11,24 +11,24 @@ package org.cryptomator.cryptolib.common;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.security.MessageDigest;
-
 public class MessageDigestSupplierTest {
 
 	@Test
 	public void testConstructorWithInvalidDigest() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			new MessageDigestSupplier("FOO3000").get();
+			new MessageDigestSupplier("FOO3000");
 		});
 	}
 
 	@Test
 	public void testGetSha1() {
-		MessageDigest digest1 = MessageDigestSupplier.SHA1.get();
-		Assertions.assertNotNull(digest1);
+		try (MessageDigestSupplier.ReusableMessageDigest digest = MessageDigestSupplier.SHA1.instance()) {
+			Assertions.assertNotNull(digest);
+		}
 
-		MessageDigest digest2 = MessageDigestSupplier.SHA1.get();
-		Assertions.assertSame(digest1, digest2);
+		try (MessageDigestSupplier.ReusableMessageDigest digest = MessageDigestSupplier.SHA1.instance()) {
+			Assertions.assertNotNull(digest);
+		}
 	}
 
 }
