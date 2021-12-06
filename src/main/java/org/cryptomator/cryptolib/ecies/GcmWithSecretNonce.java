@@ -6,10 +6,8 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.IvParameterSpec;
 import java.util.Arrays;
 
 class GcmWithSecretNonce implements AuthenticatedEncryption {

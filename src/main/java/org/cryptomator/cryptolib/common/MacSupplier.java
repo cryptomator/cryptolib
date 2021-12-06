@@ -8,7 +8,6 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import java.security.InvalidKeyException;

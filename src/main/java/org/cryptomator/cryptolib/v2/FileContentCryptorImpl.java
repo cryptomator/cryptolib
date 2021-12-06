@@ -16,7 +16,6 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;

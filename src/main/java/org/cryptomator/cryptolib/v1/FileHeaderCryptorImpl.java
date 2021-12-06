@@ -18,7 +18,6 @@ import org.cryptomator.cryptolib.common.MacSupplier;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.Mac;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import java.nio.ByteBuffer;
