@@ -112,7 +112,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			int bytesEncrypted;
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encrypt(fk, new IvParameterSpec(nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encryptionCipher(fk, new IvParameterSpec(nonce))) {
 				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
 				bytesEncrypted = cipher.get().doFinal(cleartextChunk, ciphertextChunk);
 			}
@@ -146,7 +146,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decrypt(fk, new IvParameterSpec(nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decryptionCipher(fk, new IvParameterSpec(nonce))) {
 				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
 				cipher.get().doFinal(payloadBuf, cleartextChunk);
 			}

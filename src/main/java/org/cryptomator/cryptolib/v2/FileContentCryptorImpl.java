@@ -104,7 +104,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			random.nextBytes(nonce);
 
 			// payload:
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
 				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 				cipher.get().updateAAD(chunkNumberBigEndian);
 				cipher.get().updateAAD(headerNonce);
@@ -136,7 +136,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
 				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 				cipher.get().updateAAD(chunkNumberBigEndian);
 				cipher.get().updateAAD(headerNonce);

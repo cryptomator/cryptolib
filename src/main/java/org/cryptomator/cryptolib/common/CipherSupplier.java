@@ -48,7 +48,7 @@ public final class CipherSupplier {
 	 * @param params Params such as IV/Nonce
 	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ObjectPool.Lease<Cipher> encrypt(SecretKey key, AlgorithmParameterSpec params) {
+	public ObjectPool.Lease<Cipher> encryptionCipher(SecretKey key, AlgorithmParameterSpec params) {
 		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.ENCRYPT_MODE, key, params);
 		return lease;
@@ -60,7 +60,7 @@ public final class CipherSupplier {
 	 * @param key    Encryption key
 	 * @param params Params such as IV/Nonce
 	 * @return New Cipher instance
-	 * @deprecated Use {@link #encrypt(SecretKey, AlgorithmParameterSpec)} instead.
+	 * @deprecated Use {@link #encryptionCipher(SecretKey, AlgorithmParameterSpec)} instead.
 	 */
 	@Deprecated
 	public Cipher forEncryption(SecretKey key, AlgorithmParameterSpec params) {
@@ -76,7 +76,7 @@ public final class CipherSupplier {
 	 * @param params Params such as IV/Nonce
 	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ObjectPool.Lease<Cipher> decrypt(SecretKey key, AlgorithmParameterSpec params) {
+	public ObjectPool.Lease<Cipher> decryptionCipher(SecretKey key, AlgorithmParameterSpec params) {
 		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.DECRYPT_MODE, key, params);
 		return lease;
@@ -88,7 +88,7 @@ public final class CipherSupplier {
 	 * @param key    Encryption key
 	 * @param params Params such as IV/Nonce
 	 * @return New Cipher instance
-	 * @deprecated Use {@link #decrypt(SecretKey, AlgorithmParameterSpec)} instead.
+	 * @deprecated Use {@link #decryptionCipher(SecretKey, AlgorithmParameterSpec)} instead.
 	 */
 	@Deprecated
 	public Cipher forDecryption(SecretKey key, AlgorithmParameterSpec params) {
@@ -103,7 +103,7 @@ public final class CipherSupplier {
 	 * @param kek Key encryption key
 	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ObjectPool.Lease<Cipher> wrap(SecretKey kek) {
+	public ObjectPool.Lease<Cipher> keyWrapCipher(SecretKey kek) {
 		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.WRAP_MODE, kek, null);
 		return lease;
@@ -114,7 +114,7 @@ public final class CipherSupplier {
 	 *
 	 * @param kek Key encryption key
 	 * @return New Cipher instance
-	 * @deprecated Use {@link #wrap(SecretKey)} instead.
+	 * @deprecated Use {@link #keyWrapCipher(SecretKey)} instead.
 	 */
 	@Deprecated
 	public Cipher forWrapping(SecretKey kek) {
@@ -129,7 +129,7 @@ public final class CipherSupplier {
 	 * @param kek Key encryption key
 	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ObjectPool.Lease<Cipher> unwrap(SecretKey kek) {
+	public ObjectPool.Lease<Cipher> keyUnwrapCipher(SecretKey kek) {
 		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.UNWRAP_MODE, kek, null);
 		return lease;
@@ -140,7 +140,7 @@ public final class CipherSupplier {
 	 *
 	 * @param kek Key encryption key
 	 * @return New Cipher instance
-	 * @deprecated Use {@link #unwrap(SecretKey)} instead.
+	 * @deprecated Use {@link #keyUnwrapCipher(SecretKey)} instead.
 	 */
 	@Deprecated
 	public Cipher forUnwrapping(SecretKey kek) {

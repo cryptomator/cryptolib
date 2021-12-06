@@ -13,10 +13,8 @@ import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.RC5ParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class CipherSupplierTest {
 
@@ -31,7 +29,7 @@ public class CipherSupplierTest {
 	public void testGetCipherWithInvalidKey() {
 		CipherSupplier supplier = new CipherSupplier("AES/CBC/PKCS5Padding");
 		IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			supplier.encrypt(new DestroyableSecretKey(new byte[13], "AES"), new IvParameterSpec(new byte[16]));
+			supplier.encryptionCipher(new DestroyableSecretKey(new byte[13], "AES"), new IvParameterSpec(new byte[16]));
 		});
 		MatcherAssert.assertThat(exception.getMessage(), CoreMatchers.containsString("Invalid key"));
 	}
@@ -40,7 +38,7 @@ public class CipherSupplierTest {
 	public void testGetCipherWithInvalidAlgorithmParam() {
 		CipherSupplier supplier = new CipherSupplier("AES/CBC/PKCS5Padding");
 		IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			supplier.encrypt(new DestroyableSecretKey(new byte[16], "AES"), new RC5ParameterSpec(1, 1, 8));
+			supplier.encryptionCipher(new DestroyableSecretKey(new byte[16], "AES"), new RC5ParameterSpec(1, 1, 8));
 		});
 		MatcherAssert.assertThat(exception.getMessage(), CoreMatchers.containsString("Algorithm parameter not appropriate for"));
 	}
