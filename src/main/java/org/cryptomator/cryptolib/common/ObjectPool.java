@@ -5,6 +5,20 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 
+/**
+ * A simple object pool for resources that are expensive to create but are needed frequently.
+ * <p>
+ * Example Usage:
+ * <pre>{@code
+ *     Supplier<Foo> fooFactory = () -> new Foo();
+ *     ObjectPool<Foo> fooPool = new ObjectPool(fooFactory);
+ *     try (ObjectPool.Lease<Foo> lease = fooPool.get()) { // attempts to get a pooled Foo or invokes factory
+ *         lease.get().foo(); // exclusively use Foo instance
+ *     } // releases instance back to the pool when done
+ * }</pre>
+ *
+ * @param <T> Type of the pooled objects
+ */
 public class ObjectPool<T> {
 
 	private final Queue<WeakReference<T>> returnedInstances;
