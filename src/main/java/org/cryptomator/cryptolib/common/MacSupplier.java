@@ -37,12 +37,25 @@ public final class MacSupplier {
 		}
 	}
 
+	/**
+	 * Leases a reusable MAC object initialized with the given key.
+	 *
+	 * @param key Key to use in keyed MAC
+	 * @return A ReusableMac instance holding a refurbished MAC
+	 */
 	public ReusableMac keyed(SecretKey key) {
 		ObjectPool<Mac>.Lease lease = macPool.get();
 		init(lease.get(), key);
 		return new ReusableMac(lease);
 	}
 
+	/**
+	 * Creates a new MAC
+	 *
+	 * @param key Key to use in keyed MAC
+	 * @return New Mac instance
+	 * @deprecated Use {@link #keyed(SecretKey)} instead
+	 */
 	@Deprecated
 	public Mac withKey(SecretKey key) {
 		final Mac mac = createMac();

@@ -41,12 +41,27 @@ public final class CipherSupplier {
 		}
 	}
 
+	/**
+	 * Leases a reusable cipher object initialized for encryption.
+	 *
+	 * @param key    Encryption key
+	 * @param params Params such as IV/Nonce
+	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 */
 	public ReusableCipher encrypt(SecretKey key, AlgorithmParameterSpec params) {
 		ObjectPool<Cipher>.Lease lease = cipherPool.get();
 		initMode(lease.get(), Cipher.ENCRYPT_MODE, key, params);
 		return new ReusableCipher(lease);
 	}
 
+	/**
+	 * Creates a new Cipher object initialized for encryption.
+	 *
+	 * @param key    Encryption key
+	 * @param params Params such as IV/Nonce
+	 * @return New Cipher instance
+	 * @deprecated Use {@link #encrypt(SecretKey, AlgorithmParameterSpec)} instead.
+	 */
 	@Deprecated
 	public Cipher forEncryption(SecretKey key, AlgorithmParameterSpec params) {
 		final Cipher cipher = createCipher();
@@ -54,12 +69,27 @@ public final class CipherSupplier {
 		return cipher;
 	}
 
+	/**
+	 * Leases a reusable cipher object initialized for decryption.
+	 *
+	 * @param key    Decryption key
+	 * @param params Params such as IV/Nonce
+	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 */
 	public ReusableCipher decrypt(SecretKey key, AlgorithmParameterSpec params) {
 		ObjectPool<Cipher>.Lease lease = cipherPool.get();
 		initMode(lease.get(), Cipher.DECRYPT_MODE, key, params);
 		return new ReusableCipher(lease);
 	}
 
+	/**
+	 * Creates a new Cipher object initialized for decryption.
+	 *
+	 * @param key    Encryption key
+	 * @param params Params such as IV/Nonce
+	 * @return New Cipher instance
+	 * @deprecated Use {@link #decrypt(SecretKey, AlgorithmParameterSpec)} instead.
+	 */
 	@Deprecated
 	public Cipher forDecryption(SecretKey key, AlgorithmParameterSpec params) {
 		final Cipher cipher = createCipher();
@@ -67,12 +97,25 @@ public final class CipherSupplier {
 		return cipher;
 	}
 
+	/**
+	 * Leases a reusable cipher object initialized for wrapping a key.
+	 *
+	 * @param kek Key encryption key
+	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 */
 	public ReusableCipher wrap(SecretKey kek) {
 		ObjectPool<Cipher>.Lease lease = cipherPool.get();
 		initMode(lease.get(), Cipher.WRAP_MODE, kek, null);
 		return new ReusableCipher(lease);
 	}
 
+	/**
+	 * Creates a new Cipher object initialized for wrapping a key.
+	 *
+	 * @param kek Key encryption key
+	 * @return New Cipher instance
+	 * @deprecated Use {@link #wrap(SecretKey)} instead.
+	 */
 	@Deprecated
 	public Cipher forWrapping(SecretKey kek) {
 		final Cipher cipher = createCipher();
@@ -80,12 +123,25 @@ public final class CipherSupplier {
 		return cipher;
 	}
 
+	/**
+	 * Leases a reusable cipher object initialized for unwrapping a key.
+	 *
+	 * @param kek Key encryption key
+	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 */
 	public ReusableCipher unwrap(SecretKey kek) {
 		ObjectPool<Cipher>.Lease lease = cipherPool.get();
 		initMode(lease.get(), Cipher.UNWRAP_MODE, kek, null);
 		return new ReusableCipher(lease);
 	}
 
+	/**
+	 * Creates a new Cipher object initialized for unwrapping a key.
+	 *
+	 * @param kek Key encryption key
+	 * @return New Cipher instance
+	 * @deprecated Use {@link #unwrap(SecretKey)} instead.
+	 */
 	@Deprecated
 	public Cipher forUnwrapping(SecretKey kek) {
 		final Cipher cipher = createCipher();

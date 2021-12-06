@@ -35,12 +35,23 @@ public final class MessageDigestSupplier {
 		}
 	}
 
+	/**
+	 * Leases a reusable MessageDigest.
+	 *
+	 * @return A ReusableMessageDigest instance holding a refurbished MessageDigest
+	 */
 	public ReusableMessageDigest instance() {
 		ObjectPool<MessageDigest>.Lease lease = mdPool.get();
 		lease.get().reset();
 		return new ReusableMessageDigest(lease);
 	}
 
+	/**
+	 * Creates a new MessageDigest.
+	 *
+	 * @deprecated Use {@link #instance()}
+	 * @return New MessageDigest instance
+	 */
 	@Deprecated
 	public MessageDigest get() {
 		final MessageDigest result = createMessageDigest();
