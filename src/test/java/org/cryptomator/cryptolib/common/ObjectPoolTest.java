@@ -21,8 +21,8 @@ public class ObjectPoolTest {
 	@Test
 	@DisplayName("new instance is created if pool is empty")
 	public void testCreateNewObjWhenPoolIsEmpty() {
-		try (ObjectPool<Foo>.Lease lease1 = pool.get()) {
-			try (ObjectPool<Foo>.Lease lease2 = pool.get()) {
+		try (ObjectPool.Lease<Foo> lease1 = pool.get()) {
+			try (ObjectPool.Lease<Foo> lease2 = pool.get()) {
 				Assertions.assertNotSame(lease1.get(), lease2.get());
 			}
 		}
@@ -33,10 +33,10 @@ public class ObjectPoolTest {
 	@DisplayName("recycle existing instance")
 	public void testRecycleExistingObj() {
 		Foo foo1;
-		try (ObjectPool<Foo>.Lease lease = pool.get()) {
+		try (ObjectPool.Lease<Foo> lease = pool.get()) {
 			foo1 = lease.get();
 		}
-		try (ObjectPool<Foo>.Lease lease = pool.get()) {
+		try (ObjectPool.Lease<Foo> lease = pool.get()) {
 			Assertions.assertSame(foo1, lease.get());
 		}
 		Mockito.verify(factory, Mockito.times(1)).get();
@@ -45,11 +45,11 @@ public class ObjectPoolTest {
 	@Test
 	@DisplayName("create new instance when pool is GC'ed")
 	public void testGc() {
-		try (ObjectPool<Foo>.Lease lease = pool.get()) {
+		try (ObjectPool.Lease<Foo> lease = pool.get()) {
 			Assertions.assertNotNull(lease.get());
 		}
 		System.gc(); // seems to be reliable on Temurin 17 with @RepeatedTest(1000)
-		try (ObjectPool<Foo>.Lease lease = pool.get()) {
+		try (ObjectPool.Lease<Foo> lease = pool.get()) {
 			Assertions.assertNotNull(lease.get());
 		}
 		Mockito.verify(factory, Mockito.times(2)).get();

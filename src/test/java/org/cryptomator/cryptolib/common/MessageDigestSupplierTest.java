@@ -11,6 +11,8 @@ package org.cryptomator.cryptolib.common;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.security.MessageDigest;
+
 public class MessageDigestSupplierTest {
 
 	@Test
@@ -22,11 +24,11 @@ public class MessageDigestSupplierTest {
 
 	@Test
 	public void testGetSha1() {
-		try (MessageDigestSupplier.ReusableMessageDigest digest = MessageDigestSupplier.SHA1.instance()) {
+		try (ObjectPool.Lease<MessageDigest> digest = MessageDigestSupplier.SHA1.instance()) {
 			Assertions.assertNotNull(digest);
 		}
 
-		try (MessageDigestSupplier.ReusableMessageDigest digest = MessageDigestSupplier.SHA1.instance()) {
+		try (ObjectPool.Lease<MessageDigest> digest = MessageDigestSupplier.SHA1.instance()) {
 			Assertions.assertNotNull(digest);
 		}
 	}

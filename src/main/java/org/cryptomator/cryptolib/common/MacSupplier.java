@@ -23,7 +23,7 @@ public final class MacSupplier {
 	public MacSupplier(String macAlgorithm) {
 		this.macAlgorithm = macAlgorithm;
 		this.macPool = new ObjectPool<>(this::createMac);
-		try (ObjectPool<Mac>.Lease lease = macPool.get()) {
+		try (ObjectPool.Lease<Mac> lease = macPool.get()) {
 			lease.get(); // eagerly initialize to provoke exceptions
 		}
 	}
@@ -40,12 +40,12 @@ public final class MacSupplier {
 	 * Leases a reusable MAC object initialized with the given key.
 	 *
 	 * @param key Key to use in keyed MAC
-	 * @return A ReusableMac instance holding a refurbished MAC
+	 * @return A lease supplying a refurbished MAC
 	 */
-	public ReusableMac keyed(SecretKey key) {
-		ObjectPool<Mac>.Lease lease = macPool.get();
+	public ObjectPool.Lease<Mac> keyed(SecretKey key) {
+		ObjectPool.Lease<Mac> lease = macPool.get();
 		init(lease.get(), key);
-		return new ReusableMac(lease);
+		return lease;
 	}
 
 	/**
@@ -67,24 +67,6 @@ public final class MacSupplier {
 			mac.init(key);
 		} catch (InvalidKeyException e) {
 			throw new IllegalArgumentException("Invalid key.", e);
-		}
-	}
-
-	public static class ReusableMac implements AutoCloseable {
-
-		private final ObjectPool<Mac>.Lease lease;
-
-		private ReusableMac(ObjectPool<Mac>.Lease lease) {
-			this.lease = lease;
-		}
-
-		public Mac get() {
-			return lease.get();
-		}
-
-		@Override
-		public void close() {
-			lease.close();
 		}
 	}
 

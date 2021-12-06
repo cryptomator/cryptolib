@@ -7,30 +7,39 @@ import java.util.function.Supplier;
 
 public class ObjectPool<T> {
 
-	private final Queue<WeakReference<T>> pool;
+	private final Queue<WeakReference<T>> returnedInstances;
 	private final Supplier<T> factory;
 
 	public ObjectPool(Supplier<T> factory) {
-		this.pool = new ConcurrentLinkedQueue<>();
+		this.returnedInstances = new ConcurrentLinkedQueue<>();
 		this.factory = factory;
 	}
 
-	public Lease get() {
+	public Lease<T> get() {
 		WeakReference<T> ref;
-		while ((ref = pool.poll()) != null) {
+		while ((ref = returnedInstances.poll()) != null) {
 			T cached = ref.get();
 			if (cached != null) {
-				return new Lease(cached);
+				return new Lease<>(this, cached);
 			}
 		}
-		return new Lease(factory.get());
+		return new Lease<>(this, factory.get());
 	}
 
-	public class Lease implements AutoCloseable {
+	/**
+	 * A holder for resource leased from an {@link ObjectPool}.
+	 * This is basically an {@link AutoCloseable autocloseable} {@link Supplier} that is intended to be used
+	 * via try-with-resource blocks.
+	 *
+	 * @param <T> Type of the leased instance
+	 */
+	public static class Lease<T> implements AutoCloseable, Supplier<T> {
 
+		private final ObjectPool<T> pool;
 		private T obj;
 
-		public Lease(T obj) {
+		private Lease(ObjectPool<T> pool, T obj) {
+			this.pool = pool;
 			this.obj = obj;
 		}
 
@@ -40,7 +49,7 @@ public class ObjectPool<T> {
 
 		@Override
 		public void close() {
-			pool.offer(new WeakReference<>(obj));
+			pool.returnedInstances.add(new WeakReference<>(obj));
 			obj = null;
 		}
 	}

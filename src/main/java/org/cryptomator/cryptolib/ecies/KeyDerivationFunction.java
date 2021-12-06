@@ -1,11 +1,13 @@
 package org.cryptomator.cryptolib.ecies;
 
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.DigestException;
+import java.security.MessageDigest;
 import java.util.Arrays;
 
 @FunctionalInterface
@@ -42,7 +44,7 @@ public interface KeyDerivationFunction {
 		assert ByteOrder.BIG_ENDIAN.equals(counter.order());
 		int n = (keyDataLen + hashLen - 1) / hashLen;
 		byte[] buffer = new byte[n * hashLen];
-		try (MessageDigestSupplier.ReusableMessageDigest sha256 = MessageDigestSupplier.SHA256.instance()) {
+		try (ObjectPool.Lease<MessageDigest> sha256 = MessageDigestSupplier.SHA256.instance()) {
 			for (int i = 0; i < n; i++) {
 				sha256.get().update(sharedSecret);
 				counter.clear();

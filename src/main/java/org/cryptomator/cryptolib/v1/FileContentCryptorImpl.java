@@ -15,9 +15,12 @@ import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.Mac;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import java.nio.ByteBuffer;
@@ -109,7 +112,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			int bytesEncrypted;
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(fk, new IvParameterSpec(nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encrypt(fk, new IvParameterSpec(nonce))) {
 				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
 				bytesEncrypted = cipher.get().doFinal(cleartextChunk, ciphertextChunk);
 			}
@@ -143,7 +146,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.decrypt(fk, new IvParameterSpec(nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decrypt(fk, new IvParameterSpec(nonce))) {
 				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
 				cipher.get().doFinal(payloadBuf, cleartextChunk);
 			}
@@ -183,7 +186,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
 		try (DestroyableSecretKey mk = masterkey.getMacKey();
-			 MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
 			mac.get().update(headerNonce);
 			mac.get().update(chunkNumberBigEndian);

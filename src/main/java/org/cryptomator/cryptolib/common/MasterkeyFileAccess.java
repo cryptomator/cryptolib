@@ -5,6 +5,7 @@ import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 
+import javax.crypto.Mac;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -193,7 +194,7 @@ public class MasterkeyFileAccess {
 		csprng.nextBytes(salt);
 		try (DestroyableSecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE);
 			 DestroyableSecretKey macKey = masterkey.getMacKey();
-			 MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(macKey)) {
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(macKey)) {
 			final byte[] versionMac = mac.get().doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
 			MasterkeyFile result = new MasterkeyFile();
 			result.version = vaultVersion;

@@ -28,7 +28,7 @@ public final class CipherSupplier {
 	public CipherSupplier(String cipherAlgorithm) {
 		this.cipherAlgorithm = cipherAlgorithm;
 		this.cipherPool = new ObjectPool<>(this::createCipher);
-		try (ObjectPool<Cipher>.Lease lease = cipherPool.get()) {
+		try (ObjectPool.Lease<Cipher> lease = cipherPool.get()) {
 			lease.get(); // eagerly initialize to provoke exceptions
 		}
 	}
@@ -46,12 +46,12 @@ public final class CipherSupplier {
 	 *
 	 * @param key    Encryption key
 	 * @param params Params such as IV/Nonce
-	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ReusableCipher encrypt(SecretKey key, AlgorithmParameterSpec params) {
-		ObjectPool<Cipher>.Lease lease = cipherPool.get();
+	public ObjectPool.Lease<Cipher> encrypt(SecretKey key, AlgorithmParameterSpec params) {
+		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.ENCRYPT_MODE, key, params);
-		return new ReusableCipher(lease);
+		return lease;
 	}
 
 	/**
@@ -74,12 +74,12 @@ public final class CipherSupplier {
 	 *
 	 * @param key    Decryption key
 	 * @param params Params such as IV/Nonce
-	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ReusableCipher decrypt(SecretKey key, AlgorithmParameterSpec params) {
-		ObjectPool<Cipher>.Lease lease = cipherPool.get();
+	public ObjectPool.Lease<Cipher> decrypt(SecretKey key, AlgorithmParameterSpec params) {
+		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.DECRYPT_MODE, key, params);
-		return new ReusableCipher(lease);
+		return lease;
 	}
 
 	/**
@@ -101,12 +101,12 @@ public final class CipherSupplier {
 	 * Leases a reusable cipher object initialized for wrapping a key.
 	 *
 	 * @param kek Key encryption key
-	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ReusableCipher wrap(SecretKey kek) {
-		ObjectPool<Cipher>.Lease lease = cipherPool.get();
+	public ObjectPool.Lease<Cipher> wrap(SecretKey kek) {
+		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.WRAP_MODE, kek, null);
-		return new ReusableCipher(lease);
+		return lease;
 	}
 
 	/**
@@ -127,12 +127,12 @@ public final class CipherSupplier {
 	 * Leases a reusable cipher object initialized for unwrapping a key.
 	 *
 	 * @param kek Key encryption key
-	 * @return A ReusableCipher instance holding a refurbished Cipher
+	 * @return A lease supplying a refurbished Cipher
 	 */
-	public ReusableCipher unwrap(SecretKey kek) {
-		ObjectPool<Cipher>.Lease lease = cipherPool.get();
+	public ObjectPool.Lease<Cipher> unwrap(SecretKey kek) {
+		ObjectPool.Lease<Cipher> lease = cipherPool.get();
 		initMode(lease.get(), Cipher.UNWRAP_MODE, kek, null);
-		return new ReusableCipher(lease);
+		return lease;
 	}
 
 	/**
@@ -159,21 +159,4 @@ public final class CipherSupplier {
 		}
 	}
 
-	public static class ReusableCipher implements AutoCloseable {
-
-		private final ObjectPool<Cipher>.Lease lease;
-
-		private ReusableCipher(ObjectPool<Cipher>.Lease lease) {
-			this.lease = lease;
-		}
-
-		public Cipher get() {
-			return lease.get();
-		}
-
-		@Override
-		public void close() {
-			lease.close();
-		}
-	}
 }

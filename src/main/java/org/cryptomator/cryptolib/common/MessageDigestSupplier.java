@@ -22,7 +22,7 @@ public final class MessageDigestSupplier {
 	public MessageDigestSupplier(String digestAlgorithm) {
 		this.digestAlgorithm = digestAlgorithm;
 		this.mdPool = new ObjectPool<>(this::createMessageDigest);
-		try (ObjectPool<MessageDigest>.Lease lease = mdPool.get()) {
+		try (ObjectPool.Lease<MessageDigest> lease = mdPool.get()) {
 			lease.get(); // eagerly initialize to provoke exceptions
 		}
 	}
@@ -40,17 +40,17 @@ public final class MessageDigestSupplier {
 	 *
 	 * @return A ReusableMessageDigest instance holding a refurbished MessageDigest
 	 */
-	public ReusableMessageDigest instance() {
-		ObjectPool<MessageDigest>.Lease lease = mdPool.get();
+	public ObjectPool.Lease<MessageDigest> instance() {
+		ObjectPool.Lease<MessageDigest> lease = mdPool.get();
 		lease.get().reset();
-		return new ReusableMessageDigest(lease);
+		return lease;
 	}
 
 	/**
 	 * Creates a new MessageDigest.
 	 *
-	 * @deprecated Use {@link #instance()}
 	 * @return New MessageDigest instance
+	 * @deprecated Use {@link #instance()}
 	 */
 	@Deprecated
 	public MessageDigest get() {
@@ -59,21 +59,4 @@ public final class MessageDigestSupplier {
 		return result;
 	}
 
-	public static class ReusableMessageDigest implements AutoCloseable {
-
-		private final ObjectPool<MessageDigest>.Lease lease;
-
-		private ReusableMessageDigest(ObjectPool<MessageDigest>.Lease lease) {
-			this.lease = lease;
-		}
-
-		public MessageDigest get() {
-			return lease.get();
-		}
-
-		@Override
-		public void close() {
-			lease.close();
-		}
-	}
 }

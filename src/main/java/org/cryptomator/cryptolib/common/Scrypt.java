@@ -73,7 +73,7 @@ public class Scrypt {
 		}
 
 		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256");
-			 MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(key)) {
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(key)) {
 
 			byte[] DK = new byte[keyLengthInBytes];
 			byte[] B = new byte[128 * blockSize * P];

@@ -13,9 +13,11 @@ import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
@@ -102,7 +104,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			random.nextBytes(nonce);
 
 			// payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
 				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 				cipher.get().updateAAD(chunkNumberBigEndian);
 				cipher.get().updateAAD(headerNonce);
@@ -134,7 +136,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.decrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decrypt(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
 				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
 				cipher.get().updateAAD(chunkNumberBigEndian);
 				cipher.get().updateAAD(headerNonce);

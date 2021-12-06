@@ -14,9 +14,11 @@ import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
@@ -60,7 +62,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.encrypt(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encrypt(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, headerImpl.getNonce()))) {
 				int encrypted = cipher.get().doFinal(payloadCleartextBuf, result);
 				assert encrypted == FileHeaderImpl.PAYLOAD_LEN + FileHeaderImpl.TAG_LEN;
 			}
@@ -92,7 +94,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_GCM.decrypt(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decrypt(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
 				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartextBuf);
 				assert decrypted == FileHeaderImpl.Payload.SIZE;
 			}

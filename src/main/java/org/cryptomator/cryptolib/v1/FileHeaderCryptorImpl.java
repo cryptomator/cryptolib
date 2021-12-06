@@ -15,9 +15,12 @@ import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.Mac;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 import java.nio.ByteBuffer;
@@ -59,7 +62,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.encrypt(ek, new IvParameterSpec(headerImpl.getNonce()))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encrypt(ek, new IvParameterSpec(headerImpl.getNonce()))) {
 				int encrypted = cipher.get().doFinal(payloadCleartextBuf, result);
 				assert encrypted == FileHeaderImpl.Payload.SIZE;
 			}
@@ -67,7 +70,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertextBuf = result.duplicate();
 			nonceAndCiphertextBuf.flip();
-			try (MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+			try (ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 				mac.get().update(nonceAndCiphertextBuf);
 				result.put(mac.get().doFinal());
 			}
@@ -101,7 +104,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
 		// check mac:
 		try (DestroyableSecretKey mk = masterkey.getMacKey();
-			 MacSupplier.ReusableMac mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			ByteBuffer nonceAndCiphertextBuf = buf.duplicate();
 			nonceAndCiphertextBuf.position(FileHeaderImpl.NONCE_POS).limit(FileHeaderImpl.NONCE_POS + FileHeaderImpl.NONCE_LEN + FileHeaderImpl.PAYLOAD_LEN);
 			mac.get().update(nonceAndCiphertextBuf);
@@ -114,7 +117,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			try (CipherSupplier.ReusableCipher cipher = CipherSupplier.AES_CTR.decrypt(ek, new IvParameterSpec(nonce))) {
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decrypt(ek, new IvParameterSpec(nonce))) {
 				assert cipher.get().getOutputSize(ciphertextPayload.length) == payloadCleartextBuf.remaining();
 				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
 				assert decrypted == FileHeaderImpl.Payload.SIZE;

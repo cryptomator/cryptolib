@@ -11,6 +11,7 @@ package org.cryptomator.cryptolib.common;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.lang.reflect.Method;
@@ -30,11 +31,11 @@ public class MacSupplierTest {
 	@Test
 	public void testGetMac() {
 		SecretKey key = new SecretKeySpec(new byte[16], "HmacSHA256");
-		try (MacSupplier.ReusableMac mac1 = MacSupplier.HMAC_SHA256.keyed(key)) {
+		try (ObjectPool.Lease<Mac> mac1 = MacSupplier.HMAC_SHA256.keyed(key)) {
 			Assertions.assertNotNull(mac1);
 		}
 
-		try (MacSupplier.ReusableMac mac2 = MacSupplier.HMAC_SHA256.keyed(key)) {
+		try (ObjectPool.Lease<Mac> mac2 = MacSupplier.HMAC_SHA256.keyed(key)) {
 			Assertions.assertNotNull(mac2);
 		}
 	}
