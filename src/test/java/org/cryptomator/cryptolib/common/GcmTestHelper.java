@@ -24,7 +24,6 @@ public class GcmTestHelper {
 	 * @param cipherInitializer The {@link Cipher#init(int, Key, AlgorithmParameterSpec) cipher.init()} or equivalent method
 	 */
 	public static void reset(CipherInitializer cipherInitializer) {
-		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		byte[] keyBytes = new byte[16];
 		byte[] nonceBytes = new byte[12];
 		RNG.nextBytes(keyBytes);
