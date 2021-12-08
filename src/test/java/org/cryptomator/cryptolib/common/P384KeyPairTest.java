@@ -9,6 +9,10 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 public class P384KeyPairTest {
 
@@ -20,6 +24,16 @@ public class P384KeyPairTest {
 		Assertions.assertNotNull(keyPair1);
 		Assertions.assertNotNull(keyPair2);
 		Assertions.assertNotEquals(keyPair1, keyPair2);
+	}
+
+	@Test
+	@DisplayName("create()")
+	public void testCreate() throws InvalidKeySpecException {
+		X509EncodedKeySpec publicKey = new X509EncodedKeySpec(Base64.getDecoder().decode("MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAERxQR+NRN6Wga01370uBBzr2NHDbKIC56tPUEq2HX64RhITGhii8Zzbkb1HnRmdF0aq6uqmUy4jUhuxnKxsv59A6JeK7Unn+mpmm3pQAygjoGc9wrvoH4HWJSQYUlsXDu"));
+		PKCS8EncodedKeySpec privateKey = new PKCS8EncodedKeySpec(Base64.getDecoder().decode("ME8CAQAwEAYHKoZIzj0CAQYFK4EEACIEODA2AgEBBDEA6QybmBitf94veD5aCLr7nlkF5EZpaXHCfq1AXm57AKQyGOjTDAF9EQB28fMywTDQ"));
+
+		P384KeyPair keyPair = P384KeyPair.create(publicKey, privateKey);
+		Assertions.assertNotNull(keyPair);
 	}
 
 	@Test
