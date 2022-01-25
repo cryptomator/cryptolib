@@ -88,7 +88,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		if (ciphertextHeaderBuf.remaining() < FileHeaderImpl.SIZE) {
 			throw new IllegalArgumentException("Malformed ciphertext header");
 		}
-		ByteBuffer buf = ciphertextHeaderBuf.asReadOnlyBuffer();
+		ByteBuffer buf = ciphertextHeaderBuf.duplicate();
 		byte[] nonce = new byte[FileHeaderImpl.NONCE_LEN];
 		buf.position(FileHeaderImpl.NONCE_POS);
 		buf.get(nonce);
