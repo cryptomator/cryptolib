@@ -112,7 +112,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fk, new IvParameterSpec(nonce));
 			ciphertextChunk.put(nonce);
 			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
-			int bytesEncrypted = cipher.doFinal(cleartextChunk, ciphertextChunk);
+			cipher.doFinal(cleartextChunk, ciphertextChunk);
 
 			// mac:
 			ByteBuffer nonceAndPayload = ciphertextChunk.duplicate();
