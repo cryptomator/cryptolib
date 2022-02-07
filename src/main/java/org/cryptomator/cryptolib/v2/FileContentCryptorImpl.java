@@ -124,12 +124,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
 			final byte[] nonce = new byte[GCM_NONCE_SIZE];
-			final ByteBuffer chunkNonceBuf = ciphertextChunk.asReadOnlyBuffer();
-			chunkNonceBuf.position(0).limit(GCM_NONCE_SIZE);
-			chunkNonceBuf.get(nonce);
+			ciphertextChunk.get(nonce, 0, GCM_NONCE_SIZE);
 
 			// payload:
-			final ByteBuffer payloadBuf = ciphertextChunk.asReadOnlyBuffer();
+			final ByteBuffer payloadBuf = ciphertextChunk.duplicate();
 			payloadBuf.position(GCM_NONCE_SIZE);
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 

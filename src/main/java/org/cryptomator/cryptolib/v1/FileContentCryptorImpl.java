@@ -112,12 +112,12 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fk, new IvParameterSpec(nonce));
 			ciphertextChunk.put(nonce);
 			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
-			int bytesEncrypted = cipher.doFinal(cleartextChunk, ciphertextChunk);
+			cipher.doFinal(cleartextChunk, ciphertextChunk);
 
 			// mac:
-			final ByteBuffer ciphertextBuf = ciphertextChunk.asReadOnlyBuffer();
-			ciphertextBuf.position(NONCE_SIZE).limit(NONCE_SIZE + bytesEncrypted);
-			byte[] authenticationCode = calcChunkMac(headerNonce, chunkNumber, nonce, ciphertextBuf);
+			ByteBuffer nonceAndPayload = ciphertextChunk.duplicate();
+			nonceAndPayload.flip();
+			byte[] authenticationCode = calcChunkMac(headerNonce, chunkNumber, nonceAndPayload);
 			assert authenticationCode.length == MAC_SIZE;
 			ciphertextChunk.put(authenticationCode);
 		} catch (ShortBufferException e) {
@@ -134,12 +134,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
 			final byte[] nonce = new byte[NONCE_SIZE];
-			final ByteBuffer chunkNonceBuf = ciphertextChunk.asReadOnlyBuffer();
-			chunkNonceBuf.position(0).limit(NONCE_SIZE);
-			chunkNonceBuf.get(nonce);
+			ciphertextChunk.get(nonce, 0, NONCE_SIZE);
 
 			// payload:
-			final ByteBuffer payloadBuf = ciphertextChunk.asReadOnlyBuffer();
+			final ByteBuffer payloadBuf = ciphertextChunk.duplicate();
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
@@ -157,37 +155,30 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	boolean checkChunkMac(byte[] headerNonce, long chunkNumber, ByteBuffer chunkBuf) {
 		assert chunkBuf.remaining() >= NONCE_SIZE + MAC_SIZE;
 
-		// get three components: nonce + payload + mac
-		final ByteBuffer chunkNonceBuf = chunkBuf.asReadOnlyBuffer();
-		chunkNonceBuf.position(0).limit(NONCE_SIZE);
-		final ByteBuffer payloadBuf = chunkBuf.asReadOnlyBuffer();
-		payloadBuf.position(NONCE_SIZE).limit(chunkBuf.limit() - MAC_SIZE);
-		final ByteBuffer expectedMacBuf = chunkBuf.asReadOnlyBuffer();
+		// get nonce + payload
+		final ByteBuffer nonceAndPayload = chunkBuf.duplicate();
+		nonceAndPayload.position(0).limit(chunkBuf.limit() - MAC_SIZE);
+		final ByteBuffer expectedMacBuf = chunkBuf.duplicate();
 		expectedMacBuf.position(chunkBuf.limit() - MAC_SIZE);
-
-		// get nonce:
-		final byte[] chunkNonce = new byte[NONCE_SIZE];
-		chunkNonceBuf.get(chunkNonce);
 
 		// get expected MAC:
 		final byte[] expectedMac = new byte[MAC_SIZE];
 		expectedMacBuf.get(expectedMac);
 
 		// get actual MAC:
-		final byte[] calculatedMac = calcChunkMac(headerNonce, chunkNumber, chunkNonce, payloadBuf);
+		final byte[] calculatedMac = calcChunkMac(headerNonce, chunkNumber, nonceAndPayload);
 
 		// time-constant equality check of two MACs:
 		return MessageDigest.isEqual(expectedMac, calculatedMac);
 	}
 
-	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, byte[] chunkNonce, ByteBuffer ciphertext) {
+	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, ByteBuffer nonceAndCiphertext) {
 		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
 			final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
 			final Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
 			mac.update(headerNonce);
 			mac.update(chunkNumberBigEndian);
-			mac.update(chunkNonce);
-			mac.update(ciphertext);
+			mac.update(nonceAndCiphertext);
 			return mac.doFinal();
 		}
 	}
