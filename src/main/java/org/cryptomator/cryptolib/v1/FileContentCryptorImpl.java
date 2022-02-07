@@ -15,6 +15,7 @@ import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -107,12 +108,13 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			// nonce:
 			byte[] nonce = new byte[NONCE_SIZE];
 			random.nextBytes(nonce);
+			ciphertextChunk.put(nonce);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forEncryption(fk, new IvParameterSpec(nonce));
-			ciphertextChunk.put(nonce);
-			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
-			cipher.doFinal(cleartextChunk, ciphertextChunk);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encryptionCipher(fk, new IvParameterSpec(nonce))) {
+				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining()) + MAC_SIZE;
+				cipher.get().doFinal(cleartextChunk, ciphertextChunk);
+			}
 
 			// mac:
 			ByteBuffer nonceAndPayload = ciphertextChunk.duplicate();
@@ -141,9 +143,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_CTR.forDecryption(fk, new IvParameterSpec(nonce));
-			assert cleartextChunk.remaining() >= cipher.getOutputSize(payloadBuf.remaining());
-			cipher.doFinal(payloadBuf, cleartextChunk);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decryptionCipher(fk, new IvParameterSpec(nonce))) {
+				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
+				cipher.get().doFinal(payloadBuf, cleartextChunk);
+			}
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -173,13 +176,13 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	private byte[] calcChunkMac(byte[] headerNonce, long chunkNumber, ByteBuffer nonceAndCiphertext) {
-		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey();
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			final byte[] chunkNumberBigEndian = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.BIG_ENDIAN).putLong(chunkNumber).array();
-			final Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
-			mac.update(headerNonce);
-			mac.update(chunkNumberBigEndian);
-			mac.update(nonceAndCiphertext);
-			return mac.doFinal();
+			mac.get().update(headerNonce);
+			mac.get().update(chunkNumberBigEndian);
+			mac.get().update(nonceAndCiphertext);
+			return mac.get().doFinal();
 		}
 	}
 

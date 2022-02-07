@@ -3,6 +3,7 @@ package org.cryptomator.cryptolib.ecies;
 import com.google.common.base.Throwables;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
@@ -26,8 +27,9 @@ class GcmWithSecretNonce implements AuthenticatedEncryption {
 	public byte[] encrypt(byte[] secret, byte[] plaintext) {
 		try (DestroyableSecretKey key = new DestroyableSecretKey(secret, 0, GCM_KEY_SIZE, "AES")) {
 			byte[] nonce = Arrays.copyOfRange(secret, GCM_KEY_SIZE, GCM_KEY_SIZE + GCM_NONCE_SIZE);
-			Cipher cipher = CipherSupplier.AES_GCM.forEncryption(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			return cipher.doFinal(plaintext);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				return cipher.get().doFinal(plaintext);
+			}
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
 			throw new IllegalStateException("Unexpected exception during GCM decryption.", e);
 		}
@@ -37,8 +39,9 @@ class GcmWithSecretNonce implements AuthenticatedEncryption {
 	public byte[] decrypt(byte[] secret, byte[] ciphertext) throws AEADBadTagException {
 		try (DestroyableSecretKey key = new DestroyableSecretKey(secret, 0, GCM_KEY_SIZE, "AES")) {
 			byte[] nonce = Arrays.copyOfRange(secret, GCM_KEY_SIZE, GCM_KEY_SIZE + GCM_NONCE_SIZE);
-			Cipher cipher = CipherSupplier.AES_GCM.forDecryption(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			return cipher.doFinal(ciphertext);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(key, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				return cipher.get().doFinal(ciphertext);
+			}
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
 			Throwables.throwIfInstanceOf(e, AEADBadTagException.class);
 			throw new IllegalStateException("Unexpected exception during GCM decryption.", e);

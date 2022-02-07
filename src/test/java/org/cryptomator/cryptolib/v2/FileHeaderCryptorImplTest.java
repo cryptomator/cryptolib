@@ -14,11 +14,13 @@ import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.GcmTestHelper;
+import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.Cipher;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
@@ -35,7 +37,9 @@ public class FileHeaderCryptorImplTest {
 
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		GcmTestHelper.reset((mode, key, params) -> {
-			CipherSupplier.AES_GCM.forEncryption(key, params);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
+				cipher.get();
+			}
 		});
 	}
 

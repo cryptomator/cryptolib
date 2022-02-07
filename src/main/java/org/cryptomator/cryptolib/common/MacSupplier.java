@@ -8,40 +8,63 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 public final class MacSupplier {
 
 	public static final MacSupplier HMAC_SHA256 = new MacSupplier("HmacSHA256");
 
 	private final String macAlgorithm;
-	private final ThreadLocal<Mac> threadLocal;
+	private final ObjectPool<Mac> macPool;
 
 	public MacSupplier(String macAlgorithm) {
 		this.macAlgorithm = macAlgorithm;
-		this.threadLocal = new Provider();
-	}
-
-	private class Provider extends ThreadLocal<Mac> {
-		@Override
-		protected Mac initialValue() {
-			try {
-				return Mac.getInstance(macAlgorithm);
-			} catch (NoSuchAlgorithmException e) {
-				throw new IllegalArgumentException("Invalid MAC algorithm.", e);
-			}
+		this.macPool = new ObjectPool<>(this::createMac);
+		try (ObjectPool.Lease<Mac> lease = macPool.get()) {
+			lease.get(); // eagerly initialize to provoke exceptions
 		}
 	}
 
-	public Mac withKey(SecretKey key) {
+	private Mac createMac() {
 		try {
-			final Mac mac = threadLocal.get();
+			return Mac.getInstance(macAlgorithm);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalArgumentException("Invalid MAC algorithm.", e);
+		}
+	}
+
+	/**
+	 * Leases a reusable MAC object initialized with the given key.
+	 *
+	 * @param key Key to use in keyed MAC
+	 * @return A lease supplying a refurbished MAC
+	 */
+	public ObjectPool.Lease<Mac> keyed(SecretKey key) {
+		ObjectPool.Lease<Mac> lease = macPool.get();
+		init(lease.get(), key);
+		return lease;
+	}
+
+	/**
+	 * Creates a new MAC
+	 *
+	 * @param key Key to use in keyed MAC
+	 * @return New Mac instance
+	 * @deprecated Use {@link #keyed(SecretKey)} instead
+	 */
+	@Deprecated
+	public Mac withKey(SecretKey key) {
+		final Mac mac = createMac();
+		init(mac, key);
+		return mac;
+	}
+
+	private void init(Mac mac, SecretKey key) {
+		try {
 			mac.init(key);
-			return mac;
 		} catch (InvalidKeyException e) {
 			throw new IllegalArgumentException("Invalid key.", e);
 		}

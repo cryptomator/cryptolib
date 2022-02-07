@@ -14,10 +14,13 @@ import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
+import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
 import javax.crypto.IllegalBlockSizeException;
+
+import java.security.MessageDigest;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -39,10 +42,11 @@ class FileNameCryptorImpl implements FileNameCryptor {
 
 	@Override
 	public String hashDirectoryId(String cleartextDirectoryId) {
-		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
+			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance()) {
 			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
 			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes);
-			byte[] hashedBytes = MessageDigestSupplier.SHA1.get().digest(encryptedBytes);
+			byte[] hashedBytes = sha1.get().digest(encryptedBytes);
 			return BASE32.encode(hashedBytes);
 		}
 	}
