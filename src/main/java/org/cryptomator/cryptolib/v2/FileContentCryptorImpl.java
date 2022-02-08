@@ -13,6 +13,7 @@ import org.cryptomator.cryptolib.api.FileContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
@@ -103,13 +104,14 @@ class FileContentCryptorImpl implements FileContentCryptor {
 			random.nextBytes(nonce);
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_GCM.forEncryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
-			cipher.updateAAD(chunkNumberBigEndian);
-			cipher.updateAAD(headerNonce);
-			ciphertextChunk.put(nonce);
-			assert ciphertextChunk.remaining() >= cipher.getOutputSize(cleartextChunk.remaining());
-			cipher.doFinal(cleartextChunk, ciphertextChunk);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
+				cipher.get().updateAAD(chunkNumberBigEndian);
+				cipher.get().updateAAD(headerNonce);
+				ciphertextChunk.put(nonce);
+				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining());
+				cipher.get().doFinal(cleartextChunk, ciphertextChunk);
+			}
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -124,22 +126,21 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
 			final byte[] nonce = new byte[GCM_NONCE_SIZE];
-			final ByteBuffer chunkNonceBuf = ciphertextChunk.asReadOnlyBuffer();
-			chunkNonceBuf.position(0).limit(GCM_NONCE_SIZE);
-			chunkNonceBuf.get(nonce);
+			ciphertextChunk.get(nonce, 0, GCM_NONCE_SIZE);
 
 			// payload:
-			final ByteBuffer payloadBuf = ciphertextChunk.asReadOnlyBuffer();
+			final ByteBuffer payloadBuf = ciphertextChunk.duplicate();
 			payloadBuf.position(GCM_NONCE_SIZE);
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:
-			final Cipher cipher = CipherSupplier.AES_GCM.forDecryption(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
-			final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
-			cipher.updateAAD(chunkNumberBigEndian);
-			cipher.updateAAD(headerNonce);
-			assert cleartextChunk.remaining() >= cipher.getOutputSize(payloadBuf.remaining());
-			cipher.doFinal(payloadBuf, cleartextChunk);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
+				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
+				cipher.get().updateAAD(chunkNumberBigEndian);
+				cipher.get().updateAAD(headerNonce);
+				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
+				cipher.get().doFinal(payloadBuf, cleartextChunk);
+			}
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Content tag mismatch.", e);
 		} catch (ShortBufferException e) {

@@ -14,11 +14,13 @@ import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.GcmTestHelper;
+import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.Cipher;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
@@ -35,7 +37,9 @@ public class FileHeaderCryptorImplTest {
 
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		GcmTestHelper.reset((mode, key, params) -> {
-			CipherSupplier.AES_GCM.forEncryption(key, params);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
+				cipher.get();
+			}
 		});
 	}
 
@@ -74,25 +78,28 @@ public class FileHeaderCryptorImplTest {
 
 	@Test
 	public void testDecryptionWithTooShortHeader() {
-		byte[] ciphertext = new byte[7];
+		ByteBuffer ciphertext = ByteBuffer.allocate(7);
+
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 
 	@Test
 	public void testDecryptionWithInvalidTag1() {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA=");
+		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA="));
+
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 
 	@Test
 	public void testDecryptionWithInvalidTag2() {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUa=");
+		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUa="));
+
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 

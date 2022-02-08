@@ -69,28 +69,28 @@ public class FileHeaderCryptorImplTest {
 
 	@Test
 	public void testDecryptionWithTooShortHeader() {
-		byte[] ciphertext = new byte[7];
+		ByteBuffer ciphertext = ByteBuffer.allocate(7);
 
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 
 	@Test
 	public void testDecryptionWithInvalidMac1() {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa==");
+		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa=="));
 
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 
 	@Test
 	public void testDecryptionWithInvalidMac2() {
-		byte[] ciphertext = BaseEncoding.base64().decode("aAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA==");
+		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("aAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJA=="));
 
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 

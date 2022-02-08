@@ -14,6 +14,9 @@ import java.nio.channels.ReadableByteChannel;
 
 public class ByteBuffers {
 
+	private ByteBuffers() {
+	}
+
 	/**
 	 * Copies as many bytes as possible from the given source to the destination buffer.
 	 * The position of both buffers will be incremented by as many bytes as have been copied.

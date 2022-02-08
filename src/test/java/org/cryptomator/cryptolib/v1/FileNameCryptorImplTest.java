@@ -97,9 +97,10 @@ public class FileNameCryptorImplTest {
 	public void testDecryptionOfManipulatedFilename() {
 		final byte[] encrypted = filenameCryptor.encryptFilename(BASE32, "test").getBytes(UTF_8);
 		encrypted[0] ^= (byte) 0x01; // change 1 bit in first byte
+		String ciphertextName = new String(encrypted, UTF_8);
 
 		AuthenticationFailedException e = Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			filenameCryptor.decryptFilename(BASE32, new String(encrypted, UTF_8));
+			filenameCryptor.decryptFilename(BASE32, ciphertextName);
 		});
 		MatcherAssert.assertThat(e.getCause(), CoreMatchers.instanceOf(UnauthenticCiphertextException.class));
 	}
@@ -124,9 +125,10 @@ public class FileNameCryptorImplTest {
 	@DisplayName("decrypt ciphertext with incorrect AD")
 	public void testDeterministicEncryptionOfFilenamesWithWrongAssociatedData() {
 		final String encrypted = filenameCryptor.encryptFilename(BASE32, "test", "right".getBytes(UTF_8));
+		final byte[] ad = "wrong".getBytes(UTF_8);
 
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			filenameCryptor.decryptFilename(BASE32, encrypted, "wrong".getBytes(UTF_8));
+			filenameCryptor.decryptFilename(BASE32, encrypted, ad);
 		});
 	}
 

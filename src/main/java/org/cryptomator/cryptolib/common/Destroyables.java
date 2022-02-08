@@ -5,6 +5,9 @@ import javax.security.auth.Destroyable;
 
 public class Destroyables {
 
+	private Destroyables() {
+	}
+
 	public static void destroySilently(Destroyable destroyable) {
 		if (destroyable == null) {
 			return;

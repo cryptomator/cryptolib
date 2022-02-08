@@ -2,6 +2,7 @@ package org.cryptomator.cryptolib.ecies;
 
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.GcmTestHelper;
+import org.cryptomator.cryptolib.common.ObjectPool;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.junit.jupiter.params.converter.ConvertWith;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import javax.crypto.AEADBadTagException;
+import javax.crypto.Cipher;
 
 /**
  * Test vectors from https://csrc.nist.rip/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-spec.pdf
@@ -22,7 +24,9 @@ public class GcmWithSecretNonceTest {
 	public void setup() {
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		GcmTestHelper.reset((mode, key, params) -> {
-			CipherSupplier.AES_GCM.forEncryption(key, params);
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
+				cipher.get();
+			}
 		});
 	}
 
