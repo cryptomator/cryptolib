@@ -213,7 +213,7 @@
 									module org.cryptomator.cryptolib {
 										requires org.cryptomator.siv;
 										requires com.google.gson;
-										requires com.google.common;
+										requires transitive com.google.common;
 										requires org.slf4j;
 
 										exports org.cryptomator.cryptolib.api;
