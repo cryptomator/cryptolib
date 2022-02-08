@@ -19,7 +19,6 @@ import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
 import javax.crypto.IllegalBlockSizeException;
-
 import java.security.MessageDigest;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -27,12 +26,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 class FileNameCryptorImpl implements FileNameCryptor {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
-	private static final ThreadLocal<SivMode> AES_SIV = new ThreadLocal<SivMode>() {
-		@Override
-		protected SivMode initialValue() {
-			return new SivMode();
-		}
-	};
+	private static final ObjectPool<SivMode> AES_SIV = new ObjectPool<>(SivMode::new);
 
 	private final Masterkey masterkey;
 
@@ -43,9 +37,10 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	@Override
 	public String hashDirectoryId(String cleartextDirectoryId) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
-			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance()) {
+			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
+			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
-			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes);
+			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes);
 			byte[] hashedBytes = sha1.get().digest(encryptedBytes);
 			return BASE32.encode(hashedBytes);
 		}
@@ -53,18 +48,20 @@ class FileNameCryptorImpl implements FileNameCryptor {
 
 	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
-		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
+			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
-			byte[] encryptedBytes = AES_SIV.get().encrypt(ek, mk, cleartextBytes, associatedData);
+			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes, associatedData);
 			return encoding.encode(encryptedBytes);
 		}
 	}
 
 	@Override
 	public String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
-		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
+			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] encryptedBytes = encoding.decode(ciphertextName);
-			byte[] cleartextBytes = AES_SIV.get().decrypt(ek, mk, encryptedBytes, associatedData);
+			byte[] cleartextBytes = siv.get().decrypt(ek, mk, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
 		} catch (IllegalArgumentException | UnauthenticCiphertextException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
