@@ -30,12 +30,11 @@ import java.util.stream.Stream;
 public class CryptoLibIntegrationTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final Masterkey MASTERKEY = Masterkey.generate(RANDOM_MOCK);
 
 	private static Stream<Cryptor> getCryptors() {
 		return Stream.of(
-				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(MASTERKEY, RANDOM_MOCK),
-				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(MASTERKEY, RANDOM_MOCK)
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK),
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK)
 		);
 	}
 
