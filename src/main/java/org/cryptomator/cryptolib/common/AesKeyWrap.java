@@ -16,6 +16,9 @@ import java.security.NoSuchAlgorithmException;
 
 public class AesKeyWrap {
 
+	private AesKeyWrap() {
+	}
+
 	/**
 	 * @param kek Key encrypting key
 	 * @param key Key to be wrapped
@@ -31,8 +34,8 @@ public class AesKeyWrap {
 	}
 
 	/**
-	 * @param kek Key encrypting key
-	 * @param wrappedKey Key to be unwrapped
+	 * @param kek                 Key encrypting key
+	 * @param wrappedKey          Key to be unwrapped
 	 * @param wrappedKeyAlgorithm Key designation, i.e. algorithm to be associated with the unwrapped key.
 	 * @return Unwrapped key
 	 * @throws InvalidKeyException If unwrapping failed (i.e. wrong kek)

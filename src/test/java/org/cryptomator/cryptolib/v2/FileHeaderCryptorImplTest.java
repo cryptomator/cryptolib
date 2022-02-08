@@ -78,25 +78,28 @@ public class FileHeaderCryptorImplTest {
 
 	@Test
 	public void testDecryptionWithTooShortHeader() {
-		byte[] ciphertext = new byte[7];
+		ByteBuffer ciphertext = ByteBuffer.allocate(7);
+
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 
 	@Test
 	public void testDecryptionWithInvalidTag1() {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA=");
+		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA="));
+
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 
 	@Test
 	public void testDecryptionWithInvalidTag2() {
-		byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUa=");
+		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUa="));
+
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-			headerCryptor.decryptHeader(ByteBuffer.wrap(ciphertext));
+			headerCryptor.decryptHeader(ciphertext);
 		});
 	}
 

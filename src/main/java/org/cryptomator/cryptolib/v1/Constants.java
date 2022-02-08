@@ -10,6 +10,9 @@ package org.cryptomator.cryptolib.v1;
 
 final class Constants {
 
+	private Constants() {
+	}
+
 	static final String CONTENT_ENC_ALG = "AES";
 
 	static final int NONCE_SIZE = 16;
