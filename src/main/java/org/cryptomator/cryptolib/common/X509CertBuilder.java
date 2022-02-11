@@ -11,6 +11,7 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.jetbrains.annotations.Contract;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -66,6 +67,7 @@ public class X509CertBuilder {
 	 * @return <code>this</code>
 	 * @see <a href="https://datatracker.ietf.org/doc/html/rfc4514#section-4">RFC 4514, Examples</a>
 	 */
+	@Contract("_ -> this")
 	public X509CertBuilder withIssuer(String issuer) {
 		this.issuer = new X500Name(issuer);
 		return this;
@@ -78,6 +80,7 @@ public class X509CertBuilder {
 	 * @return <code>this</code>
 	 * @see <a href="https://datatracker.ietf.org/doc/html/rfc4514#section-4">RFC 4514, Examples</a>
 	 */
+	@Contract("_ -> this")
 	public X509CertBuilder withSubject(String subject) {
 		this.subject = new X500Name(subject);
 		return this;
@@ -89,6 +92,7 @@ public class X509CertBuilder {
 	 * @param notBefore date before which the certificate is not valid.
 	 * @return <code>this</code>
 	 */
+	@Contract("_ -> this")
 	public X509CertBuilder withNotBefore(Instant notBefore) {
 		this.notBefore = Date.from(notBefore);
 		return this;
@@ -100,6 +104,7 @@ public class X509CertBuilder {
 	 * @param notAfter date after which the certificate is not valid.
 	 * @return <code>this</code>
 	 */
+	@Contract("_ -> this")
 	public X509CertBuilder withNotAfter(Instant notAfter) {
 		this.notAfter = Date.from(notAfter);
 		return this;

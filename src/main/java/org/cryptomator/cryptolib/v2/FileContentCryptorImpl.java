@@ -14,6 +14,7 @@ import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.ObjectPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
@@ -96,7 +97,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		decryptChunk(ciphertextChunk, cleartextChunk, chunkNumber, headerImpl.getNonce(), headerImpl.getPayload().getContentKey());
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
@@ -119,7 +120,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) throws AuthenticationFailedException {
 		assert ciphertextChunk.remaining() >= GCM_NONCE_SIZE + GCM_TAG_SIZE;
 

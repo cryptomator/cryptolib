@@ -8,6 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
+import org.jetbrains.annotations.Range;
+
 import java.nio.ByteBuffer;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -81,7 +83,8 @@ public interface FileContentCryptor {
 	 * @param ciphertextSize Length of encrypted payload. Not including the {@link FileHeaderCryptor#headerSize() length of the header}.
 	 * @return Cleartext length of a <code>ciphertextSize</code>-sized ciphertext decrypted with <code>cryptor</code>.
 	 */
-	default long cleartextSize(long ciphertextSize) {
+	@Range(from = 0L, to = Long.MAX_VALUE)
+	default long cleartextSize(@Range(from = 0L, to = Long.MAX_VALUE) long ciphertextSize) {
 		checkArgument(ciphertextSize >= 0, "expected ciphertextSize to be positive, but was %s", ciphertextSize);
 		long cleartextChunkSize = cleartextChunkSize();
 		long ciphertextChunkSize = ciphertextChunkSize();
@@ -103,7 +106,8 @@ public interface FileContentCryptor {
 	 * @return Ciphertext length of a <code>cleartextSize</code>-sized cleartext encrypted with <code>cryptor</code>.
 	 * Not including the length of the header.
 	 */
-	default long ciphertextSize(long cleartextSize) {
+	@Range(from = 0L, to = Long.MAX_VALUE)
+	default long ciphertextSize(@Range(from = 0L, to = Long.MAX_VALUE) long cleartextSize) {
 		checkArgument(cleartextSize >= 0, "expected cleartextSize to be positive, but was %s", cleartextSize);
 		long cleartextChunkSize = cleartextChunkSize();
 		long ciphertextChunkSize = ciphertextChunkSize();

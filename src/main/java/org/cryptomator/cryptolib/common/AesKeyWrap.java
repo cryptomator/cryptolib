@@ -8,6 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
+import org.jetbrains.annotations.VisibleForTesting;
+
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
@@ -44,7 +46,7 @@ public class AesKeyWrap {
 		return unwrap(kek, wrappedKey, wrappedKeyAlgorithm, Cipher.SECRET_KEY);
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	static DestroyableSecretKey unwrap(DestroyableSecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException {
 		try (DestroyableSecretKey kekCopy = kek.copy();
 			 ObjectPool.Lease<Cipher> cipher = CipherSupplier.RFC3394_KEYWRAP.keyUnwrapCipher(kekCopy)) {

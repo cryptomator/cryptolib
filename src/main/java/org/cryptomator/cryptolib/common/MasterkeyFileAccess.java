@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.crypto.Mac;
 import java.io.ByteArrayInputStream;
@@ -97,7 +98,7 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	MasterkeyFile changePassphrase(MasterkeyFile masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
 		try (Masterkey key = unlock(masterkey, oldPassphrase)) {
 			return lock(key, newPassphrase, masterkey.version, masterkey.scryptCostParam);
@@ -133,7 +134,7 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	Masterkey unlock(MasterkeyFile parsedFile, CharSequence passphrase) throws InvalidPassphraseException {
 		Preconditions.checkNotNull(parsedFile);
 		Preconditions.checkArgument(parsedFile.isValid(), "Invalid masterkey file");
@@ -174,7 +175,7 @@ public class MasterkeyFileAccess {
 		persist(masterkey, out, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
 
@@ -184,7 +185,7 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	MasterkeyFile lock(Masterkey masterkey, CharSequence passphrase, int vaultVersion, int scryptCostParam) {
 		Preconditions.checkNotNull(masterkey);
 		Preconditions.checkNotNull(passphrase);

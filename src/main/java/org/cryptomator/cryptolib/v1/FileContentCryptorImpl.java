@@ -16,6 +16,7 @@ import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
 import org.cryptomator.cryptolib.common.ObjectPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -102,7 +103,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
@@ -129,7 +130,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, DestroyableSecretKey fileKey) {
 		assert ciphertextChunk.remaining() >= NONCE_SIZE + MAC_SIZE;
 
@@ -154,7 +155,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		}
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	boolean checkChunkMac(byte[] headerNonce, long chunkNumber, ByteBuffer chunkBuf) {
 		assert chunkBuf.remaining() >= NONCE_SIZE + MAC_SIZE;
 

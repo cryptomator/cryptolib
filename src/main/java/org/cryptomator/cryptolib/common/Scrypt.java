@@ -8,6 +8,8 @@ package org.cryptomator.cryptolib.common;
  *     Sebastian Stenzel - initial API and implementation
  *******************************************************************************/
 
+import org.jetbrains.annotations.Blocking;
+
 import javax.crypto.Mac;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -34,6 +36,7 @@ public class Scrypt {
 	 * @return Derived key
 	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 */
+	@Blocking
 	public static byte[] scrypt(CharSequence passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
 		// This is an attempt to get the password bytes without copies of the password being created in some dark places inside the JVM:
 		final ByteBuffer buf = UTF_8.encode(CharBuffer.wrap(passphrase));
@@ -61,6 +64,7 @@ public class Scrypt {
 	 * @author Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 */
+	@Blocking
 	public static byte[] scrypt(byte[] passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
 		if (costParam < 2 || (costParam & (costParam - 1)) != 0) {
 			throw new IllegalArgumentException("N must be a power of 2 greater than 1");

@@ -8,6 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
+import org.jetbrains.annotations.Contract;
+
 import java.security.SecureRandom;
 import java.util.ServiceLoader;
 
@@ -58,6 +60,7 @@ public interface CryptorProvider {
 	 * @param random    A native (if possible) SecureRandom used to seed internal CSPRNGs
 	 * @return A new cryptor
 	 */
+	@Contract("_, _ -> new")
 	Cryptor provide(Masterkey masterkey, SecureRandom random);
 
 }

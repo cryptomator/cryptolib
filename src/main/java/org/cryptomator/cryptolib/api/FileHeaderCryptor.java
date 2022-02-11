@@ -8,12 +8,15 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
+import org.jetbrains.annotations.Range;
+
 import java.nio.ByteBuffer;
 
 public interface FileHeaderCryptor {
 
 	FileHeader create();
 
+	@Range(from = 0, to = Integer.MAX_VALUE)
 	int headerSize();
 
 	/**

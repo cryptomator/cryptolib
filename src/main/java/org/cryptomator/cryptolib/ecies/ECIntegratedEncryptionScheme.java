@@ -1,6 +1,7 @@
 package org.cryptomator.cryptolib.ecies;
 
 import org.cryptomator.cryptolib.common.Destroyables;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.crypto.AEADBadTagException;
 import javax.crypto.KeyAgreement;
@@ -51,13 +52,13 @@ public class ECIntegratedEncryptionScheme {
 		return decrypt(receiverPrivateKey, encryptedMessage.getEphPublicKey(), encryptedMessage.getCiphertext());
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	byte[] encrypt(ECPrivateKey ephPrivateKey, ECPublicKey receiverPublicKey, byte[] plaintext) {
 		byte[] secret = ecdhAndKdf(ephPrivateKey, receiverPublicKey, ae.requiredSecretBytes());
 		return ae.encrypt(secret, plaintext);
 	}
 
-	// visible for testing
+	@VisibleForTesting
 	byte[] decrypt(ECPrivateKey receiverPrivateKey, ECPublicKey ephPublicKey, byte[] plaintext) throws AEADBadTagException {
 		byte[] secret = ecdhAndKdf(receiverPrivateKey, ephPublicKey, ae.requiredSecretBytes());
 		return ae.decrypt(secret, plaintext);

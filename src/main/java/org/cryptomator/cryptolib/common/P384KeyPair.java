@@ -1,5 +1,7 @@
 package org.cryptomator.cryptolib.common;
 
+import org.jetbrains.annotations.Contract;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -23,6 +25,7 @@ public class P384KeyPair extends ECKeyPair {
 		super(keyPair);
 	}
 
+	@Contract(value = "-> new", pure = true)
 	public static P384KeyPair generate() {
 		KeyPair keyPair = getKeyPairGenerator().generateKeyPair();
 		return new P384KeyPair(keyPair);
