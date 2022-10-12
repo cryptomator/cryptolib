@@ -252,6 +252,8 @@
 					</execution>
 				</executions>
 				<configuration>
+					<release>9</release>
+					<sourcepath>${project.basedir}/src/main/java9:${project.build.sourceDirectory}</sourcepath>
 					<tags>
 						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
 						<tag>

@@ -1,3 +1,12 @@
+import org.cryptomator.cryptolib.api.CryptorProvider;
+
+/**
+ * This module provides the highlevel cryptographic API used by Cryptomator.
+ *
+ * @uses CryptorProvider See {@link CryptorProvider#forScheme(CryptorProvider.Scheme)}
+ * @provides CryptorProvider Providers for {@link org.cryptomator.cryptolib.api.CryptorProvider.Scheme#SIV_CTRMAC SIV/CTR-then-MAC}
+ * and {@link org.cryptomator.cryptolib.api.CryptorProvider.Scheme#SIV_GCM SIV/GCM}
+ */
 module org.cryptomator.cryptolib {
 	requires static org.bouncycastle.provider; // will be shaded
 	requires static org.bouncycastle.pkix; // will be shaded
@@ -12,8 +21,8 @@ module org.cryptomator.cryptolib {
 
 	opens org.cryptomator.cryptolib.common to com.google.gson;
 
-	uses org.cryptomator.cryptolib.api.CryptorProvider;
+	uses CryptorProvider;
 
-	provides org.cryptomator.cryptolib.api.CryptorProvider
+	provides CryptorProvider
 			with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
 }
