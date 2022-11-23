@@ -10,6 +10,9 @@ package org.cryptomator.cryptolib.v2;
 
 final class Constants {
 
+	private Constants() {
+	}
+
 	static final String CONTENT_ENC_ALG = "AES";
 
 	static final int GCM_NONCE_SIZE = 12; // 96 bit IVs strongly recommended for GCM

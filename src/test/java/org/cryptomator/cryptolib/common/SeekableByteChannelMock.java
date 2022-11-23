@@ -27,7 +27,7 @@ public class SeekableByteChannelMock implements SeekableByteChannel {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		open = false;
 	}
 
@@ -46,7 +46,7 @@ public class SeekableByteChannelMock implements SeekableByteChannel {
 	}
 
 	@Override
-	public int write(ByteBuffer src) throws IOException {
+	public int write(ByteBuffer src) {
 		int num = Math.min(buf.remaining(), src.remaining());
 		ByteBuffer limitedSrc = src.asReadOnlyBuffer();
 		limitedSrc.limit(limitedSrc.position() + num);
@@ -55,12 +55,12 @@ public class SeekableByteChannelMock implements SeekableByteChannel {
 	}
 
 	@Override
-	public long position() throws IOException {
+	public long position() {
 		return buf.position();
 	}
 
 	@Override
-	public SeekableByteChannel position(long newPosition) throws IOException {
+	public SeekableByteChannel position(long newPosition) {
 		assert newPosition < Integer.MAX_VALUE;
 		buf.position((int) newPosition);
 		return this;
@@ -72,7 +72,7 @@ public class SeekableByteChannelMock implements SeekableByteChannel {
 	}
 
 	@Override
-	public SeekableByteChannel truncate(long size) throws IOException {
+	public SeekableByteChannel truncate(long size) {
 		assert size < Integer.MAX_VALUE;
 		if (size < buf.position()) {
 			buf.position((int) size);

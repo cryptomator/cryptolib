@@ -29,6 +29,8 @@ import java.util.Objects;
  */
 public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 
+	private static final String KEY_DESTROYED_ERROR = "Key has been destroyed";
+
 	private final transient byte[] key;
 	private final String algorithm;
 	private boolean destroyed;
@@ -95,13 +97,13 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 
 	@Override
 	public String getAlgorithm() {
-		Preconditions.checkState(!destroyed, "Key has been destroyed");
+		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
 		return algorithm;
 	}
 
 	@Override
 	public String getFormat() {
-		Preconditions.checkState(!destroyed, "Key has been destroyed");
+		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
 		return "RAW";
 	}
 
@@ -115,7 +117,7 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 	 */
 	@Override
 	public byte[] getEncoded() {
-		Preconditions.checkState(!destroyed, "Key has been destroyed");
+		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
 		return key;
 	}
 
@@ -124,7 +126,7 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 	 * @return New copy of <code>this</code>
 	 */
 	public DestroyableSecretKey copy() {
-		Preconditions.checkState(!destroyed, "Key has been destroyed");
+		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
 		return new DestroyableSecretKey(key, algorithm); // key will get copied by the constructor as per contract
 	}
 

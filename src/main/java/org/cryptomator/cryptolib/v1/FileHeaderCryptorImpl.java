@@ -15,6 +15,7 @@ import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
+import org.cryptomator.cryptolib.common.ObjectPool;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -61,16 +62,18 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			result.put(headerImpl.getNonce());
 
 			// encrypt payload:
-			Cipher cipher = CipherSupplier.AES_CTR.forEncryption(ek, new IvParameterSpec(headerImpl.getNonce()));
-			int encrypted = cipher.doFinal(payloadCleartextBuf, result);
-			assert encrypted == FileHeaderImpl.Payload.SIZE;
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encryptionCipher(ek, new IvParameterSpec(headerImpl.getNonce()))) {
+				int encrypted = cipher.get().doFinal(payloadCleartextBuf, result);
+				assert encrypted == FileHeaderImpl.Payload.SIZE;
+			}
 
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertextBuf = result.duplicate();
 			nonceAndCiphertextBuf.flip();
-			Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
-			mac.update(nonceAndCiphertextBuf);
-			result.put(mac.doFinal());
+			try (ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+				mac.get().update(nonceAndCiphertextBuf);
+				result.put(mac.get().doFinal());
+			}
 
 			result.flip();
 			return result;
@@ -88,7 +91,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		if (ciphertextHeaderBuf.remaining() < FileHeaderImpl.SIZE) {
 			throw new IllegalArgumentException("Malformed ciphertext header");
 		}
-		ByteBuffer buf = ciphertextHeaderBuf.asReadOnlyBuffer();
+		ByteBuffer buf = ciphertextHeaderBuf.duplicate();
 		byte[] nonce = new byte[FileHeaderImpl.NONCE_LEN];
 		buf.position(FileHeaderImpl.NONCE_POS);
 		buf.get(nonce);
@@ -100,12 +103,12 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.get(expectedMac);
 
 		// check mac:
-		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey();
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			ByteBuffer nonceAndCiphertextBuf = buf.duplicate();
 			nonceAndCiphertextBuf.position(FileHeaderImpl.NONCE_POS).limit(FileHeaderImpl.NONCE_POS + FileHeaderImpl.NONCE_LEN + FileHeaderImpl.PAYLOAD_LEN);
-			Mac mac = MacSupplier.HMAC_SHA256.withKey(mk);
-			mac.update(nonceAndCiphertextBuf);
-			byte[] calculatedMac = mac.doFinal();
+			mac.get().update(nonceAndCiphertextBuf);
+			byte[] calculatedMac = mac.get().doFinal();
 			if (!MessageDigest.isEqual(expectedMac, calculatedMac)) {
 				throw new AuthenticationFailedException("Header MAC doesn't match.");
 			}
@@ -114,10 +117,11 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
-			Cipher cipher = CipherSupplier.AES_CTR.forDecryption(ek, new IvParameterSpec(nonce));
-			assert cipher.getOutputSize(ciphertextPayload.length) == payloadCleartextBuf.remaining();
-			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
-			assert decrypted == FileHeaderImpl.Payload.SIZE;
+			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decryptionCipher(ek, new IvParameterSpec(nonce))) {
+				assert cipher.get().getOutputSize(ciphertextPayload.length) == payloadCleartextBuf.remaining();
+				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartextBuf);
+				assert decrypted == FileHeaderImpl.Payload.SIZE;
+			}
 			payloadCleartextBuf.flip();
 			FileHeaderImpl.Payload payload = FileHeaderImpl.Payload.decode(payloadCleartextBuf);
 

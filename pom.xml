@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.0.3</version>
+	<version>2.1.0</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -19,19 +19,19 @@
 
 		<!-- dependencies -->
 		<gson.version>2.8.9</gson.version>
-		<guava.version>30.1.1-jre</guava.version>
-		<siv-mode.version>1.4.3</siv-mode.version>
-		<bouncycastle.version>1.69</bouncycastle.version>
-		<slf4j.version>1.7.31</slf4j.version>
+		<guava.version>31.0.1-jre</guava.version>
+		<siv-mode.version>1.4.4</siv-mode.version>
+		<bouncycastle.version>1.70</bouncycastle.version>
+		<slf4j.version>1.7.35</slf4j.version>
 
 		<!-- test dependencies -->
-		<junit.jupiter.version>5.7.2</junit.jupiter.version>
-		<mockito.version>3.11.2</mockito.version>
+		<junit.jupiter.version>5.8.2</junit.jupiter.version>
+		<mockito.version>4.3.1</mockito.version>
 		<hamcrest.version>2.2</hamcrest.version>
-		<jmh.version>1.32</jmh.version>
+		<jmh.version>1.34</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>6.2.2</dependency-check.version>
+		<dependency-check.version>6.5.3</dependency-check.version>
 		<jacoco.version>0.8.7</jacoco.version>
 		<nexus-staging.version>1.6.8</nexus-staging.version>
 	</properties>
@@ -131,7 +131,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.0.0-M3</version>
+				<version>3.0.0</version>
 				<executions>
 					<execution>
 						<id>enforce-java</id>
@@ -151,15 +151,31 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.1</version>
+				<version>3.9.0</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
+				<executions>
+					<execution>
+						<id>java9</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<release>9</release>
+							<compileSourceRoots>
+								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+							</compileSourceRoots>
+							<multiReleaseOutput>true</multiReleaseOutput>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.4</version>
+				<version>3.4.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -179,7 +195,7 @@
 							<relocations>
 								<relocation>
 									<pattern>org.bouncycastle</pattern>
-									<shadedPattern>org.cryptomator.cryptolib.org.bouncycastle</shadedPattern>
+									<shadedPattern>org.cryptomator.cryptolib.shaded.bouncycastle</shadedPattern>
 								</relocation>
 							</relocations>
 							<filters>
@@ -195,55 +211,14 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>org.moditect</groupId>
-				<artifactId>moditect-maven-plugin</artifactId>
-				<version>1.0.0.RC1</version>
-				<executions>
-					<execution>
-						<id>add-module-infos</id>
-						<phase>package</phase>
-						<goals>
-							<goal>add-module-info</goal>
-						</goals>
-						<configuration>
-							<jvmVersion>9</jvmVersion>
-							<overwriteExistingFiles>true</overwriteExistingFiles>
-							<module>
-								<moduleInfoSource>
-									module org.cryptomator.cryptolib {
-										requires org.cryptomator.siv;
-										requires com.google.gson;
-										requires com.google.common;
-										requires org.slf4j;
-
-										exports org.cryptomator.cryptolib.api;
-										exports org.cryptomator.cryptolib.common;
-
-										opens org.cryptomator.cryptolib.common to com.google.gson;
-
-										uses org.cryptomator.cryptolib.api.CryptorProvider;
-
-										provides org.cryptomator.cryptolib.api.CryptorProvider
-											with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
-									}
-								</moduleInfoSource>
-							</module>
-							<jdepsExtraArgs>
-								<arg>--multi-release=9</arg>
-							</jdepsExtraArgs>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.22.2</version>
+				<version>3.0.0-M5</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.2.0</version>
+				<version>3.2.2</version>
 				<configuration>
 					<archive>
 						<manifestEntries>
@@ -267,7 +242,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.3.0</version>
+				<version>3.3.1</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -277,6 +252,8 @@
 					</execution>
 				</executions>
 				<configuration>
+					<release>9</release>
+					<sourcepath>${project.basedir}/src/main/java9:${project.build.sourceDirectory}</sourcepath>
 					<tags>
 						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
 						<tag>

@@ -72,21 +72,21 @@ public class Scrypt {
 			throw new IllegalArgumentException("Parameter r is too large");
 		}
 
-		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256")) {
-			Mac mac = MacSupplier.HMAC_SHA256.withKey(key);
+		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256");
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(key)) {
 
 			byte[] DK = new byte[keyLengthInBytes];
 			byte[] B = new byte[128 * blockSize * P];
 			byte[] XY = new byte[256 * blockSize];
 			byte[] V = new byte[128 * blockSize * costParam];
 
-			pbkdf2(mac, salt, 1, B, P * 128 * blockSize);
+			pbkdf2(mac.get(), salt, 1, B, P * 128 * blockSize);
 
 			for (int i = 0; i < P; i++) {
 				smix(B, i * 128 * blockSize, blockSize, costParam, V, XY);
 			}
 
-			pbkdf2(mac, B, 1, DK, keyLengthInBytes);
+			pbkdf2(mac.get(), B, 1, DK, keyLengthInBytes);
 
 			return DK;
 		}

@@ -192,9 +192,10 @@ public class MasterkeyFileAccess {
 
 		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		csprng.nextBytes(salt);
-		try (DestroyableSecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE)) {
-			final Mac mac = MacSupplier.HMAC_SHA256.withKey(masterkey.getMacKey());
-			final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
+		try (DestroyableSecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE);
+			 DestroyableSecretKey macKey = masterkey.getMacKey();
+			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(macKey)) {
+			final byte[] versionMac = mac.get().doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
 			MasterkeyFile result = new MasterkeyFile();
 			result.version = vaultVersion;
 			result.versionMac = versionMac;
