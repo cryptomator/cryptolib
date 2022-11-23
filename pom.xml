@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.1.0-SNAPSHOT</version>
+	<version>2.2.0-SNAPSHOT</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -156,10 +156,26 @@
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
 				</configuration>
+				<executions>
+					<execution>
+						<id>java9</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<release>9</release>
+							<compileSourceRoots>
+								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+							</compileSourceRoots>
+							<multiReleaseOutput>true</multiReleaseOutput>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.4</version>
+				<version>3.4.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -179,7 +195,7 @@
 							<relocations>
 								<relocation>
 									<pattern>org.bouncycastle</pattern>
-									<shadedPattern>org.cryptomator.cryptolib.org.bouncycastle</shadedPattern>
+									<shadedPattern>org.cryptomator.cryptolib.shaded.bouncycastle</shadedPattern>
 								</relocation>
 							</relocations>
 							<filters>
@@ -190,47 +206,6 @@
 									</excludes>
 								</filter>
 							</filters>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.moditect</groupId>
-				<artifactId>moditect-maven-plugin</artifactId>
-				<version>1.0.0.RC2</version>
-				<executions>
-					<execution>
-						<id>add-module-infos</id>
-						<phase>package</phase>
-						<goals>
-							<goal>add-module-info</goal>
-						</goals>
-						<configuration>
-							<jvmVersion>9</jvmVersion>
-							<overwriteExistingFiles>true</overwriteExistingFiles>
-							<module>
-								<moduleInfoSource>
-									module org.cryptomator.cryptolib {
-										requires org.cryptomator.siv;
-										requires com.google.gson;
-										requires transitive com.google.common;
-										requires org.slf4j;
-
-										exports org.cryptomator.cryptolib.api;
-										exports org.cryptomator.cryptolib.common;
-
-										opens org.cryptomator.cryptolib.common to com.google.gson;
-
-										uses org.cryptomator.cryptolib.api.CryptorProvider;
-
-										provides org.cryptomator.cryptolib.api.CryptorProvider
-											with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
-									}
-								</moduleInfoSource>
-							</module>
-							<jdepsExtraArgs>
-								<arg>--multi-release=9</arg>
-							</jdepsExtraArgs>
 						</configuration>
 					</execution>
 				</executions>
@@ -277,6 +252,8 @@
 					</execution>
 				</executions>
 				<configuration>
+					<release>9</release>
+					<sourcepath>${project.basedir}/src/main/java9:${project.build.sourceDirectory}</sourcepath>
 					<tags>
 						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
 						<tag>

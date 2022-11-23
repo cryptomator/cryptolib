@@ -7,11 +7,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
 public class P384KeyPair extends ECKeyPair {
 
@@ -20,12 +29,31 @@ public class P384KeyPair extends ECKeyPair {
 	private static final String SIGNATURE_ALG = "SHA384withECDSA";
 
 	private P384KeyPair(KeyPair keyPair) {
-		super(keyPair);
+		super(keyPair, getCurveParams());
 	}
 
 	public static P384KeyPair generate() {
 		KeyPair keyPair = getKeyPairGenerator().generateKeyPair();
 		return new P384KeyPair(keyPair);
+	}
+
+	/**
+	 * Creates a key pair from the given key specs.
+	 *
+	 * @param publicKeySpec  DER formatted public key
+	 * @param privateKeySpec DER formatted private key
+	 * @return created key pair
+	 * @throws InvalidKeySpecException If the supplied key specs are unsuitable for {@value #EC_ALG} keys
+	 */
+	public static P384KeyPair create(X509EncodedKeySpec publicKeySpec, PKCS8EncodedKeySpec privateKeySpec) throws InvalidKeySpecException {
+		try {
+			KeyFactory factory = KeyFactory.getInstance(EC_ALG);
+			PublicKey publicKey = factory.generatePublic(publicKeySpec);
+			PrivateKey privateKey = factory.generatePrivate(privateKeySpec);
+			return new P384KeyPair(new KeyPair(publicKey, privateKey));
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException(EC_ALG + " not supported");
+		}
 	}
 
 	/**
@@ -96,5 +124,17 @@ public class P384KeyPair extends ECKeyPair {
 			throw new IllegalStateException(EC_CURVE_NAME + " curve not supported");
 		}
 	}
+
+	private static ECParameterSpec getCurveParams() {
+		try {
+			AlgorithmParameters parameters = AlgorithmParameters.getInstance(EC_ALG);
+			parameters.init(new ECGenParameterSpec(EC_CURVE_NAME));
+			return parameters.getParameterSpec(ECParameterSpec.class);
+		} catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+			throw new IllegalStateException(EC_CURVE_NAME + " curve not supported");
+		}
+	}
+
+
 
 }
