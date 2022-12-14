@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.1.0</version>
+	<version>2.1.1</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -206,6 +206,29 @@
 									</excludes>
 								</filter>
 							</filters>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>jar</executable>
+							<workingDirectory>${project.build.outputDirectory}</workingDirectory>
+							<arguments>
+								<argument>--verbose</argument>
+								<argument>--update</argument>
+								<argument>--file=${project.build.directory}/${project.build.finalName}.jar</argument>
+								<argument>META-INF/versions/9/module-info.class</argument>
+							</arguments>
 						</configuration>
 					</execution>
 				</executions>
