@@ -75,7 +75,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public ByteBuffer decryptChunk(ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
-		ByteBuffer cleartextChunk = ByteBuffer.allocate(PAYLOAD_SIZE);
+		// FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888 and #35
+		ByteBuffer cleartextChunk = ByteBuffer.allocate(PAYLOAD_SIZE + GCM_TAG_SIZE);
 		decryptChunk(ciphertextChunk, cleartextChunk, chunkNumber, header, authenticate);
 		cleartextChunk.flip();
 		return cleartextChunk;

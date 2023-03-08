@@ -90,7 +90,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		buf.position(FileHeaderImpl.PAYLOAD_POS);
 		buf.get(ciphertextAndTag);
 
-		// FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888
+		// FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888 and #24
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			// decrypt payload:
