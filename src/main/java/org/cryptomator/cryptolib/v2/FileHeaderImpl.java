@@ -19,9 +19,9 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 
 	static final int NONCE_POS = 0;
 	static final int NONCE_LEN = Constants.GCM_NONCE_SIZE;
-	static final int PAYLOAD_POS = 12;
+	static final int PAYLOAD_POS = NONCE_POS + NONCE_LEN; // 12
 	static final int PAYLOAD_LEN = Payload.SIZE;
-	static final int TAG_POS = 56;
+	static final int TAG_POS = PAYLOAD_POS + PAYLOAD_LEN; // 52
 	static final int TAG_LEN = Constants.GCM_TAG_SIZE;
 	static final int SIZE = NONCE_LEN + PAYLOAD_LEN + TAG_LEN;
 
