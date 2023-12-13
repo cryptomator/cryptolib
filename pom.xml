@@ -328,8 +328,8 @@
 							<execution>
 								<goals>
 									<goal>check</goal>
-									<phase>validate</phase>
 								</goals>
+								<phase>validate</phase>
 							</execution>
 						</executions>
 					</plugin>
