@@ -31,9 +31,9 @@
 		<jmh.version>1.34</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>9.0.4</dependency-check.version>
-		<jacoco.version>0.8.7</jacoco.version>
-		<nexus-staging.version>1.6.8</nexus-staging.version>
+		<dependency-check.version>9.0.7</dependency-check.version>
+		<jacoco.version>0.8.11</jacoco.version>
+		<nexus-staging.version>1.6.13</nexus-staging.version>
 	</properties>
 
 	<licenses>
@@ -131,7 +131,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.0.0</version>
+				<version>3.4.1</version>
 				<executions>
 					<execution>
 						<id>enforce-java</id>
@@ -151,7 +151,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.9.0</version>
+				<version>3.12.1</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
@@ -175,7 +175,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.4.0</version>
+				<version>3.5.1</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -213,7 +213,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.1.0</version>
+				<version>3.1.1</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -236,12 +236,12 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M5</version>
+				<version>3.2.3</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.2.2</version>
+				<version>3.3.0</version>
 				<configuration>
 					<archive>
 						<manifestEntries>
@@ -253,7 +253,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>3.2.1</version>
+				<version>3.3.0</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
@@ -265,7 +265,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.3.1</version>
+				<version>3.6.3</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -370,7 +370,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
+						<version>3.1.0</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
