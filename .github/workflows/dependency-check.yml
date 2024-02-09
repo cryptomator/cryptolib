@@ -10,11 +10,11 @@ on:
 
 jobs:
   check-dependencies:
-    uses: skymatic/workflows/.github/workflows/run-dependency-check.yml@main
+    uses: skymatic/workflows/.github/workflows/run-dependency-check.yml@v1
     with:
       runner-os: 'ubuntu-latest'
       java-distribution: 'temurin'
-      java-version: 11
+      java-version: 21
     secrets:
       nvd-api-key: ${{ secrets.NVD_API_KEY }}
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
