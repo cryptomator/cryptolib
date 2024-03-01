@@ -27,7 +27,15 @@ public interface CryptorProvider {
 		 * AES-SIV for file name encryption
 		 * AES-GCM for content encryption
 		 */
-		SIV_GCM
+		SIV_GCM,
+
+		/**
+		 * Experimental implementation of UVF draft
+		 * @deprecated may be removed any time
+		 * @see <a href="https://github.com/encryption-alliance/unified-vault-format">UVF</a>
+		 */
+		@Deprecated
+		UVF_DRAFT,
 	}
 
 	/**
