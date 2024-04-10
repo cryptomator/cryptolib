@@ -36,12 +36,12 @@
 	</suppress>
 	<suppress>
    		<notes><![CDATA[
-   			file name: bcpkix-jdk15on-1.70.jar
+   			file name: bcprov-jdk15on-1.70.jar
 			reason: vulnerable PEMParser not used.
    		]]></notes>
-   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcpkix\-jdk15on@.*$</packageUrl>
+   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcprov\-jdk15on@.*$</packageUrl>
    		<cve>CVE-2023-33202</cve>
-	</suppress>
+</suppress>
 	<suppress>
    		<notes><![CDATA[
    			file name: bcprov-jdk15on-1.70.jar
