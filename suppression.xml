@@ -18,4 +18,36 @@
 		<vulnerabilityName>CVE-2020-8908</vulnerabilityName>
 		<cve>CVE-2020-8908</cve>
 	</suppress>
+	<suppress>
+   		<notes><![CDATA[
+   			file name: bcutil-jdk15on-1.70.jar
+			reason: vulnerable PEMParser not used.
+   		]]></notes>
+   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcutil\-jdk15on@.*$</packageUrl>
+   		<cve>CVE-2023-33202</cve>
+	</suppress>
+	<suppress>
+   		<notes><![CDATA[
+   			file name: bcpkix-jdk15on-1.70.jar
+			reason: vulnerable PEMParser not used.
+   		]]></notes>
+   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcpkix\-jdk15on@.*$</packageUrl>
+   		<cve>CVE-2023-33202</cve>
+	</suppress>
+	<suppress>
+   		<notes><![CDATA[
+   			file name: bcprov-jdk15on-1.70.jar
+			reason: vulnerable PEMParser not used.
+   		]]></notes>
+   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcprov\-jdk15on@.*$</packageUrl>
+   		<cve>CVE-2023-33202</cve>
+</suppress>
+	<suppress>
+   		<notes><![CDATA[
+   			file name: bcprov-jdk15on-1.70.jar
+			reason: Library does not use LDAP CertStore from Bouncy Castle to validate X.509 certificates
+			]]></notes>
+   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcprov\-jdk15on@.*$</packageUrl>
+   		<vulnerabilityName>CVE-2023-33201</vulnerabilityName>
+</suppress>
 </suppressions>
