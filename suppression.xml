@@ -3,8 +3,9 @@
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 	<suppress>
 		<notes><![CDATA[
-        Incorrectly matched CPE
-        ]]></notes>
+			Incorrectly matched CPE
+			]]>
+		</notes>
 		<gav regex="true">org\.cryptomator:.*</gav>
 		<cpe>cpe:/a:cryptomator:cryptomator</cpe>
 		<cve>CVE-2022-25366</cve>
@@ -12,42 +13,11 @@
 
 	<suppress>
 		<notes><![CDATA[
-  		Suppress false positive, because com.google.common.io.Files.getTempDir() is not used
-   ]]></notes>
+			Suppress false positive, because com.google.common.io.Files.getTempDir() is not used
+			]]>
+		</notes>
 		<packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@.*$</packageUrl>
 		<vulnerabilityName>CVE-2020-8908</vulnerabilityName>
 		<cve>CVE-2020-8908</cve>
 	</suppress>
-	<suppress>
-   		<notes><![CDATA[
-   			file name: bcutil-jdk15on-1.70.jar
-			reason: vulnerable PEMParser not used.
-   		]]></notes>
-   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcutil\-jdk15on@.*$</packageUrl>
-   		<cve>CVE-2023-33202</cve>
-	</suppress>
-	<suppress>
-   		<notes><![CDATA[
-   			file name: bcpkix-jdk15on-1.70.jar
-			reason: vulnerable PEMParser not used.
-   		]]></notes>
-   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcpkix\-jdk15on@.*$</packageUrl>
-   		<cve>CVE-2023-33202</cve>
-	</suppress>
-	<suppress>
-   		<notes><![CDATA[
-   			file name: bcprov-jdk15on-1.70.jar
-			reason: vulnerable PEMParser not used.
-   		]]></notes>
-   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcprov\-jdk15on@.*$</packageUrl>
-   		<cve>CVE-2023-33202</cve>
-</suppress>
-	<suppress>
-   		<notes><![CDATA[
-   			file name: bcprov-jdk15on-1.70.jar
-			reason: Library does not use LDAP CertStore from Bouncy Castle to validate X.509 certificates
-			]]></notes>
-   		<packageUrl regex="true">^pkg:maven/org\.bouncycastle/bcprov\-jdk15on@.*$</packageUrl>
-   		<vulnerabilityName>CVE-2023-33201</vulnerabilityName>
-</suppress>
 </suppressions>
