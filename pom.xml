@@ -20,8 +20,8 @@
 		<!-- dependencies -->
 		<gson.version>2.10.1</gson.version>
 		<guava.version>33.1.0-jre</guava.version>
-		<siv-mode.version>1.5.0</siv-mode.version>
-		<bouncycastle.version>1.70</bouncycastle.version>
+		<siv-mode.version>1.5.2</siv-mode.version>
+		<bouncycastle.version>1.78</bouncycastle.version>
 		<slf4j.version>2.0.12</slf4j.version>
 
 		<!-- test dependencies -->
@@ -63,7 +63,7 @@
 
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcpkix-jdk15on</artifactId>
+			<artifactId>bcpkix-jdk18on</artifactId>
 			<version>${bouncycastle.version}</version>
 			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
 			<optional>true</optional>
