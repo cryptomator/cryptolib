@@ -141,8 +141,8 @@
 						<configuration>
 							<rules>
 								<requireJavaVersion>
-									<message>You need at least JDK 11.0.3 to build this project.</message>
-									<version>[11.0.3,)</version>
+									<message>You need at least JDK 22 to build this project.</message>
+									<version>[22,)</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>
