@@ -24,11 +24,12 @@ jobs:
           gpg-private-key: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }} # Value of the GPG private key to import
           gpg-passphrase: MAVEN_GPG_PASSPHRASE # env variable for GPG private key passphrase
       - name: Enforce project version ${{ github.event.inputs.tag }}
-        run: mvn versions:set -B -DnewVersion=$GIT_TAG
+        run: mvn versions:set -B -DnewVersion="$GIT_TAG"
+        env:
+          GIT_TAG: ${{ github.event.inputs.tag }}
       - name: Deploy
         run: mvn deploy -B -DskipTests -Psign,deploy-central --no-transfer-progress
         env:
-          GIT_TAG: ${{ github.event.inputs.tag }}
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.RELEASES_GPG_PASSPHRASE }}
