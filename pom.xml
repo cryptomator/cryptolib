@@ -141,8 +141,8 @@
 						<configuration>
 							<rules>
 								<requireJavaVersion>
-									<message>You need at least JDK 11.0.3 to build this project.</message>
-									<version>[11.0.3,)</version>
+									<message>You need at least JDK 22 to build this project.</message>
+									<version>[22,)</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>
@@ -167,6 +167,20 @@
 							<release>9</release>
 							<compileSourceRoots>
 								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+							</compileSourceRoots>
+							<multiReleaseOutput>true</multiReleaseOutput>
+						</configuration>
+					</execution>
+					<execution>
+						<id>java22</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<release>22</release>
+							<compileSourceRoots>
+								<compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
 							</compileSourceRoots>
 							<multiReleaseOutput>true</multiReleaseOutput>
 						</configuration>
@@ -228,6 +242,7 @@
 								<argument>--update</argument>
 								<argument>--file=${project.build.directory}/${project.build.finalName}.jar</argument>
 								<argument>META-INF/versions/9/module-info.class</argument>
+								<argument>META-INF/versions/22/module-info.class</argument>
 							</arguments>
 						</configuration>
 					</execution>
