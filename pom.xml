@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.1.2</version>
+	<version>2.2.0</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -18,22 +18,22 @@
 		<maven.compiler.release>8</maven.compiler.release>
 
 		<!-- dependencies -->
-		<gson.version>2.8.9</gson.version>
-		<guava.version>31.0.1-jre</guava.version>
-		<siv-mode.version>1.4.4</siv-mode.version>
-		<bouncycastle.version>1.70</bouncycastle.version>
-		<slf4j.version>1.7.35</slf4j.version>
+		<gson.version>2.10.1</gson.version>
+		<guava.version>33.1.0-jre</guava.version>
+		<siv-mode.version>1.5.2</siv-mode.version>
+		<bouncycastle.version>1.78.1</bouncycastle.version>
+		<slf4j.version>2.0.13</slf4j.version>
 
 		<!-- test dependencies -->
-		<junit.jupiter.version>5.8.2</junit.jupiter.version>
-		<mockito.version>4.3.1</mockito.version>
+		<junit.jupiter.version>5.10.2</junit.jupiter.version>
+		<mockito.version>5.11.0</mockito.version>
 		<hamcrest.version>2.2</hamcrest.version>
-		<jmh.version>1.34</jmh.version>
+		<jmh.version>1.37</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>6.5.3</dependency-check.version>
-		<jacoco.version>0.8.7</jacoco.version>
-		<nexus-staging.version>1.6.8</nexus-staging.version>
+		<dependency-check.version>9.1.0</dependency-check.version>
+		<jacoco.version>0.8.12</jacoco.version>
+		<nexus-staging.version>1.6.13</nexus-staging.version>
 	</properties>
 
 	<licenses>
@@ -63,7 +63,7 @@
 
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcpkix-jdk15on</artifactId>
+			<artifactId>bcpkix-jdk18on</artifactId>
 			<version>${bouncycastle.version}</version>
 			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
 			<optional>true</optional>
@@ -131,7 +131,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.0.0</version>
+				<version>3.4.1</version>
 				<executions>
 					<execution>
 						<id>enforce-java</id>
@@ -141,8 +141,8 @@
 						<configuration>
 							<rules>
 								<requireJavaVersion>
-									<message>You need at least JDK 11.0.3 to build this project.</message>
-									<version>[11.0.3,)</version>
+									<message>You need at least JDK 22 to build this project.</message>
+									<version>[22,)</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>
@@ -151,7 +151,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.9.0</version>
+				<version>3.13.0</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
@@ -171,11 +171,25 @@
 							<multiReleaseOutput>true</multiReleaseOutput>
 						</configuration>
 					</execution>
+					<execution>
+						<id>java22</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<release>22</release>
+							<compileSourceRoots>
+								<compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
+							</compileSourceRoots>
+							<multiReleaseOutput>true</multiReleaseOutput>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.4.0</version>
+				<version>3.5.3</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -213,7 +227,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.1.0</version>
+				<version>3.2.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -228,6 +242,7 @@
 								<argument>--update</argument>
 								<argument>--file=${project.build.directory}/${project.build.finalName}.jar</argument>
 								<argument>META-INF/versions/9/module-info.class</argument>
+								<argument>META-INF/versions/22/module-info.class</argument>
 							</arguments>
 						</configuration>
 					</execution>
@@ -236,12 +251,12 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M5</version>
+				<version>3.2.5</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.2.2</version>
+				<version>3.4.1</version>
 				<configuration>
 					<archive>
 						<manifestEntries>
@@ -253,7 +268,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>3.2.1</version>
+				<version>3.3.1</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
@@ -265,7 +280,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.3.1</version>
+				<version>3.6.3</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -317,17 +332,19 @@
 						<artifactId>dependency-check-maven</artifactId>
 						<version>${dependency-check.version}</version>
 						<configuration>
-							<cveValidForHours>24</cveValidForHours>
+							<nvdValidForHours>24</nvdValidForHours>
 							<failBuildOnCVSS>0</failBuildOnCVSS>
 							<skipTestScope>true</skipTestScope>
 							<detail>true</detail>
 							<suppressionFile>suppression.xml</suppressionFile>
+							<nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
 						</configuration>
 						<executions>
 							<execution>
 								<goals>
 									<goal>check</goal>
 								</goals>
+								<phase>validate</phase>
 							</execution>
 						</executions>
 					</plugin>
@@ -368,7 +385,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
+						<version>3.2.4</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>

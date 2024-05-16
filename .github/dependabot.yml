@@ -1,0 +1,45 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      java-test-dependencies:
+        patterns:
+          - "org.junit.jupiter:*"
+          - "org.mockito:*"
+          - "org.hamcrest:*"
+          - "org.openjdk.jmh:*"
+      maven-build-plugins:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.codehaus.mojo:exec-maven-plugin"
+          - "org.jacoco:jacoco-maven-plugin"
+          - "org.owasp:dependency-check-maven"
+          - "org.sonatype.plugins:nexus-staging-maven-plugin"
+      java-production-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "org.junit.jupiter:*"
+          - "org.mockito:*"
+          - "org.hamcrest:*"
+          - "org.openjdk.jmh:*"
+          - "org.apache.maven.plugins:*"
+          - "org.codehaus.mojo:exec-maven-plugin"
+          - "org.jacoco:jacoco-maven-plugin"
+          - "org.owasp:dependency-check-maven"
+          - "org.sonatype.plugins:nexus-staging-maven-plugin"
+
+
+  - package-ecosystem: "github-actions"
+    directory: "/" # even for `.github/workflows`
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - "ci"
