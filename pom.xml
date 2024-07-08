@@ -31,7 +31,7 @@
 		<jmh.version>1.37</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>9.2.0</dependency-check.version>
+		<dependency-check.version>10.0.2</dependency-check.version>
 		<jacoco.version>0.8.12</jacoco.version>
 		<nexus-staging.version>1.7.0</nexus-staging.version>
 	</properties>
