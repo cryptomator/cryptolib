@@ -15,7 +15,7 @@ jobs:
           ref: "refs/tags/${{ github.event.inputs.tag }}"
       - uses: actions/setup-java@v4
         with:
-          java-version: 21
+          java-version: 22
           distribution: 'temurin'
           cache: 'maven'
           server-id: ossrh # Value of the distributionManagement/repository/id field of the pom.xml
@@ -24,7 +24,9 @@ jobs:
           gpg-private-key: ${{ secrets.RELEASES_GPG_PRIVATE_KEY }} # Value of the GPG private key to import
           gpg-passphrase: MAVEN_GPG_PASSPHRASE # env variable for GPG private key passphrase
       - name: Enforce project version ${{ github.event.inputs.tag }}
-        run: mvn versions:set -B -DnewVersion=${{ github.event.inputs.tag }}
+        run: mvn versions:set -B -DnewVersion="$GIT_TAG"
+        env:
+          GIT_TAG: ${{ github.event.inputs.tag }}
       - name: Deploy
         run: mvn deploy -B -DskipTests -Psign,deploy-central --no-transfer-progress
         env:

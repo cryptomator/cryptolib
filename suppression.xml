@@ -3,8 +3,9 @@
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 	<suppress>
 		<notes><![CDATA[
-        Incorrectly matched CPE
-        ]]></notes>
+			Incorrectly matched CPE
+			]]>
+		</notes>
 		<gav regex="true">org\.cryptomator:.*</gav>
 		<cpe>cpe:/a:cryptomator:cryptomator</cpe>
 		<cve>CVE-2022-25366</cve>
@@ -12,8 +13,9 @@
 
 	<suppress>
 		<notes><![CDATA[
-  		Suppress false positive, because com.google.common.io.Files.getTempDir() is not used
-   ]]></notes>
+			Suppress false positive, because com.google.common.io.Files.getTempDir() is not used
+			]]>
+		</notes>
 		<packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@.*$</packageUrl>
 		<vulnerabilityName>CVE-2020-8908</vulnerabilityName>
 		<cve>CVE-2020-8908</cve>
