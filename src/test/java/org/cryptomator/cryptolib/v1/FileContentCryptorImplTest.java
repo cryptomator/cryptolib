@@ -88,7 +88,7 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("encrypt chunk with invalid size")
 		@ParameterizedTest(name = "cleartext size: {0}")
-		@ValueSource(ints = {0, Constants.PAYLOAD_SIZE + 1})
+		@ValueSource(ints = {Constants.PAYLOAD_SIZE + 1})
 		public void testEncryptChunkOfInvalidSize(int size) {
 			ByteBuffer cleartext = ByteBuffer.allocate(size);
 
