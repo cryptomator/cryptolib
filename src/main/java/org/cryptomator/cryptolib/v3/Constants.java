@@ -18,7 +18,6 @@ final class Constants {
 	static final String CONTENT_ENC_ALG = "AES";
 
 	static final byte[] UVF_MAGIC_BYTES = "UVF0".getBytes(StandardCharsets.US_ASCII);
-	static final byte[] KEY_ID = "KEY0".getBytes(StandardCharsets.US_ASCII);
 
 	static final int GCM_NONCE_SIZE = 12; // 96 bit IVs strongly recommended for GCM
 	static final int PAYLOAD_SIZE = 32 * 1024;

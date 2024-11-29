@@ -10,12 +10,13 @@ package org.cryptomator.cryptolib.v1;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 
 import java.security.SecureRandom;
 
 class CryptorImpl implements Cryptor {
 
-	private final Masterkey masterkey;
+	private final PerpetualMasterkey masterkey;
 	private final FileContentCryptorImpl fileContentCryptor;
 	private final FileHeaderCryptorImpl fileHeaderCryptor;
 	private final FileNameCryptorImpl fileNameCryptor;
@@ -24,7 +25,7 @@ class CryptorImpl implements Cryptor {
 	 * Package-private constructor.
 	 * Use {@link CryptorProviderImpl#provide(Masterkey, SecureRandom)} to obtain a Cryptor instance.
 	 */
-	CryptorImpl(Masterkey masterkey, SecureRandom random) {
+	CryptorImpl(PerpetualMasterkey masterkey, SecureRandom random) {
 		this.masterkey = masterkey;
 		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey, random);
 		this.fileContentCryptor = new FileContentCryptorImpl(masterkey, random);

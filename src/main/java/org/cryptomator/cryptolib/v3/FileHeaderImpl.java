@@ -15,14 +15,14 @@ import javax.security.auth.Destroyable;
 
 class FileHeaderImpl implements FileHeader, Destroyable {
 
-	static final int UVF_HEADER_LEN = Constants.UVF_MAGIC_BYTES.length + Constants.KEY_ID.length;
+	static final int UVF_GENERAL_HEADERS_LEN = Constants.UVF_MAGIC_BYTES.length + Integer.BYTES;
 	static final int NONCE_POS = 8;
 	static final int NONCE_LEN = Constants.GCM_NONCE_SIZE;
 	static final int CONTENT_KEY_POS = NONCE_POS + NONCE_LEN; // 20
 	static final int CONTENT_KEY_LEN = 32;
 	static final int TAG_POS = CONTENT_KEY_POS + CONTENT_KEY_LEN; // 52
 	static final int TAG_LEN = Constants.GCM_TAG_SIZE;
-	static final int SIZE = UVF_HEADER_LEN + NONCE_LEN + CONTENT_KEY_LEN + TAG_LEN;
+	static final int SIZE = UVF_GENERAL_HEADERS_LEN + NONCE_LEN + CONTENT_KEY_LEN + TAG_LEN;
 
 	private final byte[] nonce;
 	private final DestroyableSecretKey contentKey;

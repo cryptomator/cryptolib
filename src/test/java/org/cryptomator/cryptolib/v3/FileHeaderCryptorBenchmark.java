@@ -1,18 +1,8 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v3;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.api.PerpetualMasterkey;
-import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.api.UVFMasterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -27,6 +17,9 @@ import org.openjdk.jmh.annotations.Warmup;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,15 +33,22 @@ import java.util.concurrent.TimeUnit;
 public class FileHeaderCryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final PerpetualMasterkey MASTERKEY = new PerpetualMasterkey(new byte[64]);
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU="));
+	private static final byte[] KDF_SALT =  Base64.getDecoder().decode("HE4OP+2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY=");
+	private static final UVFMasterkey MASTERKEY = new UVFMasterkey(SEEDS, KDF_SALT, -1540072521, -1540072521);
 	private static final FileHeaderCryptorImpl HEADER_CRYPTOR = new FileHeaderCryptorImpl(MASTERKEY, RANDOM_MOCK);
-	private FileHeader header;
+
 	private ByteBuffer validHeaderCiphertextBuf;
+	private FileHeader header;
 
 	@Setup(Level.Iteration)
+	public void prepareData() {
+		validHeaderCiphertextBuf = HEADER_CRYPTOR.encryptHeader(HEADER_CRYPTOR.create());
+	}
+
+	@Setup(Level.Invocation)
 	public void shuffleData() {
 		header = HEADER_CRYPTOR.create();
-		validHeaderCiphertextBuf = HEADER_CRYPTOR.encryptHeader(header);
 	}
 
 	@Benchmark

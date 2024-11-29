@@ -1,23 +1,7 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
-package org.cryptomator.cryptolib.v1;
+package org.cryptomator.cryptolib.v3;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
-
-import org.cryptomator.cryptolib.api.PerpetualMasterkey;
+import org.cryptomator.cryptolib.api.UVFMasterkey;
 import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
-import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -30,6 +14,16 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Needs to be compiled via maven as the JMH annotation processor needs to do stuff...
  */
@@ -41,7 +35,9 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentEncryptorBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final PerpetualMasterkey MASTERKEY = new PerpetualMasterkey(new byte[64]);
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU="));
+	private static final byte[] KDF_SALT =  Base64.getDecoder().decode("HE4OP+2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY=");
+	private static final UVFMasterkey MASTERKEY = new UVFMasterkey(SEEDS, KDF_SALT, -1540072521, -1540072521);
 
 	private CryptorImpl cryptor;
 
@@ -91,39 +87,39 @@ public class FileContentEncryptorBenchmark {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() {
 			open = false;
 		}
 
 		@Override
-		public int read(ByteBuffer dst) throws IOException {
+		public int read(ByteBuffer dst) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public int write(ByteBuffer src) throws IOException {
+		public int write(ByteBuffer src) {
 			int delta = src.remaining();
 			src.position(src.position() + delta);
 			return delta;
 		}
 
 		@Override
-		public long position() throws IOException {
+		public long position() {
 			return 0;
 		}
 
 		@Override
-		public SeekableByteChannel position(long newPosition) throws IOException {
+		public SeekableByteChannel position(long newPosition) {
 			return this;
 		}
 
 		@Override
-		public long size() throws IOException {
+		public long size() {
 			return 0;
 		}
 
 		@Override
-		public SeekableByteChannel truncate(long size) throws IOException {
+		public SeekableByteChannel truncate(long size) {
 			return this;
 		}
 
