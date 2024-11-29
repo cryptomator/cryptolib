@@ -57,7 +57,8 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			// general header:
 			result.put(Constants.UVF_MAGIC_BYTES);
 			result.order(ByteOrder.BIG_ENDIAN).putInt(seedId);
-			ByteBuffer generalHeaderBuf = result.duplicate().position(0).limit(FileHeaderImpl.UVF_GENERAL_HEADERS_LEN);
+			ByteBuffer generalHeaderBuf = result.duplicate();
+			generalHeaderBuf.position(0).limit(FileHeaderImpl.UVF_GENERAL_HEADERS_LEN);
 
 			// format-specific header:
 			result.put(headerImpl.getNonce());
@@ -90,7 +91,8 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			throw new IllegalArgumentException("Not an UVF0 file");
 		}
 		int seedId = buf.order(ByteOrder.BIG_ENDIAN).getInt();
-		ByteBuffer generalHeaderBuf = buf.duplicate().position(0).limit(FileHeaderImpl.UVF_GENERAL_HEADERS_LEN);
+		ByteBuffer generalHeaderBuf = buf.duplicate();
+		generalHeaderBuf.position(0).limit(FileHeaderImpl.UVF_GENERAL_HEADERS_LEN);
 
 		// format-specific header:
 		byte[] nonce = new byte[FileHeaderImpl.NONCE_LEN];
