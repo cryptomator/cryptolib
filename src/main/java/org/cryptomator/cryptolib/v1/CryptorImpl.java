@@ -1,14 +1,7 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 
@@ -48,6 +41,11 @@ class CryptorImpl implements Cryptor {
 	public FileNameCryptorImpl fileNameCryptor() {
 		assertNotDestroyed();
 		return fileNameCryptor;
+	}
+
+	@Override
+	public FileNameCryptor fileNameCryptor(int revision) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

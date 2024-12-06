@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2015, 2016 Sebastian Stenzel and others.
- * This file is licensed under the terms of the MIT license.
- * See the LICENSE.txt file for more info.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v3;
 
 import com.google.common.io.BaseEncoding;
@@ -14,14 +6,17 @@ import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.RevolvingMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.MacSupplier;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.Mac;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Arrays;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -30,44 +25,43 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final ObjectPool<SivMode> AES_SIV = new ObjectPool<>(SivMode::new);
 
-	private final RevolvingMasterkey masterkey;
+	private final DestroyableSecretKey sivKey;
+	private final DestroyableSecretKey hmacKey;
 
-	FileNameCryptorImpl(RevolvingMasterkey masterkey) {
-		this.masterkey = masterkey;
-	}
-
-	private DestroyableSecretKey todo() {
-		return masterkey.subKey(0, 64, "TODO".getBytes(StandardCharsets.US_ASCII), "AES");
+	/**
+	 * Create a file name encryption/decryption tool for a certain masterkey revision.
+	 * @param masterkey The masterkey from which to derive subkeys
+	 * @param revision Which masterkey revision to use
+	 * @throws IllegalArgumentException If no subkey could be derived for the given revision
+	 */
+	FileNameCryptorImpl(RevolvingMasterkey masterkey, int revision) throws IllegalArgumentException {
+		this.sivKey = masterkey.subKey(revision, 64, "siv".getBytes(StandardCharsets.US_ASCII), "AES");
+		this.hmacKey = masterkey.subKey(revision, 32, "hmac".getBytes(StandardCharsets.US_ASCII), "HMAC");
 	}
 
 	@Override
-	public String hashDirectoryId(String cleartextDirectoryId) {
-		try (DestroyableSecretKey ek = todo(); DestroyableSecretKey mk = todo(); //FIXME
-			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
-			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
-			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes);
-			byte[] hashedBytes = sha1.get().digest(encryptedBytes);
-			return BASE32.encode(hashedBytes);
+	public String hashDirectoryId(byte[] cleartextDirectoryId) {
+		try (DestroyableSecretKey key = this.hmacKey.copy();
+			 ObjectPool.Lease<Mac> hmacSha256 = MacSupplier.HMAC_SHA256.keyed(key)) {
+			byte[] hash = hmacSha256.get().doFinal(cleartextDirectoryId);
+			return BASE32.encode(hash, 0, 20); // only use first 160 bits
 		}
 	}
 
 	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
-		try (DestroyableSecretKey ek = todo(); DestroyableSecretKey mk = todo(); //FIXME
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		try (DestroyableSecretKey key = this.sivKey.copy(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
-			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes, associatedData);
+			byte[] encryptedBytes = siv.get().encrypt(key, cleartextBytes, associatedData);
 			return encoding.encode(encryptedBytes);
 		}
 	}
 
 	@Override
 	public String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
-		try (DestroyableSecretKey ek = todo(); DestroyableSecretKey mk = todo(); //FIXME
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		try (DestroyableSecretKey key = this.sivKey.copy(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] encryptedBytes = encoding.decode(ciphertextName);
-			byte[] cleartextBytes = siv.get().decrypt(ek, mk, encryptedBytes, associatedData);
+			byte[] cleartextBytes = siv.get().decrypt(key, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);
 		} catch (IllegalArgumentException | UnauthenticCiphertextException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);

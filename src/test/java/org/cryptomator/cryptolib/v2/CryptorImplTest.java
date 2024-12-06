@@ -1,14 +1,5 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.hamcrest.CoreMatchers;
@@ -16,6 +7,8 @@ import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.security.SecureRandom;
@@ -49,6 +42,14 @@ public class CryptorImplTest {
 	public void testGetFileNameCryptor() {
 		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
 			MatcherAssert.assertThat(cryptor.fileNameCryptor(), CoreMatchers.instanceOf(FileNameCryptorImpl.class));
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = {-1, 0, 1, 42, 1337})
+	public void testGetFileNameCryptorWithRevisions(int revision) {
+		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
+			Assertions.assertThrows(UnsupportedOperationException.class, () -> cryptor.fileNameCryptor(revision));
 		}
 	}
 

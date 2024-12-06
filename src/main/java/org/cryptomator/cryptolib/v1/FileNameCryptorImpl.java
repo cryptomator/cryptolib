@@ -36,12 +36,11 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	}
 
 	@Override
-	public String hashDirectoryId(String cleartextDirectoryId) {
+	public String hashDirectoryId(byte[] cleartextDirectoryId) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
 			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
 			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
-			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
-			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes);
+			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextDirectoryId);
 			byte[] hashedBytes = sha1.get().digest(encryptedBytes);
 			return BASE32.encode(hashedBytes);
 		}

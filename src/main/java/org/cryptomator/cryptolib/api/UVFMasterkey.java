@@ -9,9 +9,9 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.HKDFHelper;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -20,6 +20,8 @@ import java.util.Map;
  * @see <a href="https://github.com/encryption-alliance/unified-vault-format/tree/develop/vault%20metadata#encrypted-content">UVF Vault Metadata Contents</a>
  */
 public class UVFMasterkey implements RevolvingMasterkey {
+
+	private static final byte[] ROOT_DIRID_KDF_CONTEXT = "rootDirId".getBytes(StandardCharsets.US_ASCII);
 
 	@VisibleForTesting final Map<Integer, byte[]> seeds;
 	@VisibleForTesting final byte[] kdfSalt;
@@ -67,6 +69,10 @@ public class UVFMasterkey implements RevolvingMasterkey {
 		return latestSeed;
 	}
 
+	public byte[] rootDirId() {
+		return HKDFHelper.hkdfSha512(kdfSalt, seeds.get(initialSeed), ROOT_DIRID_KDF_CONTEXT, 32);
+	}
+
 	@Override
 	public DestroyableSecretKey subKey(int revision, int length, byte[] context, String algorithm) {
 		if (isDestroyed()) {
@@ -79,7 +85,7 @@ public class UVFMasterkey implements RevolvingMasterkey {
 		try {
 			return new DestroyableSecretKey(subkey, algorithm);
 		} finally {
-			//Arrays.fill(subkey, (byte) 0x00);
+			Arrays.fill(subkey, (byte) 0x00);
 		}
 	}
 

@@ -48,4 +48,13 @@ class UVFMasterkeyTest {
 		}
 	}
 
+	@Test
+	public void testRootDirId() {
+		Map<Integer, byte[]> seeds = Collections.singletonMap(-1540072521, Base64.getDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU="));
+		byte[] kdfSalt =  Base64.getDecoder().decode("HE4OP+2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY=");
+		try (UVFMasterkey masterkey = new UVFMasterkey(seeds, kdfSalt, -1540072521, -1540072521)) {
+			Assertions.assertEquals("24UBEDeGu5taq7U4GqyA0MXUXb9HTYS6p3t9vvHGJAc=", Base64.getEncoder().encodeToString(masterkey.rootDirId()));
+		}
+	}
+
 }
