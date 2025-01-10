@@ -78,7 +78,7 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("encrypt chunk with invalid size")
 		@ParameterizedTest(name = "cleartext size: {0}")
-		@ValueSource(ints = {0, org.cryptomator.cryptolib.v2.Constants.PAYLOAD_SIZE + 1})
+		@ValueSource(ints = {0, Constants.PAYLOAD_SIZE + 1})
 		public void testEncryptChunkOfInvalidSize(int size) {
 			ByteBuffer cleartext = ByteBuffer.allocate(size);
 
@@ -147,7 +147,7 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("decrypt chunk with invalid size")
 		@ParameterizedTest(name = "ciphertext size: {0}")
-		@ValueSource(ints = {0, Constants.GCM_NONCE_SIZE + Constants.GCM_TAG_SIZE - 1, org.cryptomator.cryptolib.v2.Constants.CHUNK_SIZE + 1})
+		@ValueSource(ints = {0, Constants.GCM_NONCE_SIZE + Constants.GCM_TAG_SIZE - 1, Constants.CHUNK_SIZE + 1})
 		public void testDecryptChunkOfInvalidSize(int size) {
 			ByteBuffer ciphertext = ByteBuffer.allocate(size);
 
