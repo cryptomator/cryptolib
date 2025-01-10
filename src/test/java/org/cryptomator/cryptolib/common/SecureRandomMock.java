@@ -8,15 +8,13 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import java.nio.ByteBuffer;
+import com.google.common.collect.Iterators;
+import com.google.common.primitives.Bytes;
+
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Random;
-
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.primitives.Bytes;
 
 public class SecureRandomMock extends SecureRandom {
 
