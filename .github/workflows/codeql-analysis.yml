@@ -19,7 +19,7 @@ jobs:
         fetch-depth: 2
     - uses: actions/setup-java@v4
       with:
-        java-version: 22
+        java-version: 23
         distribution: 'temurin'
         cache: 'maven'
     - name: Initialize CodeQL

@@ -15,7 +15,7 @@ jobs:
           ref: "refs/tags/${{ github.event.inputs.tag }}"
       - uses: actions/setup-java@v4
         with:
-          java-version: 22
+          java-version: 23
           distribution: 'temurin'
           cache: 'maven'
           server-id: ossrh # Value of the distributionManagement/repository/id field of the pom.xml
