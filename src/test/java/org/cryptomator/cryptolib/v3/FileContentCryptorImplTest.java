@@ -151,7 +151,7 @@ public class FileContentCryptorImplTest {
 			dst.flip();
 			byte[] ciphertext = new byte[dst.remaining()];
 			dst.get(ciphertext);
-			byte[] expected = BaseEncoding.base64().decode("VVZGMKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqqqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=");
+			byte[] expected = BaseEncoding.base64().decode("dXZmAKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHkO9MqYKLnd7ZjeoyNpG1Nmqqqqqqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=");
 			Assertions.assertArrayEquals(expected, ciphertext);
 		}
 
@@ -193,7 +193,7 @@ public class FileContentCryptorImplTest {
 		@Test
 		@DisplayName("decrypt file")
 		public void testFileDecryption() throws IOException {
-			byte[] ciphertext = BaseEncoding.base64().decode("VVZGMKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqqqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=");
+			byte[] ciphertext = BaseEncoding.base64().decode("dXZmAKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHkO9MqYKLnd7ZjeoyNpG1Nmqqqqqqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=");
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			ByteBuffer result = ByteBuffer.allocate(20);
@@ -236,9 +236,9 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt unauthentic file")
 		@ParameterizedTest(name = "unauthentic {1} in first chunk")
 		@CsvSource(value = {
-				"VVZGMKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqxqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=, NONCE",
-				"VVZGMKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqqqqqqqqqqqqq3JxX9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=, CONTENT",
-				"VVZGMKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqqqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2x=, TAG",
+				"dXZmAKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqxqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=, NONCE",
+				"dXZmAKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqqqqqqqqqqqqq3JxX9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2Q=, CONTENT",
+				"dXZmAKQ0W7dVVVVVVVVVVVVVVVUcowd1FbpM8eMdABtmD/I3RO0n0rV2V3iDYXb++QHGHvqv753T4D5ZzPJtHYv0+ieqqqqqqqqqqqqqqqq3J+X9CFc6SL5hl+6GdwnBgUYN6cPnoxF4C2x=, TAG",
 		})
 		public void testDecryptionWithUnauthenticFirstChunk(String fileData, String ignored) throws IOException {
 			byte[] ciphertext = BaseEncoding.base64().decode(fileData);
