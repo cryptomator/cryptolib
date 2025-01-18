@@ -10,9 +10,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -48,32 +48,32 @@ public class UVFIntegrationTest {
 
 	@Test
 	public void testRootDirId() {
-		var rootDirId = masterkey.rootDirId();
+		byte[] rootDirId = masterkey.rootDirId();
 		Assertions.assertEquals("5WEGzwKkAHPwVSjT2Brr3P3zLz7oMiNpMn/qBvht7eM=", Base64.getEncoder().encodeToString(rootDirId));
 	}
 
 	@Test
 	public void testRootDirHash() {
-		var rootDirId = Base64.getDecoder().decode("5WEGzwKkAHPwVSjT2Brr3P3zLz7oMiNpMn/qBvht7eM=");
-		var dirHash = cryptor.fileNameCryptor(masterkey.firstRevision()).hashDirectoryId(rootDirId);
+		byte[] rootDirId = Base64.getDecoder().decode("5WEGzwKkAHPwVSjT2Brr3P3zLz7oMiNpMn/qBvht7eM=");
+		String dirHash = cryptor.fileNameCryptor(masterkey.firstRevision()).hashDirectoryId(rootDirId);
 		Assertions.assertEquals("RKHZLENL3PQIW6GZHE3KRRRGLFBHWHRU", dirHash);
 	}
 
 	@Test
 	public void testContentEncryption() throws IOException {
-		var baos = new java.io.ByteArrayOutputStream();
+		ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
 		try (EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(Channels.newChannel(baos), cryptor)) {
 			int written = ch.write(StandardCharsets.UTF_8.encode("Hello, World!"));
 			Assertions.assertEquals(13, written);
 		}
-		var result = baos.toByteArray();
+		byte[] result = baos.toByteArray();
 		Assertions.assertArrayEquals(new byte[]{0x75, 0x76, 0x66, 0x00}, Arrays.copyOf(result, 4));
 		Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("QBsJFo"), Arrays.copyOfRange(result, 4, 8));
 	}
 
 	@Test
 	public void testContentDecryption() throws IOException {
-		var input = Base64.getDecoder().decode("dXZmAEAbCRZxhI5sPsMiMlAQpwXzsOw13pBVX/yHydeHoOlHBS9d+wVpmRvzUKx5HQUmtGR4avjDownMNOS4sBX8G0SVc5dIADKnGUOwgF20kkc/EpGzrrgkS3C9lZoRPPOj3dm2ONfy3UkT1Q==");
+		byte[] input = Base64.getDecoder().decode("dXZmAEAbCRZxhI5sPsMiMlAQpwXzsOw13pBVX/yHydeHoOlHBS9d+wVpmRvzUKx5HQUmtGR4avjDownMNOS4sBX8G0SVc5dIADKnGUOwgF20kkc/EpGzrrgkS3C9lZoRPPOj3dm2ONfy3UkT1Q==");
 		ByteBuffer result = ByteBuffer.allocate(100);
 		try (DecryptingReadableByteChannel ch = new DecryptingReadableByteChannel(Channels.newChannel(new ByteArrayInputStream(input)), cryptor, true)) {
 			int read = ch.read(result);
