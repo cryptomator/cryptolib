@@ -2,6 +2,8 @@ package org.cryptomator.cryptolib.v3;
 
 final class Constants {
 
+	public static final String UVF_FILE_EXT = ".uvf";
+
 	private Constants() {
 	}
 

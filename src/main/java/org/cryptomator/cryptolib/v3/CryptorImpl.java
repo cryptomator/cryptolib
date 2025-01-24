@@ -1,14 +1,7 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v3;
 
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.DirectoryContentCryptor;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.RevolvingMasterkey;
@@ -21,6 +14,7 @@ class CryptorImpl implements Cryptor {
 	private final RevolvingMasterkey masterkey;
 	private final FileContentCryptorImpl fileContentCryptor;
 	private final FileHeaderCryptorImpl fileHeaderCryptor;
+	private final SecureRandom random;
 
 	/**
 	 * Package-private constructor.
@@ -30,6 +24,7 @@ class CryptorImpl implements Cryptor {
 		this.masterkey = masterkey;
 		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey, random);
 		this.fileContentCryptor = new FileContentCryptorImpl(random);
+		this.random = random;
 	}
 
 	@Override
@@ -53,6 +48,11 @@ class CryptorImpl implements Cryptor {
 	public FileNameCryptor fileNameCryptor(int revision) {
 		assertNotDestroyed();
 		return new FileNameCryptorImpl(masterkey, revision);
+	}
+
+	@Override
+	public DirectoryContentCryptorImpl directoryContentCryptor() {
+		return new DirectoryContentCryptorImpl(masterkey, random, this);
 	}
 
 	@Override

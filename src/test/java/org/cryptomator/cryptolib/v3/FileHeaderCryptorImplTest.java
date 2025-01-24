@@ -56,7 +56,7 @@ public class FileHeaderCryptorImplTest {
 	@Test
 	public void testEncryption() {
 		DestroyableSecretKey contentKey = new DestroyableSecretKey(new byte[FileHeaderImpl.CONTENT_KEY_LEN], "AES");
-		FileHeader header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], contentKey);
+		FileHeader header = new FileHeaderImpl(-1540072521, new byte[FileHeaderImpl.NONCE_LEN], contentKey);
 
 		ByteBuffer ciphertext = headerCryptor.encryptHeader(header);
 

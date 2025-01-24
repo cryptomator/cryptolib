@@ -16,7 +16,6 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Base64;
 
 import static org.cryptomator.cryptolib.v3.Constants.GCM_TAG_SIZE;
 
@@ -33,13 +32,13 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	}
 
 	@Override
-	public FileHeader create() {
+	public FileHeaderImpl create() {
 		byte[] nonce = new byte[FileHeaderImpl.NONCE_LEN];
 		random.nextBytes(nonce);
 		byte[] contentKeyBytes = new byte[FileHeaderImpl.CONTENT_KEY_LEN];
 		random.nextBytes(contentKeyBytes);
 		DestroyableSecretKey contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
-		return new FileHeaderImpl(nonce, contentKey);
+		return new FileHeaderImpl(masterkey.currentRevision(), nonce, contentKey);
 	}
 
 	@Override
@@ -50,13 +49,12 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	@Override
 	public ByteBuffer encryptHeader(FileHeader header) {
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		int seedId = masterkey.currentRevision();
-		try (DestroyableSecretKey headerKey = masterkey.subKey(seedId, 32, KDF_CONTEXT, "AES")) {
+		try (DestroyableSecretKey headerKey = masterkey.subKey(headerImpl.getSeedId(), 32, KDF_CONTEXT, "AES")) {
 			ByteBuffer result = ByteBuffer.allocate(FileHeaderImpl.SIZE);
 
 			// general header:
 			result.put(Constants.UVF_MAGIC_BYTES);
-			result.order(ByteOrder.BIG_ENDIAN).putInt(seedId);
+			result.order(ByteOrder.BIG_ENDIAN).putInt(headerImpl.getSeedId());
 			ByteBuffer generalHeaderBuf = result.duplicate();
 			generalHeaderBuf.position(0).limit(FileHeaderImpl.UVF_GENERAL_HEADERS_LEN);
 
@@ -115,7 +113,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 			byte[] contentKeyBytes = new byte[FileHeaderImpl.CONTENT_KEY_LEN];
 			payloadCleartextBuf.get(contentKeyBytes);
 			DestroyableSecretKey contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
-			return new FileHeaderImpl(nonce, contentKey);
+			return new FileHeaderImpl(seedId, nonce, contentKey);
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Header tag mismatch.", e);
 		} catch (ShortBufferException e) {

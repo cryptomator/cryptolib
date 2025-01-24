@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v3;
 
 import org.cryptomator.cryptolib.api.FileHeader;
@@ -24,13 +16,15 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 	static final int TAG_LEN = Constants.GCM_TAG_SIZE;
 	static final int SIZE = UVF_GENERAL_HEADERS_LEN + NONCE_LEN + CONTENT_KEY_LEN + TAG_LEN;
 
+	private final int seedId;
 	private final byte[] nonce;
 	private final DestroyableSecretKey contentKey;
 
-	FileHeaderImpl(byte[] nonce, DestroyableSecretKey contentKey) {
+	FileHeaderImpl(int seedId, byte[] nonce, DestroyableSecretKey contentKey) {
 		if (nonce.length != NONCE_LEN) {
 			throw new IllegalArgumentException("Invalid nonce length. (was: " + nonce.length + ", required: " + NONCE_LEN + ")");
 		}
+		this.seedId = seedId;
 		this.nonce = nonce;
 		this.contentKey = contentKey;
 	}
@@ -41,6 +35,10 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 		} else {
 			throw new IllegalArgumentException("Unsupported header type " + header.getClass());
 		}
+	}
+	
+	public int getSeedId() {
+		return seedId;
 	}
 
 	public byte[] getNonce() {
