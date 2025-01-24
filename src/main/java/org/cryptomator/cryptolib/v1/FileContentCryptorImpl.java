@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
@@ -140,7 +132,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			final ByteBuffer payloadBuf = ciphertextChunk.duplicate();
-			payloadBuf.position(NONCE_SIZE).limit(ciphertextChunk.limit() - MAC_SIZE);
+			payloadBuf.limit(ciphertextChunk.limit() - MAC_SIZE);
 
 			// payload:
 			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decryptionCipher(fk, new IvParameterSpec(nonce))) {
@@ -160,7 +152,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 		// get nonce + payload
 		final ByteBuffer nonceAndPayload = chunkBuf.duplicate();
-		nonceAndPayload.position(0).limit(chunkBuf.limit() - MAC_SIZE);
+		nonceAndPayload.limit(chunkBuf.limit() - MAC_SIZE);
 		final ByteBuffer expectedMacBuf = chunkBuf.duplicate();
 		expectedMacBuf.position(chunkBuf.limit() - MAC_SIZE);
 
