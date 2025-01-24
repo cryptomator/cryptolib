@@ -107,6 +107,15 @@ public class FileContentCryptorImplTest {
 		}
 
 		@Test
+		@DisplayName("encrypt chunk with offset ByteBuffer")
+		public void testChunkEncryptionWithByteBufferView() {
+			ByteBuffer cleartext = US_ASCII.encode("12345hello world12345").position(5).limit(16);
+			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
+			ByteBuffer expected = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
+			Assertions.assertEquals(expected, ciphertext);
+		}
+
+		@Test
 		@DisplayName("encrypt chunk with too small ciphertext buffer")
 		public void testChunkEncryptionWithBufferUnderflow() {
 			ByteBuffer cleartext = US_ASCII.encode(CharBuffer.wrap("hello world"));
@@ -152,6 +161,17 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt chunk")
 		public void testChunkDecryption() throws AuthenticationFailedException {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og="));
+			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
+			ByteBuffer expected = US_ASCII.encode("hello world");
+			Assertions.assertEquals(expected, cleartext);
+		}
+
+		@Test
+		@DisplayName("decrypt chunk with offset ByteBuffer")
+		public void testChunkDecryptionWithByteBufferView() throws AuthenticationFailedException {
+			byte[] actualCiphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=");
+			ByteBuffer ciphertext = ByteBuffer.allocate(100);
+			ciphertext.position(10).put(actualCiphertext).position(10).limit(10 + actualCiphertext.length);
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			ByteBuffer expected = US_ASCII.encode("hello world");
 			Assertions.assertEquals(expected, cleartext);

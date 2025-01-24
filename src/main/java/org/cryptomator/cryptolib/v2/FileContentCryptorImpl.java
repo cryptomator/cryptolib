@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
@@ -131,7 +123,6 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			final ByteBuffer payloadBuf = ciphertextChunk.duplicate();
-			payloadBuf.position(GCM_NONCE_SIZE);
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:

@@ -123,7 +123,6 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			final ByteBuffer payloadBuf = ciphertextChunk.duplicate();
-			payloadBuf.position(GCM_NONCE_SIZE);
 			assert payloadBuf.remaining() >= GCM_TAG_SIZE;
 
 			// payload:
