@@ -45,8 +45,10 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor<DirectoryMe
 		}
 		int headerSize = cryptor.fileHeaderCryptor().headerSize();
 		ByteBuffer buffer = ByteBuffer.wrap(ciphertext);
-		ByteBuffer headerBuf = buffer.duplicate().position(0).limit(headerSize);
-		ByteBuffer contentBuf = buffer.duplicate().position(headerSize);
+		ByteBuffer headerBuf = buffer.duplicate();
+		headerBuf.position(0).limit(headerSize);
+		ByteBuffer contentBuf = buffer.duplicate();
+		contentBuf.position(headerSize);
 		FileHeaderImpl header = cryptor.fileHeaderCryptor().decryptHeader(headerBuf);
 		ByteBuffer plaintext = cryptor.fileContentCryptor().decryptChunk(contentBuf, 0, header, true);
 		assert plaintext.remaining() == 32;

@@ -136,7 +136,8 @@ public class FileContentCryptorImplTest {
 				Arrays.fill(nonce, (byte) 0x33);
 				return null;
 			}).when(CSPRNG).nextBytes(Mockito.any());
-			ByteBuffer cleartext = US_ASCII.encode("12345hello world12345").position(5).limit(16);
+			ByteBuffer cleartext = US_ASCII.encode("12345hello world12345");
+			cleartext.position(5).limit(16);
 			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
 			byte[] expected = BaseEncoding.base64().decode("MzMzMzMzMzMzMzMzbYvL7CusRmzk70Kn1QxFA5WQg/hgKeba4bln");
 			Assertions.assertEquals(ByteBuffer.wrap(expected), ciphertext);
@@ -210,7 +211,9 @@ public class FileContentCryptorImplTest {
 		public void testChunkDecryptionWithByteBufferView() throws AuthenticationFailedException {
 			byte[] actualCiphertext = BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv");
 			ByteBuffer ciphertext = ByteBuffer.allocate(100);
-			ciphertext.position(10).put(actualCiphertext).position(10).limit(10 + actualCiphertext.length);
+			ciphertext.position(10);
+			ciphertext.put(actualCiphertext);
+			ciphertext.position(10).limit(10 + actualCiphertext.length);
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			ByteBuffer expected = US_ASCII.encode("hello world");
 			Assertions.assertEquals(expected, cleartext);
