@@ -36,7 +36,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	 */
 	FileNameCryptorImpl(RevolvingMasterkey masterkey, int revision) throws IllegalArgumentException {
 		this.sivKey = masterkey.subKey(revision, 64, "siv".getBytes(StandardCharsets.US_ASCII), "AES");
-		this.hmacKey = masterkey.subKey(revision, 32, "hmac".getBytes(StandardCharsets.US_ASCII), "HMAC");
+		this.hmacKey = masterkey.subKey(revision, 64, "hmac".getBytes(StandardCharsets.US_ASCII), "HMAC");
 	}
 
 	@Override

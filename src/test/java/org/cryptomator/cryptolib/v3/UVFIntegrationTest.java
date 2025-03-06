@@ -56,7 +56,7 @@ public class UVFIntegrationTest {
 	public void testRootDirHash() {
 		byte[] rootDirId = Base64.getDecoder().decode("5WEGzwKkAHPwVSjT2Brr3P3zLz7oMiNpMn/qBvht7eM=");
 		String dirHash = cryptor.fileNameCryptor(masterkey.firstRevision()).hashDirectoryId(rootDirId);
-		Assertions.assertEquals("RKHZLENL3PQIW6GZHE3KRRRGLFBHWHRU", dirHash);
+		Assertions.assertEquals("RZK7ZH7KBXULNEKBMGX3CU42PGUIAIX4", dirHash);
 	}
 
 	@Test

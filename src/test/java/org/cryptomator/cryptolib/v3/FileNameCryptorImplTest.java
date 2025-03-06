@@ -79,7 +79,7 @@ public class FileNameCryptorImplTest {
 	public void testHashRootDirId() {
 		final byte[] rootDirId = Base64.getDecoder().decode("24UBEDeGu5taq7U4GqyA0MXUXb9HTYS6p3t9vvHGJAc=");
 		final String hashedRootDirId = filenameCryptor.hashDirectoryId(rootDirId);
-		Assertions.assertEquals("CRAX3I7DP4HQHA6TDQDMJQUTDKDJ7QG5", hashedRootDirId);
+		Assertions.assertEquals("6DYU3E5BTPAZ4DWEQPQK3AIHX2DXSPHG", hashedRootDirId);
 	}
 
 	@DisplayName("hash directory id for random directory ids")
