@@ -1,10 +1,10 @@
 package org.cryptomator.cryptolib.api;
 
-public interface DirectoryContentCryptor<T extends DirectoryMetadata> {
+public interface DirectoryContentCryptor {
 
-	T rootDirectoryMetadata(); // TODO required?
+	DirectoryMetadata rootDirectoryMetadata();
 
-	T newDirectoryMetadata();
+	DirectoryMetadata newDirectoryMetadata();
 
 	/**
 	 * Decrypts the given directory metadata.
@@ -13,7 +13,7 @@ public interface DirectoryContentCryptor<T extends DirectoryMetadata> {
 	 * @return The decrypted directory metadata.
 	 * @throws AuthenticationFailedException If the ciphertext is unauthentic.
 	 */
-	T decryptDirectoryMetadata(byte[] ciphertext) throws AuthenticationFailedException;
+	DirectoryMetadata decryptDirectoryMetadata(byte[] ciphertext) throws AuthenticationFailedException;
 
 	/**
 	 * Encrypts the given directory metadata.
@@ -21,11 +21,11 @@ public interface DirectoryContentCryptor<T extends DirectoryMetadata> {
 	 * @param directoryMetadata The directory metadata to encrypt.
 	 * @return The encrypted directory metadata.
 	 */
-	byte[] encryptDirectoryMetadata(T directoryMetadata);
+	byte[] encryptDirectoryMetadata(DirectoryMetadata directoryMetadata);
 
-	Decrypting fileNameDecryptor(T directoryMetadata);
+	Decrypting fileNameDecryptor(DirectoryMetadata directoryMetadata);
 
-	Encrypting fileNameEncryptor(T directoryMetadata);
+	Encrypting fileNameEncryptor(DirectoryMetadata directoryMetadata);
 
 	@FunctionalInterface
 	interface Decrypting {

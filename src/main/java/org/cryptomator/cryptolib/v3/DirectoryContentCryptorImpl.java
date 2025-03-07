@@ -3,6 +3,7 @@ package org.cryptomator.cryptolib.v3;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.DirectoryContentCryptor;
+import org.cryptomator.cryptolib.api.DirectoryMetadata;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.RevolvingMasterkey;
 
@@ -11,7 +12,7 @@ import java.security.SecureRandom;
 
 import static org.cryptomator.cryptolib.v3.Constants.UVF_FILE_EXT;
 
-class DirectoryContentCryptorImpl implements DirectoryContentCryptor<DirectoryMetadataImpl> {
+class DirectoryContentCryptorImpl implements DirectoryContentCryptor {
 
 	private final RevolvingMasterkey masterkey;
 	private final SecureRandom random;
@@ -58,8 +59,9 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor<DirectoryMe
 	}
 
 	@Override
-	public byte[] encryptDirectoryMetadata(DirectoryMetadataImpl directoryMetadata) {
-		ByteBuffer cleartextBuf = ByteBuffer.wrap(directoryMetadata.dirId());
+	public byte[] encryptDirectoryMetadata(DirectoryMetadata directoryMetadata) {
+		DirectoryMetadataImpl metadataImpl = DirectoryMetadataImpl.cast(directoryMetadata);
+		ByteBuffer cleartextBuf = ByteBuffer.wrap(metadataImpl.dirId());
 		FileHeader header = cryptor.fileHeaderCryptor().create();
 		ByteBuffer headerBuf = cryptor.fileHeaderCryptor().encryptHeader(header);
 		ByteBuffer contentBuf = cryptor.fileContentCryptor().encryptChunk(cleartextBuf, 0, header);
@@ -72,9 +74,10 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor<DirectoryMe
 	// FILE NAMES
 
 	@Override
-	public Decrypting fileNameDecryptor(DirectoryMetadataImpl directoryMetadata) {
-		byte[] dirId = directoryMetadata.dirId();
-		FileNameCryptorImpl fileNameCryptor = new FileNameCryptorImpl(masterkey, directoryMetadata.seedId());
+	public Decrypting fileNameDecryptor(DirectoryMetadata directoryMetadata) {
+		DirectoryMetadataImpl metadataImpl = DirectoryMetadataImpl.cast(directoryMetadata);
+		byte[] dirId = metadataImpl.dirId();
+		FileNameCryptorImpl fileNameCryptor = cryptor.fileNameCryptor(metadataImpl.seedId());
 		return ciphertextAndExt -> {
 			String ciphertext = removeExtension(ciphertextAndExt);
 			return fileNameCryptor.decryptFilename(BaseEncoding.base64Url(), ciphertext, dirId);
@@ -82,9 +85,10 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor<DirectoryMe
 	}
 
 	@Override
-	public Encrypting fileNameEncryptor(DirectoryMetadataImpl directoryMetadata) {
-		byte[] dirId = directoryMetadata.dirId();
-		FileNameCryptorImpl fileNameCryptor = new FileNameCryptorImpl(masterkey, directoryMetadata.seedId());
+	public Encrypting fileNameEncryptor(DirectoryMetadata directoryMetadata) {
+		DirectoryMetadataImpl metadataImpl = DirectoryMetadataImpl.cast(directoryMetadata);
+		byte[] dirId = metadataImpl.dirId();
+		FileNameCryptorImpl fileNameCryptor = cryptor.fileNameCryptor(metadataImpl.seedId());
 		return plaintext -> {
 			String ciphertext = fileNameCryptor.encryptFilename(BaseEncoding.base64Url(), plaintext, dirId);
 			return ciphertext + UVF_FILE_EXT;

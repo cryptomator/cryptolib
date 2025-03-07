@@ -12,6 +12,14 @@ class DirectoryMetadataImpl implements DirectoryMetadata {
 		this.dirId = dirId;
 	}
 
+	static DirectoryMetadataImpl cast(DirectoryMetadata metadata) {
+		if (metadata instanceof DirectoryMetadataImpl) {
+			return (DirectoryMetadataImpl) metadata;
+		} else {
+			throw new IllegalArgumentException("Unsupported metadata type " + metadata.getClass());
+		}
+	}
+
 	public byte[] dirId() {
 		return dirId;
 	}

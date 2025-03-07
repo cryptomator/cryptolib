@@ -45,7 +45,7 @@ class CryptorImpl implements Cryptor {
 	}
 
 	@Override
-	public FileNameCryptor fileNameCryptor(int revision) {
+	public FileNameCryptorImpl fileNameCryptor(int revision) {
 		assertNotDestroyed();
 		return new FileNameCryptorImpl(masterkey, revision);
 	}
