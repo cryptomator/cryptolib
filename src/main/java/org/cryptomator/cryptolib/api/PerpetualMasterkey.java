@@ -69,6 +69,13 @@ public class PerpetualMasterkey implements Masterkey {
 	}
 
 	@Override
+	public byte[] rootDirId() {
+		// root directory ID is specified to be the "empty string":
+		// https://docs.cryptomator.org/security/vault/#directory-ids
+		return new byte[0];
+	}
+
+	@Override
 	public boolean isDestroyed() {
 		return destroyed;
 	}

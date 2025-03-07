@@ -28,8 +28,8 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor {
 
 	@Override
 	public DirectoryMetadataImpl rootDirectoryMetadata() {
-		// TODO
-		return null;
+		byte[] dirId = masterkey.rootDirId();
+		return new DirectoryMetadataImpl(masterkey.firstRevision(), dirId);
 	}
 
 	@Override

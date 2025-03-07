@@ -69,6 +69,7 @@ public class UVFMasterkey implements RevolvingMasterkey {
 		return latestSeed;
 	}
 
+	@Override
 	public byte[] rootDirId() {
 		return HKDFHelper.hkdfSha512(kdfSalt, seeds.get(initialSeed), ROOT_DIRID_KDF_CONTEXT, 32);
 	}

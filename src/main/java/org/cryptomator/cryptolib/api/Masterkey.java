@@ -32,6 +32,12 @@ public interface Masterkey extends Destroyable, AutoCloseable {
 		}
 	}
 
+	/**
+	 * Returns the immutable directory ID of the root directory. This ID is unique for each vault and deterministically depends on the masterkey.
+	 * @return a unique but deterministic byte sequence
+	 */
+	byte[] rootDirId();
+
 	@Override
 	void destroy();
 
