@@ -30,11 +30,27 @@ import java.util.stream.Stream;
 public class CryptoLibIntegrationTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
+	private static final String UVF_PAYLOAD = "{\n" +
+			"    \"fileFormat\": \"AES-256-GCM-32k\",\n" +
+			"    \"nameFormat\": \"AES-SIV-512-B64URL\",\n" +
+			"    \"seeds\": {\n" +
+			"        \"HDm38g\": \"ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs=\",\n" +
+			"        \"gBryKw\": \"PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0=\",\n" +
+			"        \"QBsJFg\": \"Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y=\"\n" +
+			"    },\n" +
+			"    \"initialSeed\": \"HDm38i\",\n" +
+			"    \"latestSeed\": \"QBsJFo\",\n" +
+			"    \"kdf\": \"HKDF-SHA512\",\n" +
+			"    \"kdfSalt\": \"NIlr89R7FhochyP4yuXZmDqCnQ0dBB3UZ2D+6oiIjr8=\",\n" +
+			"    \"org.example.customfield\": 42\n" +
+			"}";
 
 	private static Stream<Cryptor> getCryptors() {
 		return Stream.of(
 				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK),
-				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK)
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK),
+				CryptorProvider.forScheme(CryptorProvider.Scheme.UVF_DRAFT).provide(UVFMasterkey.fromDecryptedPayload(UVF_PAYLOAD), RANDOM_MOCK)
+
 		);
 	}
 
