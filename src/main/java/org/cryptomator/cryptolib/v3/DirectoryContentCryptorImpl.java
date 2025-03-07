@@ -71,6 +71,17 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor {
 		return result;
 	}
 
+	// DIR PATH
+
+	@Override
+	public String dirPath(DirectoryMetadata directoryMetadata) {
+		DirectoryMetadataImpl metadataImpl = DirectoryMetadataImpl.cast(directoryMetadata);
+		FileNameCryptorImpl fileNameCryptor = cryptor.fileNameCryptor(metadataImpl.seedId());
+		String dirIdStr = fileNameCryptor.hashDirectoryId(metadataImpl.dirId());
+		assert dirIdStr.length() == 32;
+		return "d/" + dirIdStr.substring(0, 2) + "/" + dirIdStr.substring(2);
+	}
+
 	// FILE NAMES
 
 	@Override

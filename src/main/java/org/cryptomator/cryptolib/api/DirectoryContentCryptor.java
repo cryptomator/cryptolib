@@ -23,6 +23,14 @@ public interface DirectoryContentCryptor {
 	 */
 	byte[] encryptDirectoryMetadata(DirectoryMetadata directoryMetadata);
 
+	/**
+	 * Computes the directory path for the given directory metadata.
+	 * @param directoryMetadata The directory metadata.
+	 * @return A path relative to the vault's root (i.e. starting with `d/`).
+	 * @apiNote The path contains "/" as separator and does neither start nor end with a "/".
+	 */
+	String dirPath(DirectoryMetadata directoryMetadata);
+
 	Decrypting fileNameDecryptor(DirectoryMetadata directoryMetadata);
 
 	Encrypting fileNameEncryptor(DirectoryMetadata directoryMetadata);
