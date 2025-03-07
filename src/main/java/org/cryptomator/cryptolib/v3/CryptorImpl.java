@@ -2,6 +2,7 @@ package org.cryptomator.cryptolib.v3;
 
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.DirectoryContentCryptor;
+import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.RevolvingMasterkey;
@@ -13,7 +14,6 @@ class CryptorImpl implements Cryptor {
 
 	private final RevolvingMasterkey masterkey;
 	private final FileContentCryptorImpl fileContentCryptor;
-	private final FileHeaderCryptorImpl fileHeaderCryptor;
 	private final SecureRandom random;
 
 	/**
@@ -22,7 +22,6 @@ class CryptorImpl implements Cryptor {
 	 */
 	CryptorImpl(RevolvingMasterkey masterkey, SecureRandom random) {
 		this.masterkey = masterkey;
-		this.fileHeaderCryptor = new FileHeaderCryptorImpl(masterkey, random);
 		this.fileContentCryptor = new FileContentCryptorImpl(random);
 		this.random = random;
 	}
@@ -35,8 +34,13 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public FileHeaderCryptorImpl fileHeaderCryptor() {
+		return fileHeaderCryptor(masterkey.currentRevision());
+	}
+
+	@Override
+	public FileHeaderCryptorImpl fileHeaderCryptor(int revision) {
 		assertNotDestroyed();
-		return fileHeaderCryptor;
+		return new FileHeaderCryptorImpl(masterkey, random, revision);
 	}
 
 	@Override

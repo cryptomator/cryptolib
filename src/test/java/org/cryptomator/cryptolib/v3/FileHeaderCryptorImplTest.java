@@ -31,7 +31,7 @@ public class FileHeaderCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		headerCryptor = new FileHeaderCryptorImpl(MASTERKEY, RANDOM_MOCK);
+		headerCryptor = new FileHeaderCryptorImpl(MASTERKEY, RANDOM_MOCK, -1540072521);
 
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
 		GcmTestHelper.reset((mode, key, params) -> {

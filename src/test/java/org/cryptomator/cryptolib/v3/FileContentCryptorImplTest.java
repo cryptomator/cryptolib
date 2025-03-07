@@ -63,7 +63,7 @@ public class FileContentCryptorImplTest {
 	@BeforeEach
 	public void setup() {
 		header = new FileHeaderImpl(-1540072521, new byte[FileHeaderImpl.NONCE_LEN], new DestroyableSecretKey(new byte[FileHeaderImpl.CONTENT_KEY_LEN], "AES"));
-		headerCryptor = new FileHeaderCryptorImpl(MASTERKEY, CSPRNG);
+		headerCryptor = new FileHeaderCryptorImpl(MASTERKEY, CSPRNG, -1540072521);
 		fileContentCryptor = new FileContentCryptorImpl(CSPRNG);
 		cryptor = Mockito.mock(Cryptor.class);
 		Mockito.when(cryptor.fileContentCryptor()).thenReturn(fileContentCryptor);

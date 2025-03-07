@@ -1,6 +1,7 @@
 package org.cryptomator.cryptolib.v1;
 
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.PerpetualMasterkey;
@@ -35,6 +36,11 @@ class CryptorImpl implements Cryptor {
 	public FileHeaderCryptorImpl fileHeaderCryptor() {
 		assertNotDestroyed();
 		return fileHeaderCryptor;
+	}
+
+	@Override
+	public FileHeaderCryptor fileHeaderCryptor(int revision) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

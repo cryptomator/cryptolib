@@ -25,10 +25,12 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
 	private final RevolvingMasterkey masterkey;
 	private final SecureRandom random;
+	private final int revision;
 
-	FileHeaderCryptorImpl(RevolvingMasterkey masterkey, SecureRandom random) {
+	FileHeaderCryptorImpl(RevolvingMasterkey masterkey, SecureRandom random, int revision) {
 		this.masterkey = masterkey;
 		this.random = random;
+		this.revision = revision;
 	}
 
 	@Override
@@ -38,7 +40,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		byte[] contentKeyBytes = new byte[FileHeaderImpl.CONTENT_KEY_LEN];
 		random.nextBytes(contentKeyBytes);
 		DestroyableSecretKey contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
-		return new FileHeaderImpl(masterkey.currentRevision(), nonce, contentKey);
+		return new FileHeaderImpl(revision, nonce, contentKey);
 	}
 
 	@Override

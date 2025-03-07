@@ -62,7 +62,7 @@ class DirectoryContentCryptorImpl implements DirectoryContentCryptor {
 	public byte[] encryptDirectoryMetadata(DirectoryMetadata directoryMetadata) {
 		DirectoryMetadataImpl metadataImpl = DirectoryMetadataImpl.cast(directoryMetadata);
 		ByteBuffer cleartextBuf = ByteBuffer.wrap(metadataImpl.dirId());
-		FileHeader header = cryptor.fileHeaderCryptor().create();
+		FileHeader header = cryptor.fileHeaderCryptor(metadataImpl.seedId()).create();
 		ByteBuffer headerBuf = cryptor.fileHeaderCryptor().encryptHeader(header);
 		ByteBuffer contentBuf = cryptor.fileContentCryptor().encryptChunk(cleartextBuf, 0, header);
 		byte[] result = new byte[headerBuf.remaining() + contentBuf.remaining()];
