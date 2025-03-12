@@ -16,7 +16,6 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
@@ -151,11 +150,11 @@ public class UVFIntegrationTest {
 	}
 
 	private static byte[] encryptFile(ByteBuffer cleartext, Cryptor cryptor) throws IOException {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			 EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(Channels.newChannel(baos), cryptor)) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try (EncryptingWritableByteChannel ch = new EncryptingWritableByteChannel(Channels.newChannel(baos), cryptor)) {
 			ch.write(cleartext);
-			return baos.toByteArray();
 		}
+		return baos.toByteArray();
 	}
 
 	private static byte[] decryptFile(ByteBuffer ciphertext, Cryptor cryptor) throws IOException {
