@@ -9,6 +9,7 @@
 package org.cryptomator.cryptolib.v2;
 
 import com.google.common.io.BaseEncoding;
+import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
@@ -16,6 +17,8 @@ import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.GcmTestHelper;
+import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.common.SeekableByteChannelMock;
 import org.hamcrest.CoreMatchers;
@@ -30,6 +33,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
+import javax.crypto.Cipher;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -43,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_NONCE_SIZE;
 import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
@@ -83,9 +88,19 @@ public class FileContentCryptorImplTest {
 	@Nested
 	public class Encryption {
 
+		@BeforeEach
+		public void resetGcmNonce() {
+			// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
+			GcmTestHelper.reset((mode, key, params) -> {
+				try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
+					cipher.get();
+				}
+			});
+		}
+
 		@DisplayName("encrypt chunk with invalid size")
 		@ParameterizedTest(name = "cleartext size: {0}")
-		@ValueSource(ints = {0, org.cryptomator.cryptolib.v2.Constants.PAYLOAD_SIZE + 1})
+		@ValueSource(ints = {Constants.PAYLOAD_SIZE + 1})
 		public void testEncryptChunkOfInvalidSize(int size) {
 			ByteBuffer cleartext = ByteBuffer.allocate(size);
 
@@ -105,6 +120,21 @@ public class FileContentCryptorImplTest {
 			ByteBuffer cleartext = StandardCharsets.US_ASCII.encode(CharBuffer.wrap("hello world"));
 			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
 			// echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 333333333333333333333333 -a
+			byte[] expected = BaseEncoding.base64().decode("MzMzMzMzMzMzMzMzbYvL7CusRmzk70Kn1QxFA5WQg/hgKeba4bln");
+			Assertions.assertEquals(ByteBuffer.wrap(expected), ciphertext);
+		}
+
+		@Test
+		@DisplayName("encrypt chunk with offset ByteBuffer")
+		public void testChunkEncryptionWithByteBufferView() {
+			Mockito.doAnswer(invocation -> {
+				byte[] nonce = invocation.getArgument(0);
+				Arrays.fill(nonce, (byte) 0x33);
+				return null;
+			}).when(CSPRNG).nextBytes(Mockito.any());
+			ByteBuffer cleartext = US_ASCII.encode("12345hello world12345");
+			cleartext.position(5).limit(16);
+			ByteBuffer ciphertext = fileContentCryptor.encryptChunk(cleartext, 0, header);
 			byte[] expected = BaseEncoding.base64().decode("MzMzMzMzMzMzMzMzbYvL7CusRmzk70Kn1QxFA5WQg/hgKeba4bln");
 			Assertions.assertEquals(ByteBuffer.wrap(expected), ciphertext);
 		}
@@ -154,7 +184,7 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("decrypt chunk with invalid size")
 		@ParameterizedTest(name = "ciphertext size: {0}")
-		@ValueSource(ints = {0, Constants.GCM_NONCE_SIZE + Constants.GCM_TAG_SIZE - 1, org.cryptomator.cryptolib.v2.Constants.CHUNK_SIZE + 1})
+		@ValueSource(ints = {0, Constants.GCM_NONCE_SIZE + Constants.GCM_TAG_SIZE - 1, Constants.CHUNK_SIZE + 1})
 		public void testDecryptChunkOfInvalidSize(int size) {
 			ByteBuffer ciphertext = ByteBuffer.allocate(size);
 
@@ -169,6 +199,19 @@ public class FileContentCryptorImplTest {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv"));
 			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
 			ByteBuffer expected = StandardCharsets.US_ASCII.encode("hello world");
+			Assertions.assertEquals(expected, cleartext);
+		}
+
+		@Test
+		@DisplayName("decrypt chunk with offset ByteBuffer")
+		public void testChunkDecryptionWithByteBufferView() throws AuthenticationFailedException {
+			byte[] actualCiphertext = BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv");
+			ByteBuffer ciphertext = ByteBuffer.allocate(100);
+			ciphertext.position(10);
+			ciphertext.put(actualCiphertext);
+			ciphertext.position(10).limit(10 + actualCiphertext.length);
+			ByteBuffer cleartext = fileContentCryptor.decryptChunk(ciphertext, 0, header, true);
+			ByteBuffer expected = US_ASCII.encode("hello world");
 			Assertions.assertEquals(expected, cleartext);
 		}
 

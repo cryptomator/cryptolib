@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
 import org.cryptomator.cryptolib.api.Cryptor;
@@ -66,10 +58,8 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 
 	private void encryptAndFlushBuffer() throws IOException {
 		cleartextBuffer.flip();
-		if (cleartextBuffer.hasRemaining()) {
-			ByteBuffer ciphertextBuffer = cryptor.fileContentCryptor().encryptChunk(cleartextBuffer, chunkNumber++, header);
-			delegate.write(ciphertextBuffer);
-		}
+		ByteBuffer ciphertextBuffer = cryptor.fileContentCryptor().encryptChunk(cleartextBuffer, chunkNumber++, header);
+		delegate.write(ciphertextBuffer);
 		cleartextBuffer.clear();
 	}
 

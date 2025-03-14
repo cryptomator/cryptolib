@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
 import org.cryptomator.cryptolib.api.Cryptor;
@@ -49,7 +41,8 @@ public class EncryptingWritableByteChannelTest {
 		Mockito.when(contentCryptor.encryptChunk(Mockito.any(ByteBuffer.class), Mockito.anyLong(), Mockito.any(FileHeader.class))).thenAnswer(invocation -> {
 			ByteBuffer input = invocation.getArgument(0);
 			String inStr = UTF_8.decode(input).toString();
-			return ByteBuffer.wrap(inStr.toUpperCase().getBytes(UTF_8));
+			String outStr = "<" + inStr.toUpperCase() + ">";
+			return UTF_8.encode(outStr);
 		});
 	}
 
@@ -60,7 +53,7 @@ public class EncryptingWritableByteChannelTest {
 			ch.write(UTF_8.encode("hello world 2"));
 		}
 		dstFile.flip();
-		Assertions.assertArrayEquals("hhhhhHELLO WORLD 1HELLO WORLD 2".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
+		Assertions.assertEquals("hhhhh<HELLO WORL><D 1HELLO W><ORLD 2>", UTF_8.decode(dstFile).toString());
 	}
 
 	@Test
@@ -69,7 +62,7 @@ public class EncryptingWritableByteChannelTest {
 			// empty, so write nothing
 		}
 		dstFile.flip();
-		Assertions.assertArrayEquals("hhhhh".getBytes(), Arrays.copyOfRange(dstFile.array(), 0, dstFile.remaining()));
+		Assertions.assertEquals("hhhhh<>", UTF_8.decode(dstFile).toString());
 	}
 
 }

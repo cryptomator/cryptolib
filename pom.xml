@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.2.0</version>
+	<version>2.2.1</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -18,22 +18,22 @@
 		<maven.compiler.release>8</maven.compiler.release>
 
 		<!-- dependencies -->
-		<gson.version>2.10.1</gson.version>
-		<guava.version>33.1.0-jre</guava.version>
-		<siv-mode.version>1.5.2</siv-mode.version>
-		<bouncycastle.version>1.78.1</bouncycastle.version>
-		<slf4j.version>2.0.13</slf4j.version>
+		<gson.version>2.12.1</gson.version>
+		<guava.version>33.4.0-jre</guava.version>
+		<siv-mode.version>1.6.1</siv-mode.version>
+		<bouncycastle.version>1.80</bouncycastle.version>
+		<slf4j.version>2.0.17</slf4j.version>
 
 		<!-- test dependencies -->
-		<junit.jupiter.version>5.10.2</junit.jupiter.version>
-		<mockito.version>5.11.0</mockito.version>
-		<hamcrest.version>2.2</hamcrest.version>
+		<junit.jupiter.version>5.12.0</junit.jupiter.version>
+		<mockito.version>5.15.2</mockito.version>
+		<hamcrest.version>3.0</hamcrest.version>
 		<jmh.version>1.37</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>9.1.0</dependency-check.version>
+		<dependency-check.version>12.1.0</dependency-check.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<nexus-staging.version>1.6.13</nexus-staging.version>
+		<central-publishing.version>0.7.0</central-publishing.version>
 	</properties>
 
 	<licenses>
@@ -131,7 +131,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.4.1</version>
+				<version>3.5.0</version>
 				<executions>
 					<execution>
 						<id>enforce-java</id>
@@ -151,7 +151,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.13.0</version>
+				<version>3.14.0</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
@@ -189,7 +189,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.5.3</version>
+				<version>3.6.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -227,7 +227,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.2.0</version>
+				<version>3.5.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -251,12 +251,12 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.2.5</version>
+				<version>3.5.2</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.4.1</version>
+				<version>3.4.2</version>
 				<configuration>
 					<archive>
 						<manifestEntries>
@@ -280,7 +280,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.6.3</version>
+				<version>3.11.2</version>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
@@ -385,7 +385,7 @@
 				<plugins>
 					<plugin>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.2.4</version>
+						<version>3.2.7</version>
 						<executions>
 							<execution>
 								<id>sign-artifacts</id>
@@ -394,10 +394,7 @@
 									<goal>sign</goal>
 								</goals>
 								<configuration>
-									<gpgArguments>
-										<arg>--pinentry-mode</arg>
-										<arg>loopback</arg>
-									</gpgArguments>
+									<signer>bc</signer>
 								</configuration>
 							</execution>
 						</executions>
@@ -408,24 +405,16 @@
 
 		<profile>
 			<id>deploy-central</id>
-			<distributionManagement>
-				<repository>
-					<id>ossrh</id>
-					<name>Maven Central</name>
-					<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-				</repository>
-			</distributionManagement>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>org.sonatype.plugins</groupId>
-						<artifactId>nexus-staging-maven-plugin</artifactId>
-						<version>${nexus-staging.version}</version>
+						<groupId>org.sonatype.central</groupId>
+ 						<artifactId>central-publishing-maven-plugin</artifactId>
+ 						<version>${central-publishing.version}</version>
 						<extensions>true</extensions>
 						<configuration>
-							<serverId>ossrh</serverId>
-							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+							<publishingServerId>central</publishingServerId>
+  							<autoPublish>true</autoPublish>
 						</configuration>
 					</plugin>
 				</plugins>

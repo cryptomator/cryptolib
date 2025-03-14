@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016 Sebastian Stenzel and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the accompanying LICENSE.txt.
- *
- * Contributors:
- *     Sebastian Stenzel - initial API and implementation
- *******************************************************************************/
 package org.cryptomator.cryptolib.api;
 
 import java.nio.ByteBuffer;
@@ -32,17 +24,17 @@ public interface FileContentCryptor {
 	/**
 	 * Encrypts a single chunk of cleartext.
 	 * 
-	 * @param cleartextChunk Content to be encrypted
+	 * @param cleartextChunk Content to be encrypted (starting at the buffer's current position, ending at the buffer's limit)
 	 * @param chunkNumber Number of the chunk to be encrypted
 	 * @param header Header of the file, this chunk belongs to
-	 * @return Encrypted content.
+	 * @return Encrypted content. Position is set to <code>0</code> and limit to the end of the chunk.
 	 */
 	ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header);
 
 	/**
 	 * Encrypts a single chunk of cleartext.
 	 *
-	 * @param cleartextChunk Content to be encrypted
+	 * @param cleartextChunk Content to be encrypted (starting at the buffer's current position, ending at the buffer's limit)
 	 * @param ciphertextChunk Encrypted content buffer (with at least {@link #ciphertextChunkSize()} remaining bytes)
 	 * @param chunkNumber Number of the chunk to be encrypted
 	 * @param header Header of the file, this chunk belongs to
@@ -52,7 +44,7 @@ public interface FileContentCryptor {
 	/**
 	 * Decrypts a single chunk of ciphertext.
 	 * 
-	 * @param ciphertextChunk Content to be decrypted
+	 * @param ciphertextChunk Content to be decrypted (starting at the buffer's current position, ending at the buffer's limit)
 	 * @param chunkNumber Number of the chunk to be decrypted
 	 * @param header Header of the file, this chunk belongs to
 	 * @param authenticate Skip authentication by setting this flag to <code>false</code>. Should always be <code>true</code> by default.
@@ -65,7 +57,7 @@ public interface FileContentCryptor {
 	/**
 	 * Decrypts a single chunk of ciphertext.
 	 *
-	 * @param ciphertextChunk Content to be decrypted
+	 * @param ciphertextChunk Content to be decrypted (starting at the buffer's current position, ending at the buffer's limit)
 	 * @param cleartextChunk Buffer for decrypted chunk (with at least {@link #cleartextChunkSize()} remaining bytes)
 	 * @param chunkNumber Number of the chunk to be decrypted
 	 * @param header Header of the file, this chunk belongs to
