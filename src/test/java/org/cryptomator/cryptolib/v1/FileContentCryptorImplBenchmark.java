@@ -16,6 +16,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -40,7 +41,7 @@ import org.openjdk.jmh.annotations.Warmup;
 public class FileContentCryptorImplBenchmark {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.PRNG_RANDOM;
-	private static final Masterkey MASTERKEY = new Masterkey(new byte[64]);;
+	private static final PerpetualMasterkey MASTERKEY = new PerpetualMasterkey(new byte[64]);;
 	private final byte[] headerNonce = new byte[Constants.NONCE_SIZE];
 	private final ByteBuffer cleartextChunk = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
 	private final ByteBuffer ciphertextChunk = ByteBuffer.allocate(Constants.CHUNK_SIZE);

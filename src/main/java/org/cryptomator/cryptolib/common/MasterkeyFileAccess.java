@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 
 import javax.crypto.Mac;
 import java.io.ByteArrayInputStream;
@@ -99,7 +100,7 @@ public class MasterkeyFileAccess {
 
 	// visible for testing
 	MasterkeyFile changePassphrase(MasterkeyFile masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
-		try (Masterkey key = unlock(masterkey, oldPassphrase)) {
+		try (PerpetualMasterkey key = unlock(masterkey, oldPassphrase)) {
 			return lock(key, newPassphrase, masterkey.version, masterkey.scryptCostParam);
 		}
 	}
@@ -114,7 +115,7 @@ public class MasterkeyFileAccess {
 	 * @throws InvalidPassphraseException      If the provided passphrase can not be used to unwrap the stored keys.
 	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails
 	 */
-	public Masterkey load(Path filePath, CharSequence passphrase) throws MasterkeyLoadingFailedException {
+	public PerpetualMasterkey load(Path filePath, CharSequence passphrase) throws MasterkeyLoadingFailedException {
 		try (InputStream in = Files.newInputStream(filePath, StandardOpenOption.READ)) {
 			return load(in, passphrase);
 		} catch (IOException e) {
@@ -122,7 +123,7 @@ public class MasterkeyFileAccess {
 		}
 	}
 
-	public Masterkey load(InputStream in, CharSequence passphrase) throws IOException {
+	public PerpetualMasterkey load(InputStream in, CharSequence passphrase) throws IOException {
 		try (Reader reader = new InputStreamReader(in, UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			if (!parsedFile.isValid()) {
@@ -134,14 +135,14 @@ public class MasterkeyFileAccess {
 	}
 
 	// visible for testing
-	Masterkey unlock(MasterkeyFile parsedFile, CharSequence passphrase) throws InvalidPassphraseException {
+	PerpetualMasterkey unlock(MasterkeyFile parsedFile, CharSequence passphrase) throws InvalidPassphraseException {
 		Preconditions.checkNotNull(parsedFile);
 		Preconditions.checkArgument(parsedFile.isValid(), "Invalid masterkey file");
 		Preconditions.checkNotNull(passphrase);
 
 		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize);
-			 DestroyableSecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG);
-			 DestroyableSecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG)) {
+			 DestroyableSecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, PerpetualMasterkey.ENC_ALG);
+			 DestroyableSecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, PerpetualMasterkey.MAC_ALG)) {
 			return Masterkey.from(encKey, macKey);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();
@@ -158,11 +159,11 @@ public class MasterkeyFileAccess {
 	 * @param passphrase The passphrase used during key derivation
 	 * @throws IOException When unable to write to the given file
 	 */
-	public void persist(Masterkey masterkey, Path filePath, CharSequence passphrase) throws IOException {
+	public void persist(PerpetualMasterkey masterkey, Path filePath, CharSequence passphrase) throws IOException {
 		persist(masterkey, filePath, passphrase, DEFAULT_MASTERKEY_FILE_VERSION);
 	}
 
-	public void persist(Masterkey masterkey, Path filePath, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
+	public void persist(PerpetualMasterkey masterkey, Path filePath, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
 		Path tmpFilePath = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
 		try (OutputStream out = Files.newOutputStream(tmpFilePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
 			persist(masterkey, out, passphrase, vaultVersion);
@@ -170,12 +171,12 @@ public class MasterkeyFileAccess {
 		Files.move(tmpFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
 	}
 
-	public void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
+	public void persist(PerpetualMasterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
 		persist(masterkey, out, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
 	}
 
 	// visible for testing
-	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
+	void persist(PerpetualMasterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
@@ -185,7 +186,7 @@ public class MasterkeyFileAccess {
 	}
 
 	// visible for testing
-	MasterkeyFile lock(Masterkey masterkey, CharSequence passphrase, int vaultVersion, int scryptCostParam) {
+	MasterkeyFile lock(PerpetualMasterkey masterkey, CharSequence passphrase, int vaultVersion, int scryptCostParam) {
 		Preconditions.checkNotNull(masterkey);
 		Preconditions.checkNotNull(passphrase);
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
@@ -212,9 +213,9 @@ public class MasterkeyFileAccess {
 		byte[] saltAndPepper = new byte[salt.length + pepper.length];
 		System.arraycopy(salt, 0, saltAndPepper, 0, salt.length);
 		System.arraycopy(pepper, 0, saltAndPepper, salt.length, pepper.length);
-		byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, costParam, blockSize, Masterkey.SUBKEY_LEN_BYTES);
+		byte[] kekBytes = Scrypt.scrypt(passphrase, saltAndPepper, costParam, blockSize, PerpetualMasterkey.SUBKEY_LEN_BYTES);
 		try {
-			return new DestroyableSecretKey(kekBytes, Masterkey.ENC_ALG);
+			return new DestroyableSecretKey(kekBytes, PerpetualMasterkey.ENC_ALG);
 		} finally {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}

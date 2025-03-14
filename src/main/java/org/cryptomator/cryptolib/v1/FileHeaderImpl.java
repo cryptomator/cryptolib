@@ -81,9 +81,9 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 		private long reserved;
 		private final DestroyableSecretKey contentKey;
 
-		Payload(long reversed, byte[] contentKeyBytes) {
+		Payload(long reserved, byte[] contentKeyBytes) {
 			Preconditions.checkArgument(contentKeyBytes.length == CONTENT_KEY_LEN, "Invalid key length. (was: " + contentKeyBytes.length + ", required: " + CONTENT_KEY_LEN + ")");
-			this.reserved = reversed;
+			this.reserved = reserved;
 			this.contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
 		}
 

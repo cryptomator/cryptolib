@@ -10,6 +10,8 @@ package org.cryptomator.cryptolib.api;
 
 import com.google.common.io.BaseEncoding;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Provides deterministic encryption capabilities as filenames must not change on subsequent encryption attempts,
  * otherwise each change results in major directory structure changes which would be a terrible idea for cloud storage encryption.
@@ -19,10 +21,22 @@ import com.google.common.io.BaseEncoding;
 public interface FileNameCryptor {
 
 	/**
+	 * @param cleartextDirectoryIdStr a UTF-8-encoded arbitrary directory id to be passed to one-way hash function
+	 * @return constant length string, that is unlikely to collide with any other name.
+	 * @apiNote Only relevant for Cryptomator Vault Format, not for Universal Vault Format
+	 * @deprecated Use {@link #hashDirectoryId(byte[])} instead
+	 */
+	@Deprecated
+	default String hashDirectoryId(String cleartextDirectoryIdStr) {
+		return hashDirectoryId(cleartextDirectoryIdStr.getBytes(StandardCharsets.UTF_8));
+	}
+
+	/**
 	 * @param cleartextDirectoryId an arbitrary directory id to be passed to one-way hash function
 	 * @return constant length string, that is unlikely to collide with any other name.
+	 * @apiNote Only relevant for Cryptomator Vault Format, not for Universal Vault Format
 	 */
-	String hashDirectoryId(String cleartextDirectoryId);
+	String hashDirectoryId(byte[] cleartextDirectoryId);
 
 	/**
 	 * @param encoding Encoding to use to encode the returned ciphertext
