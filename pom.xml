@@ -20,20 +20,20 @@
 		<!-- dependencies -->
 		<gson.version>2.11.0</gson.version>
 		<guava.version>33.3.0-jre</guava.version>
-		<siv-mode.version>1.6.0</siv-mode.version>
+		<siv-mode.version>1.6.1</siv-mode.version>
 		<bouncycastle.version>1.78.1</bouncycastle.version>
 		<slf4j.version>2.0.16</slf4j.version>
 
 		<!-- test dependencies -->
 		<junit.jupiter.version>5.11.0</junit.jupiter.version>
-		<mockito.version>5.15.2</mockito.version>
+		<mockito.version>5.13.0</mockito.version>
 		<hamcrest.version>3.0</hamcrest.version>
 		<jmh.version>1.37</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>11.1.1</dependency-check.version>
+		<dependency-check.version>12.1.0</dependency-check.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<nexus-staging.version>1.7.0</nexus-staging.version>
+		<central-publishing.version>0.7.0</central-publishing.version>
 	</properties>
 
 	<licenses>
