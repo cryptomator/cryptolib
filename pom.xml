@@ -10,7 +10,7 @@
 	<scm>
 		<connection>scm:git:git@github.com:cryptomator/cryptolib.git</connection>
 		<developerConnection>scm:git:git@github.com:cryptomator/cryptolib.git</developerConnection>
-		<url>git@github.com:cryptomator/cryptolib.git</url>
+		<url>https://github.com/cryptomator/cryptolib</url>
 	</scm>
 
 	<properties>
