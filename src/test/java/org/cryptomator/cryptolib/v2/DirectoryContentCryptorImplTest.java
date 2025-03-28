@@ -1,10 +1,10 @@
-package org.cryptomator.cryptolib.v3;
+package org.cryptomator.cryptolib.v2;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.DirectoryContentCryptor;
 import org.cryptomator.cryptolib.api.DirectoryMetadata;
-import org.cryptomator.cryptolib.api.UVFMasterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -14,44 +14,32 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 class DirectoryContentCryptorImplTest {
 
 	private static final SecureRandom CSPRNG = new SecureRandom();
-	private static UVFMasterkey masterkey;
 	private static DirectoryContentCryptorImpl dirCryptor;
 
 	@BeforeAll
 	public static void setUp() {
-		// copied from UVFMasterkeyTest:
-		String json = "{\n" +
-				"    \"fileFormat\": \"AES-256-GCM-32k\",\n" +
-				"    \"nameFormat\": \"AES-SIV-512-B64URL\",\n" +
-				"    \"seeds\": {\n" +
-				"        \"HDm38g\": \"ypeBEsobvcr6wjGzmiPcTaeG7/gUfE5yuYB3ha/uSLs=\",\n" +
-				"        \"gBryKw\": \"PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0=\",\n" +
-				"        \"QBsJFg\": \"Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y=\"\n" +
-				"    },\n" +
-				"    \"initialSeed\": \"HDm38i\",\n" +
-				"    \"latestSeed\": \"QBsJFo\",\n" +
-				"    \"kdf\": \"HKDF-SHA512\",\n" +
-				"    \"kdfSalt\": \"NIlr89R7FhochyP4yuXZmDqCnQ0dBB3UZ2D+6oiIjr8=\",\n" +
-				"    \"org.example.customfield\": 42\n" +
-				"}";
-		masterkey = UVFMasterkey.fromDecryptedPayload(json);
-		dirCryptor = (DirectoryContentCryptorImpl) CryptorProvider.forScheme(CryptorProvider.Scheme.UVF_DRAFT).provide(masterkey, CSPRNG).directoryContentCryptor();
+		byte[] key = new byte[64];
+		Arrays.fill(key, 0, 32, (byte) 0x55); // enc key
+		Arrays.fill(key, 32, 64, (byte) 0x77); // mac key
+		PerpetualMasterkey masterkey = new PerpetualMasterkey(key);
+		dirCryptor = (DirectoryContentCryptorImpl) CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(masterkey, CSPRNG).directoryContentCryptor();
 	}
 
 	@Test
-	@DisplayName("encrypt and decrypt dir.uvf files")
+	@DisplayName("encrypt and decrypt dir.c9r files")
 	public void encryptAndDecryptDirectoryMetadata() {
 		DirectoryMetadataImpl origMetadata = dirCryptor.newDirectoryMetadata();
 
 		byte[] encryptedMetadata = dirCryptor.encryptDirectoryMetadata(origMetadata);
 		DirectoryMetadataImpl decryptedMetadata = dirCryptor.decryptDirectoryMetadata(encryptedMetadata);
 
-		Assertions.assertEquals(origMetadata.seedId(), decryptedMetadata.seedId());
 		Assertions.assertArrayEquals(origMetadata.dirId(), decryptedMetadata.dirId());
 	}
 
@@ -61,7 +49,7 @@ class DirectoryContentCryptorImplTest {
 		DirectoryMetadata rootDirMetadata = dirCryptor.rootDirectoryMetadata();
 		DirectoryContentCryptor.Encrypting enc = dirCryptor.fileNameEncryptor(rootDirMetadata);
 		String ciphertext = enc.encrypt("WELCOME.rtf");
-		Assertions.assertEquals("Dx1binBPsg_KNby6KFD_2k3vZHPgo39rg4ks.uvf", ciphertext);
+		Assertions.assertEquals("4BwXESMPHMIGXeiyQifg2xBDzblPVdRuU1dy.c9r", ciphertext);
 	}
 
 	@Test
@@ -69,7 +57,7 @@ class DirectoryContentCryptorImplTest {
 	public void testDecryptReadme() {
 		DirectoryMetadata rootDirMetadata = dirCryptor.rootDirectoryMetadata();
 		DirectoryContentCryptor.Decrypting dec = dirCryptor.fileNameDecryptor(rootDirMetadata);
-		String plaintext = dec.decrypt("Dx1binBPsg_KNby6KFD_2k3vZHPgo39rg4ks.uvf");
+		String plaintext = dec.decrypt("4BwXESMPHMIGXeiyQifg2xBDzblPVdRuU1dy.c9r");
 		Assertions.assertEquals("WELCOME.rtf", plaintext);
 	}
 
@@ -78,32 +66,32 @@ class DirectoryContentCryptorImplTest {
 	public void testRootDirPath() {
 		DirectoryMetadata rootDirMetadata = dirCryptor.rootDirectoryMetadata();
 		String path = dirCryptor.dirPath(rootDirMetadata);
-		Assertions.assertEquals("d/RZ/K7ZH7KBXULNEKBMGX3CU42PGUIAIX4", path);
+		Assertions.assertEquals("d/VL/WEHT553J5DR7OZLRJAYDIWFCXZABOD", path);
 	}
 
 	@Nested
-	@DisplayName("Given a specific dir.uvf file")
+	@DisplayName("Given a specific dir.c9f file")
 	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 	class WithDirectoryMetadata {
 
-		DirectoryMetadataImpl dirUvf;
+		DirectoryMetadataImpl dirC9r;
 		DirectoryContentCryptor.Encrypting enc;
 		DirectoryContentCryptor.Decrypting dec;
 
 		@BeforeAll
 		public void setup() {
-			dirUvf = new DirectoryMetadataImpl(masterkey.currentRevision(), new byte[32]);
-			enc = dirCryptor.fileNameEncryptor(dirUvf);
-			dec = dirCryptor.fileNameDecryptor(dirUvf);
+			dirC9r = new DirectoryMetadataImpl("deadbeef-cafe-4bob-beef-decafbadface".getBytes(StandardCharsets.US_ASCII));
+			enc = dirCryptor.fileNameEncryptor(dirC9r);
+			dec = dirCryptor.fileNameDecryptor(dirC9r);
 		}
 
 		@DisplayName("encrypt multiple file names")
 		@ParameterizedTest(name = "fileNameEncryptor.encrypt('{0}') == '{1}'")
 		@CsvSource({
-				"file1.txt, NIWamUJBS3u619f3yKOWlT2q_raURsHXhg==.uvf",
-				"file2.txt, _EWTVc9qooJQyk-P9pwQkvSu9mFb0UWNeg==.uvf",
-				"file3.txt, dunZsv8VRuh81R-u6pioPx2DWeQAU0nLfw==.uvf",
-				"file4.txt, 2-clI661p9TBSzC2IJjvBF3ehaKas5Vqxg==.uvf"
+				"file1.txt, sL-e8HOmmqdyIJspqfB0P6zXxoBGHZw9XQ==.c9r",
+				"file2.txt, hNJmLgIVcneOTeK5E-K_v3Vd9hgb2jJcQA==.c9r",
+				"file3.txt, qjfr-LCwvfTDMjWmR1CwEAcM7cj-IFDVIw==.c9r",
+				"file4.txt, dqL5KkgfQveDBRXl3o6FmSZ87apNzNeiDg==.c9r"
 		})
 		public void testBulkEncryption(String plaintext, String ciphertext) {
 			Assertions.assertEquals(ciphertext, enc.encrypt(plaintext));
@@ -112,10 +100,10 @@ class DirectoryContentCryptorImplTest {
 		@DisplayName("decrypt multiple file names")
 		@ParameterizedTest(name = "fileNameDecryptor.decrypt('{1}') == '{0}'")
 		@CsvSource({
-				"file1.txt, NIWamUJBS3u619f3yKOWlT2q_raURsHXhg==.uvf",
-				"file2.txt, _EWTVc9qooJQyk-P9pwQkvSu9mFb0UWNeg==.uvf",
-				"file3.txt, dunZsv8VRuh81R-u6pioPx2DWeQAU0nLfw==.uvf",
-				"file4.txt, 2-clI661p9TBSzC2IJjvBF3ehaKas5Vqxg==.uvf"
+				"file1.txt, sL-e8HOmmqdyIJspqfB0P6zXxoBGHZw9XQ==.c9r",
+				"file2.txt, hNJmLgIVcneOTeK5E-K_v3Vd9hgb2jJcQA==.c9r",
+				"file3.txt, qjfr-LCwvfTDMjWmR1CwEAcM7cj-IFDVIw==.c9r",
+				"file4.txt, dqL5KkgfQveDBRXl3o6FmSZ87apNzNeiDg==.c9r"
 		})
 		public void testBulkDecryption(String plaintext, String ciphertext) {
 			Assertions.assertEquals(plaintext, dec.decrypt(ciphertext));
@@ -125,7 +113,7 @@ class DirectoryContentCryptorImplTest {
 		@DisplayName("decrypt file with invalid extension")
 		public void testDecryptMalformed1() {
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
-				dec.decrypt("NIWamUJBS3u619f3yKOWlT2q_raURsHXhg==.INVALID");
+				dec.decrypt("sL-e8HOmmqdyIJspqfB0P6zXxoBGHZw9XQ==.INVALID");
 			});
 		}
 
@@ -133,27 +121,17 @@ class DirectoryContentCryptorImplTest {
 		@DisplayName("decrypt file with unauthentic ciphertext")
 		public void testDecryptMalformed2() {
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				dec.decrypt("INVALIDamUJBS3u619f3yKOWlT2q_raURsHXhg==.uvf");
-			});
-		}
-
-		@Test
-		@DisplayName("decrypt file with incorrect seed")
-		public void testDecryptMalformed3() {
-			DirectoryMetadataImpl differentRevision = new DirectoryMetadataImpl(masterkey.firstRevision(), new byte[32]);
-			DirectoryContentCryptor.Decrypting differentRevisionDec = dirCryptor.fileNameDecryptor(differentRevision);
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				differentRevisionDec.decrypt("NIWamUJBS3u619f3yKOWlT2q_raURsHXhg==.uvf");
+				dec.decrypt("INVALID-e8HOmmqdyIJspqfB0P6zXxoBGHZw9XQ==.c9r.c9r");
 			});
 		}
 
 		@Test
 		@DisplayName("decrypt file with incorrect dirId")
-		public void testDecryptMalformed4() {
-			DirectoryMetadataImpl differentDirId = new DirectoryMetadataImpl(masterkey.firstRevision(), new byte[]{(byte) 0xDE, (byte) 0x0AD});
+		public void testDecryptMalformed3() {
+			DirectoryMetadataImpl differentDirId = new DirectoryMetadataImpl("deadbeef-cafe-4bob-beef-badbadbadbad".getBytes(StandardCharsets.US_ASCII));
 			DirectoryContentCryptor.Decrypting differentDirIdDec = dirCryptor.fileNameDecryptor(differentDirId);
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-				differentDirIdDec.decrypt("NIWamUJBS3u619f3yKOWlT2q_raURsHXhg==.uvf");
+				differentDirIdDec.decrypt("sL-e8HOmmqdyIJspqfB0P6zXxoBGHZw9XQ==.c9r");
 			});
 		}
 

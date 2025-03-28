@@ -1,6 +1,7 @@
 package org.cryptomator.cryptolib.v1;
 
 import org.cryptomator.cryptolib.api.Cryptor;
+import org.cryptomator.cryptolib.api.DirectoryContentCryptor;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
@@ -52,6 +53,11 @@ class CryptorImpl implements Cryptor {
 	@Override
 	public FileNameCryptor fileNameCryptor(int revision) {
 		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public DirectoryContentCryptor directoryContentCryptor() {
+		return new DirectoryContentCryptorImpl(this);
 	}
 
 	@Override

@@ -43,9 +43,7 @@ public interface Cryptor extends Destroyable, AutoCloseable {
 	 * High-Level API for file name encryption and decryption
 	 * @return utility for encryption and decryption of file names in the context of a directory
 	 */
-	default DirectoryContentCryptor directoryContentCryptor() {
-		throw new UnsupportedOperationException("not implemented");
-	}
+	DirectoryContentCryptor directoryContentCryptor();
 
 	@Override
 	void destroy();

@@ -2,10 +2,10 @@ package org.cryptomator.cryptolib.v3;
 
 final class Constants {
 
-	public static final String UVF_FILE_EXT = ".uvf";
-
 	private Constants() {
 	}
+
+	static final String UVF_FILE_EXT = ".uvf";
 
 	static final String CONTENT_ENC_ALG = "AES";
 
