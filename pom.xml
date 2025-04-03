@@ -32,7 +32,7 @@
 
 		<!-- build plugin dependencies -->
 		<dependency-check.version>12.1.0</dependency-check.version>
-		<jacoco.version>0.8.12</jacoco.version>
+		<jacoco.version>0.8.13</jacoco.version>
 		<central-publishing.version>0.7.0</central-publishing.version>
 	</properties>
 
