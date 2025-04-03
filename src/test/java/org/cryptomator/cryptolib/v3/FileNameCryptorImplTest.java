@@ -26,8 +26,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class FileNameCryptorImplTest {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
-	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU="));
-	private static final byte[] KDF_SALT =  Base64.getDecoder().decode("HE4OP+2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY=");
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
+	private static final byte[] KDF_SALT =  Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
 	private static final UVFMasterkey MASTERKEY = new UVFMasterkey(SEEDS, KDF_SALT, -1540072521, -1540072521);
 
 	private final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(MASTERKEY, -1540072521);

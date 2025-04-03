@@ -23,8 +23,8 @@ import java.util.Map;
 public class FileHeaderCryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU="));
-	private static final byte[] KDF_SALT =  Base64.getDecoder().decode("HE4OP+2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY=");
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
+	private static final byte[] KDF_SALT =  Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
 	private static final UVFMasterkey MASTERKEY = new UVFMasterkey(SEEDS, KDF_SALT, -1540072521, -1540072521);
 
 	private FileHeaderCryptorImpl headerCryptor;
@@ -50,7 +50,7 @@ public class FileHeaderCryptorImplTest {
 	@Test
 	public void testSubkeyGeneration() {
 		DestroyableSecretKey subkey = MASTERKEY.subKey(-1540072521, 32, "fileHeader".getBytes(), "AES");
-		Assertions.assertArrayEquals(Base64.getDecoder().decode("PwnW2t/pK9dmzc+GTLdBSaB8ilcwsTq4sYOeiyo3cpU="), subkey.getEncoded());
+		Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("PwnW2t_pK9dmzc-GTLdBSaB8ilcwsTq4sYOeiyo3cpU"), subkey.getEncoded());
 	}
 
 	@Test

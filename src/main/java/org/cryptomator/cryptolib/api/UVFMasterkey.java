@@ -42,18 +42,18 @@ public class UVFMasterkey implements RevolvingMasterkey {
 		Preconditions.checkArgument("HKDF-SHA512".equals(root.get("kdf").getAsString()));
 		Preconditions.checkArgument(root.get("seeds").isJsonObject());
 
-		Base64.Decoder base64 = Base64.getDecoder();
-		byte[] initialSeed = base64.decode(root.get("initialSeed").getAsString());
-		byte[] latestSeed = base64.decode(root.get("latestSeed").getAsString());
-		byte[] kdfSalt = base64.decode(root.get("kdfSalt").getAsString());
+		Base64.Decoder base64Url = Base64.getUrlDecoder();
+		byte[] initialSeed = base64Url.decode(root.get("initialSeed").getAsString());
+		byte[] latestSeed = base64Url.decode(root.get("latestSeed").getAsString());
+		byte[] kdfSalt = base64Url.decode(root.get("kdfSalt").getAsString());
 
 		Map<Integer, byte[]> seeds = new HashMap<>();
 		ByteBuffer intBuf = ByteBuffer.allocate(Integer.BYTES);
 		for (Map.Entry<String, JsonElement> entry : root.getAsJsonObject("seeds").asMap().entrySet()) {
 			intBuf.clear();
-			intBuf.put(base64.decode(entry.getKey()));
+			intBuf.put(base64Url.decode(entry.getKey()));
 			int seedNum = intBuf.getInt(0);
-			byte[] seedVal = base64.decode(entry.getValue().getAsString());
+			byte[] seedVal = base64Url.decode(entry.getValue().getAsString());
 			seeds.put(seedNum, seedVal);
 		}
 		return new UVFMasterkey(seeds, kdfSalt, ByteBuffer.wrap(initialSeed).getInt(), ByteBuffer.wrap(latestSeed).getInt());

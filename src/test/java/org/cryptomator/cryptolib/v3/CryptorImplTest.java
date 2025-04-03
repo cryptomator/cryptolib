@@ -15,8 +15,8 @@ import java.util.Map;
 public class CryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU="));
-	private static final byte[] KDF_SALT =  Base64.getDecoder().decode("HE4OP+2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY=");
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
+	private static final byte[] KDF_SALT =  Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
 
 	private UVFMasterkey masterkey;
 
