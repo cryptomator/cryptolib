@@ -1,9 +1,11 @@
 name: Publish to GitHub Packages
 on:
+  push:
   release:
     types: [published]
 jobs:
   publish:
+    if: github.event_name == 'release' || contains(github.event.head_commit.message, '[release snapshot]')
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') # only allow publishing tagged versions
     steps:
@@ -14,7 +16,16 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
       - name: Enforce project version ${{ github.event.release.tag_name }}
+        if: github.event_name == 'release'
         run: mvn versions:set -B -DnewVersion=${{ github.event.release.tag_name }}
+      - name: Verify this is a SNAPSHOT
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release snapshot]')
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$VERSION" != *-SNAPSHOT ]]; then
+            echo "::error file=pom.xml,title=Not a SNAPSHOT::Project version ($VERSION) does not end with -SNAPSHOT"
+            exit 1
+          fi
       - name: Deploy
         run: mvn deploy -B -DskipTests -Psign,deploy-github --no-transfer-progress
         env:

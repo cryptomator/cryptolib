@@ -1,9 +1,11 @@
 name: Publish to Maven Central
 on:
+  push:
   release:
     types: [published]
 jobs:
   publish:
+    if: github.event_name == 'release' || contains(github.event.head_commit.message, '[release snapshot]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +18,16 @@ jobs:
           server-username: MAVEN_CENTRAL_USERNAME
           server-password: MAVEN_CENTRAL_PASSWORD
       - name: Enforce project version ${{ github.event.release.tag_name }}
-        run: mvn versions:set -B -DnewVersion="$GIT_TAG"
-        env:
-          GIT_TAG: ${{ github.event.release.tag_name }}
+        if: github.event_name == 'release'
+        run: mvn versions:set -B -DnewVersion=${{ github.event.release.tag_name }}
+      - name: Verify this is a SNAPSHOT
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release snapshot]')
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$VERSION" != *-SNAPSHOT ]]; then
+            echo "::error file=pom.xml,title=Not a SNAPSHOT::Project version ($VERSION) does not end with -SNAPSHOT"
+            exit 1
+          fi
       - name: Deploy
         run: mvn deploy -B -DskipTests -Psign,deploy-central --no-transfer-progress
         env:
