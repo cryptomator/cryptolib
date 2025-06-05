@@ -5,7 +5,7 @@ on:
     types: [published]
 jobs:
   publish:
-    if: github.event_name == 'release' || contains(github.event.head_commit.message, '[release snapshot]')
+    if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/') || contains(github.event.head_commit.message, '[release snapshot]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
