@@ -9,14 +9,14 @@
 package org.cryptomator.cryptolib.v2;
 
 import com.google.common.io.BaseEncoding;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
+import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.common.GcmTestHelper;
 import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
@@ -64,7 +64,7 @@ public class FileContentCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		Masterkey masterkey = new Masterkey(new byte[64]);
+		PerpetualMasterkey masterkey = new PerpetualMasterkey(new byte[64]);
 		header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]));
 		headerCryptor = new FileHeaderCryptorImpl(masterkey, CSPRNG);
 		fileContentCryptor = new FileContentCryptorImpl(CSPRNG);

@@ -74,16 +74,16 @@ class FileHeaderImpl implements FileHeader, Destroyable {
 
 	public static class Payload implements Destroyable {
 
-		static final int REVERSED_LEN = Long.BYTES;
+		static final int RESERVED_LEN = Long.BYTES;
 		static final int CONTENT_KEY_LEN = 32;
-		static final int SIZE = REVERSED_LEN + CONTENT_KEY_LEN;
+		static final int SIZE = RESERVED_LEN + CONTENT_KEY_LEN;
 
 		private long reserved;
 		private final DestroyableSecretKey contentKey;
 
-		Payload(long reversed, byte[] contentKeyBytes) {
+		Payload(long reserved, byte[] contentKeyBytes) {
 			Preconditions.checkArgument(contentKeyBytes.length == CONTENT_KEY_LEN, "Invalid key length. (was: " + contentKeyBytes.length + ", required: " + CONTENT_KEY_LEN + ")");
-			this.reserved = reversed;
+			this.reserved = reserved;
 			this.contentKey = new DestroyableSecretKey(contentKeyBytes, Constants.CONTENT_ENC_ALG);
 		}
 
