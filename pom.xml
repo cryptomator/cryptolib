@@ -18,10 +18,10 @@
 		<maven.compiler.release>8</maven.compiler.release>
 
 		<!-- dependencies -->
-		<gson.version>2.12.1</gson.version>
-		<guava.version>33.4.0-jre</guava.version>
+		<gson.version>2.13.2</gson.version>
+		<guava.version>33.5.0-jre</guava.version>
 		<siv-mode.version>1.6.1</siv-mode.version>
-		<bouncycastle.version>1.80</bouncycastle.version>
+		<bouncycastle.version>1.83</bouncycastle.version>
 		<slf4j.version>2.0.17</slf4j.version>
 
 		<!-- test dependencies -->
@@ -33,7 +33,7 @@
 		<!-- build plugin dependencies -->
 		<dependency-check.version>12.1.1</dependency-check.version>
 		<jacoco.version>0.8.13</jacoco.version>
-		<central-publishing.version>0.7.0</central-publishing.version>
+		<central-publishing.version>0.10.0</central-publishing.version>
 	</properties>
 
 	<licenses>
