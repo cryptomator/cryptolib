@@ -27,6 +27,6 @@ jobs:
       with:
         languages: java
     - name: Build and Test
-      run: mvn -B install -DskipTests
+      run: ./mvnw -B install -DskipTests
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
