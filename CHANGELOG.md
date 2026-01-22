@@ -12,3 +12,6 @@ Changes to prior versions can be found on the [Github release page](https://gith
 ### Added
 - Changelog file
 - Maven wrapper script ([#103](https://github.com/cryptomator/cryptolib/pull/103))
+
+### Changed
+- Pin CI actions
