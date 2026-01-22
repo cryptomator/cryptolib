@@ -31,7 +31,7 @@
 		<jmh.version>1.37</jmh.version>
 
 		<!-- build plugin dependencies -->
-		<dependency-check.version>12.1.9</dependency-check.version>
+		<dependency-check.version>12.2.0</dependency-check.version>
 		<jacoco.version>0.8.14</jacoco.version>
 		<central-publishing.version>0.7.0</central-publishing.version>
 	</properties>
@@ -227,7 +227,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.6.2</version>
+				<version>3.6.3</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
