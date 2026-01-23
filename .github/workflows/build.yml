@@ -12,6 +12,7 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       id-token: write # OIDC token for the attestations step
       attestations: write # Required for the attestations step
     outputs:
@@ -86,7 +87,7 @@ jobs:
           server-password: MAVEN_CENTRAL_PASSWORD
       - name: Enforce to use tagged version 
         if: startsWith(github.ref, 'refs/tags/')
-        run: ./mvnw versions:set -B -DnewVersion="$GIT_TAG"
+        run: ./mvnw versions:set -B -DnewVersion="${GITHUB_REF##*/}"
       - name: Verify project version is -SNAPSHOT
         if: startsWith(github.ref, 'refs/tags/') == false
         run: |
@@ -119,7 +120,7 @@ jobs:
           cache: 'maven'
       - name: Enforce to use tagged version 
         if: startsWith(github.ref, 'refs/tags/')
-        run: ./mvnw versions:set -B -DnewVersion="$GIT_TAG"
+        run: ./mvnw versions:set -B -DnewVersion="${GITHUB_REF##*/}"
       - name: Verify project version is -SNAPSHOT
         if: startsWith(github.ref, 'refs/tags/') == false
         run: |
