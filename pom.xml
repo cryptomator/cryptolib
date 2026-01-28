@@ -357,6 +357,11 @@
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>${mvn-deploy.version}</version>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>${mvn-resources.version}</version>
+			</plugin>
 		</plugins>
 	</build>
 
