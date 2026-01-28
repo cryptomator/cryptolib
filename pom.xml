@@ -37,7 +37,10 @@
 		<exec-maven.version>3.6.2</exec-maven.version>
 		<jacoco.version>0.8.14</jacoco.version>
 		<mvn-compiler.version>3.14.1</mvn-compiler.version>
+		<mvn-clean.version>3.5.0</mvn-clean.version>
+		<mvn-deploy.version>3.1.4</mvn-deploy.version>
 		<mvn-enforcer.version>3.6.2</mvn-enforcer.version>
+		<mvn-install.version>3.1.4</mvn-install.version>
 		<mvn-javadoc.version>3.12.0</mvn-javadoc.version>
 		<mvn-jar.version>3.5.0</mvn-jar.version>
 		<mvn-gpg.version>3.2.8</mvn-gpg.version>
@@ -335,6 +338,23 @@
 						<tag><name>see</name></tag>
 					</tags>
 				</configuration>
+			</plugin>
+
+			<!-- for reproducible builds, fix version for plugins bound in built-in jar lifecycle -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>${mvn-clean.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-install-plugin</artifactId>
+				<version>${mvn-install.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>${mvn-deploy.version}</version>
 			</plugin>
 		</plugins>
 	</build>
