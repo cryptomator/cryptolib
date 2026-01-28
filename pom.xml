@@ -16,6 +16,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.release>8</maven.compiler.release>
+		<project.build.outputTimestamp>2026-01-28T08:00:00Z</project.build.outputTimestamp>
 
 		<!-- dependencies -->
 		<gson.version>2.12.1</gson.version>
