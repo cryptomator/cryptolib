@@ -257,6 +257,7 @@
 							<arguments>
 								<argument>--verbose</argument>
 								<argument>--update</argument>
+								<argument>--date=${project.build.outputTimestamp}</argument>
 								<argument>--file=${project.build.directory}/${project.build.finalName}.jar</argument>
 								<argument>META-INF/versions/9/module-info.class</argument>
 								<argument>META-INF/versions/22/module-info.class</argument>
