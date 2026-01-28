@@ -27,7 +27,7 @@
 
 		<!-- test dependencies -->
 		<junit.jupiter.version>5.12.0</junit.jupiter.version>
-		<mockito.version>5.15.2</mockito.version>
+		<mockito.version>5.21.0</mockito.version>
 		<hamcrest.version>3.0</hamcrest.version>
 		<jmh.version>1.37</jmh.version>
 
@@ -38,6 +38,7 @@
 		<jacoco.version>0.8.14</jacoco.version>
 		<mvn-compiler.version>3.14.1</mvn-compiler.version>
 		<mvn-clean.version>3.5.0</mvn-clean.version>
+		<mvn-dependency.version>3.9.0</mvn-dependency.version>
 		<mvn-deploy.version>3.1.4</mvn-deploy.version>
 		<mvn-enforcer.version>3.6.2</mvn-enforcer.version>
 		<mvn-install.version>3.1.4</mvn-install.version>
@@ -145,6 +146,18 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>${mvn-dependency.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>
@@ -271,7 +284,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>${mvn-surefire.version}</version>
 				<configuration>
-					<argLine>@{surefire.jacoco.args} -Dnet.bytebuddy.experimental=true</argLine>
+					<argLine>@{surefire.jacoco.args} -javaagent:${org.mockito:mockito-core:jar}</argLine>
 				</configuration>
 			</plugin>
 			<plugin>
