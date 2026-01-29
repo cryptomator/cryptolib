@@ -10,9 +10,14 @@ Changes to prior versions can be found on the [Github release page](https://gith
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.2.1...HEAD)
 
 ### Added
-- Changelog file
-- Maven wrapper script ([#103](https://github.com/cryptomator/cryptolib/pull/103))
-- Locally reproducible builds ([#106](https://github.com/cryptomator/cryptolib/pull/106))
+* Changelog file
+* Maven wrapper script ([#103](https://github.com/cryptomator/cryptolib/pull/103))
+* Locally reproducible builds ([#106](https://github.com/cryptomator/cryptolib/pull/106))
 
 ### Changed
-- Pin CI actions
+* Pin CI actions
+* Updated dependencies
+    - Updated `org.bouncycastle:bcpkix-jdk18on` from 1.80 to 1.83
+    - Updated `com.google.code.gson:gson` from 2.12.1 to 2.13.2
+    - Updated `com.google.guava:guava` from 33.4.0-jre to 33.5.0-jre
+
