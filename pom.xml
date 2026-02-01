@@ -36,7 +36,7 @@
 		<dependency-check.version>12.2.0</dependency-check.version>
 		<exec-maven.version>3.6.3</exec-maven.version>
 		<jacoco.version>0.8.14</jacoco.version>
-		<mvn-compiler.version>3.14.1</mvn-compiler.version>
+		<mvn-compiler.version>3.15.0</mvn-compiler.version>
 		<mvn-clean.version>3.5.0</mvn-clean.version>
 		<mvn-dependency.version>3.9.0</mvn-dependency.version>
 		<mvn-deploy.version>3.1.4</mvn-deploy.version>
