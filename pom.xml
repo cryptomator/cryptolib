@@ -36,9 +36,9 @@
 		<dependency-check.version>12.2.0</dependency-check.version>
 		<exec-maven.version>3.6.3</exec-maven.version>
 		<jacoco.version>0.8.14</jacoco.version>
-		<mvn-compiler.version>3.14.1</mvn-compiler.version>
+		<mvn-compiler.version>3.15.0</mvn-compiler.version>
 		<mvn-clean.version>3.5.0</mvn-clean.version>
-		<mvn-dependency.version>3.9.0</mvn-dependency.version>
+		<mvn-dependency.version>3.10.0</mvn-dependency.version>
 		<mvn-deploy.version>3.1.4</mvn-deploy.version>
 		<mvn-enforcer.version>3.6.2</mvn-enforcer.version>
 		<mvn-install.version>3.1.4</mvn-install.version>
@@ -48,7 +48,7 @@
 		<mvn-resources.version>3.4.0</mvn-resources.version>
 		<mvn-shade.version>3.6.1</mvn-shade.version>
 		<mvn-source.version>3.4.0</mvn-source.version>
-		<mvn-surefire.version>3.5.4</mvn-surefire.version>
+		<mvn-surefire.version>3.5.5</mvn-surefire.version>
 
 		<!-- Property used by surefire to determine jacoco engine -->
 		<surefire.jacoco.args />
