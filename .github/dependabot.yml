@@ -17,7 +17,7 @@ updates:
           - "org.codehaus.mojo:exec-maven-plugin"
           - "org.jacoco:jacoco-maven-plugin"
           - "org.owasp:dependency-check-maven"
-          - "org.sonatype.plugins:nexus-staging-maven-plugin"
+          - "org.sonatype.central:central-publishing-maven-plugin"
       java-production-dependencies:
         patterns:
           - "*"
@@ -30,7 +30,7 @@ updates:
           - "org.codehaus.mojo:exec-maven-plugin"
           - "org.jacoco:jacoco-maven-plugin"
           - "org.owasp:dependency-check-maven"
-          - "org.sonatype.plugins:nexus-staging-maven-plugin"
+          - "org.sonatype.central:central-publishing-maven-plugin"
 
 
   - package-ecosystem: "github-actions"
@@ -41,5 +41,3 @@ updates:
       github-actions:
         patterns:
           - "*"
-    labels:
-      - "ci"
