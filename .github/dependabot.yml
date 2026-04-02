@@ -5,32 +5,9 @@ updates:
     schedule:
       interval: "monthly"
     groups:
-      java-test-dependencies:
-        patterns:
-          - "org.junit.jupiter:*"
-          - "org.mockito:*"
-          - "org.hamcrest:*"
-          - "org.openjdk.jmh:*"
-      maven-build-plugins:
-        patterns:
-          - "org.apache.maven.plugins:*"
-          - "org.codehaus.mojo:exec-maven-plugin"
-          - "org.jacoco:jacoco-maven-plugin"
-          - "org.owasp:dependency-check-maven"
-          - "org.sonatype.central:central-publishing-maven-plugin"
-      java-production-dependencies:
+      maven-dependencies:
         patterns:
           - "*"
-        exclude-patterns:
-          - "org.junit.jupiter:*"
-          - "org.mockito:*"
-          - "org.hamcrest:*"
-          - "org.openjdk.jmh:*"
-          - "org.apache.maven.plugins:*"
-          - "org.codehaus.mojo:exec-maven-plugin"
-          - "org.jacoco:jacoco-maven-plugin"
-          - "org.owasp:dependency-check-maven"
-          - "org.sonatype.central:central-publishing-maven-plugin"
 
 
   - package-ecosystem: "github-actions"
