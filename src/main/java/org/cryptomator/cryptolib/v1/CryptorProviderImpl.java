@@ -8,8 +8,10 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
+import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 
 import java.security.SecureRandom;
@@ -22,8 +24,13 @@ public class CryptorProviderImpl implements CryptorProvider {
 	}
 
 	@Override
-	public CryptorImpl provide(Masterkey masterkey, SecureRandom random) {
-		return new CryptorImpl(masterkey, ReseedingSecureRandom.create(random));
+	public Cryptor provide(Masterkey masterkey, SecureRandom random) {
+		if (masterkey instanceof PerpetualMasterkey) {
+			PerpetualMasterkey perpetualMasterkey = (PerpetualMasterkey) masterkey;
+			return new CryptorImpl(perpetualMasterkey, ReseedingSecureRandom.create(random));
+		} else {
+			throw new IllegalArgumentException("V1 Cryptor requires a PerpetualMasterkey.");
+		}
 	}
 
 }

@@ -1,10 +1,7 @@
 package org.cryptomator.cryptolib.common;
 
 import com.google.common.io.BaseEncoding;
-import org.cryptomator.cryptolib.api.CryptoException;
-import org.cryptomator.cryptolib.api.InvalidPassphraseException;
-import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
+import org.cryptomator.cryptolib.api.*;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +27,7 @@ public class MasterkeyFileAccessTest {
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private static final byte[] DEFAULT_PEPPER = new byte[0];
 
-	private Masterkey key = new Masterkey(new byte[64]);
+	private PerpetualMasterkey key = new PerpetualMasterkey(new byte[64]);
 	private MasterkeyFile keyFile = new MasterkeyFile();
 	private MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
 
@@ -93,7 +90,7 @@ public class MasterkeyFileAccessTest {
 		public void testLoad() throws IOException {
 			InputStream in = new ByteArrayInputStream(serializedKeyFile);
 
-			Masterkey loaded = masterkeyFileAccess.load(in, "asd");
+			PerpetualMasterkey loaded = masterkeyFileAccess.load(in, "asd");
 
 			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 		}
@@ -203,7 +200,7 @@ public class MasterkeyFileAccessTest {
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
 
 		masterkeyFileAccess.persist(key, masterkeyFile, "asd");
-		Masterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
+		PerpetualMasterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
 
 		Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 	}

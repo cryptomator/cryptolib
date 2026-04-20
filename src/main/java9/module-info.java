@@ -24,5 +24,5 @@ module org.cryptomator.cryptolib {
 	uses CryptorProvider;
 
 	provides CryptorProvider
-			with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl;
+			with org.cryptomator.cryptolib.v1.CryptorProviderImpl, org.cryptomator.cryptolib.v2.CryptorProviderImpl, org.cryptomator.cryptolib.v3.CryptorProviderImpl;
 }

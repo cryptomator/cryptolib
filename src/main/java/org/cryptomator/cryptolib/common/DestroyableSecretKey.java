@@ -15,7 +15,7 @@ import java.util.Objects;
  * actually implements {@link Destroyable}.
  * <p>
  * Furthermore, this implementation will not create copies when accessing {@link #getEncoded()}.
- * Instead it implements {@link #copy} and {@link AutoCloseable} in an exception-free manner. To prevent mutation of the exposed key,
+ * Instead, it implements {@link #copy} and {@link AutoCloseable} in an exception-free manner. To prevent mutation of the exposed key,
  * you would want to make sure to always work on scoped copies, such as in this example:
  *
  * <pre>
