@@ -19,10 +19,10 @@
 		<project.build.outputTimestamp>2026-01-29T16:35:49Z</project.build.outputTimestamp>
 
 		<!-- dependencies -->
-		<gson.version>2.13.2</gson.version>
-		<guava.version>33.5.0-jre</guava.version>
+		<gson.version>2.14.0</gson.version>
+		<guava.version>33.6.0-jre</guava.version>
 		<siv-mode.version>1.6.1</siv-mode.version>
-		<bouncycastle.version>1.83</bouncycastle.version>
+		<bouncycastle.version>1.84</bouncycastle.version>
 		<slf4j.version>2.0.17</slf4j.version>
 
 		<!-- test dependencies -->
@@ -33,7 +33,7 @@
 
 		<!-- build plugin dependencies -->
 		<central-publishing.version>0.10.0</central-publishing.version>
-		<dependency-check.version>12.2.0</dependency-check.version>
+		<dependency-check.version>12.2.1</dependency-check.version>
 		<exec-maven.version>3.6.3</exec-maven.version>
 		<jacoco.version>0.8.14</jacoco.version>
 		<mvn-compiler.version>3.15.0</mvn-compiler.version>
