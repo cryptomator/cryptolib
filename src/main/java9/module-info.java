@@ -10,6 +10,7 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
 module org.cryptomator.cryptolib {
 	requires static org.bouncycastle.provider; // will be shaded
 	requires static org.bouncycastle.pkix; // will be shaded
+	requires java.logging; // used by shaded BouncyCastle
 	requires jdk.crypto.ec; // required at runtime for ECC
 	requires org.cryptomator.siv;
 	requires com.google.gson;
