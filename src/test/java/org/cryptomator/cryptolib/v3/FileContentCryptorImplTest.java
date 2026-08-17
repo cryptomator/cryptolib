@@ -115,12 +115,12 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("encrypt chunk with invalid chunk number")
 		@ParameterizedTest(name = "chunk number: {0}")
-		@ValueSource(longs = {-1, Constants.MAX_CHUNK_NUMBER + 1})
-		public void testEncryptChunkOfNumber(int size) {
-			ByteBuffer cleartext = ByteBuffer.allocate(size);
+		@ValueSource(longs = {-1L, Constants.MAX_CHUNK_NUMBER + 1L})
+		public void testEncryptChunkWithInvalidNumber(long number) {
+			ByteBuffer cleartext = ByteBuffer.allocate(Constants.PAYLOAD_SIZE);
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
-				fileContentCryptor.encryptChunk(cleartext, 0, header);
+				fileContentCryptor.encryptChunk(cleartext, number, header);
 			});
 		}
 

@@ -62,7 +62,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		if (ciphertextChunk.remaining() < CHUNK_SIZE) {
 			throw new IllegalArgumentException("Invalid ciphertext chunk size: " + ciphertextChunk.remaining() + ", must fit up to " + CHUNK_SIZE + " bytes.");
 		}
-		if (0 > chunkNumber || chunkNumber > MAX_CHUNK_NUMBER) {
+		if (chunkNumber < 0 || chunkNumber > MAX_CHUNK_NUMBER) {
 			throw new IllegalArgumentException("Invalid chunk number: " + chunkNumber + "expected range [0, " + Constants.MAX_CHUNK_NUMBER + "]");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
@@ -89,7 +89,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		if (!authenticate) {
 			throw new UnsupportedOperationException("authenticate can not be false");
 		}
-		if (0 > chunkNumber || chunkNumber > MAX_CHUNK_NUMBER) {
+		if ( chunkNumber < 0 || chunkNumber > MAX_CHUNK_NUMBER) {
 			throw new IllegalArgumentException("Invalid chunk number: " + chunkNumber + "expected range [0, " + Constants.MAX_CHUNK_NUMBER + "]");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
