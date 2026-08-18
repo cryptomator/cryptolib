@@ -15,5 +15,6 @@ final class Constants {
 	static final int PAYLOAD_SIZE = 32 * 1024;
 	static final int GCM_TAG_SIZE = 16;
 	static final int CHUNK_SIZE = GCM_NONCE_SIZE + PAYLOAD_SIZE + GCM_TAG_SIZE;
+	static final long MAX_CHUNK_NUMBER = 4_294_967_294L;
 
 }
