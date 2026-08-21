@@ -11,7 +11,6 @@ package org.cryptomator.cryptolib.v2;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
-import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;

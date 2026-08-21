@@ -11,7 +11,6 @@ package org.cryptomator.cryptolib.v2;
 import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

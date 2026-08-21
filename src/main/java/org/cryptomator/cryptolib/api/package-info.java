@@ -2,7 +2,7 @@
  * High-level encryption library used in Cryptomator.
  * <p>
  * Example Usage:
- * 
+ *
  * <pre>
  * // Define a pepper used during JSON serialization:
  * MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(pepper, csprng);

@@ -9,14 +9,14 @@
 package org.cryptomator.cryptolib.v2;
 
 import com.google.common.io.BaseEncoding;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
-import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.CipherSupplier;
+import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.common.GcmTestHelper;
 import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;

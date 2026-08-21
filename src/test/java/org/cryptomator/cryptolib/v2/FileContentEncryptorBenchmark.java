@@ -8,15 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
-
-import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -28,6 +21,13 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.security.SecureRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Needs to be compiled via maven as the JMH annotation processor needs to do stuff...

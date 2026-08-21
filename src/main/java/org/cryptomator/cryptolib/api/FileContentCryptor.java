@@ -23,7 +23,7 @@ public interface FileContentCryptor {
 
 	/**
 	 * Encrypts a single chunk of cleartext.
-	 * 
+	 *
 	 * @param cleartextChunk Content to be encrypted (starting at the buffer's current position, ending at the buffer's limit)
 	 * @param chunkNumber Number of the chunk to be encrypted
 	 * @param header Header of the file, this chunk belongs to
@@ -43,7 +43,7 @@ public interface FileContentCryptor {
 
 	/**
 	 * Decrypts a single chunk of ciphertext.
-	 * 
+	 *
 	 * @param ciphertextChunk Content to be decrypted (starting at the buffer's current position, ending at the buffer's limit)
 	 * @param chunkNumber Number of the chunk to be decrypted
 	 * @param header Header of the file, this chunk belongs to

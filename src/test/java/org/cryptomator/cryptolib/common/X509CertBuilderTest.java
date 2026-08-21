@@ -31,7 +31,7 @@ public class X509CertBuilderTest {
 	public void testInitWithRSAKeyPair() throws NoSuchAlgorithmException {
 		KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
 		String signingAlg = "SHA256withRSA";
-		
+
 		Assertions.assertDoesNotThrow(() -> {
 			X509CertBuilder.init(keyPair, signingAlg);
 		});

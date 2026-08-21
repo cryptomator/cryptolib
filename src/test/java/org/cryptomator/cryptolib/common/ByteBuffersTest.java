@@ -112,7 +112,7 @@ public class ByteBuffersTest {
 		Assertions.assertEquals(10, dst.remaining());
 		Assertions.assertArrayEquals(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0A}, dst.array());
 	}
-	
+
 	@Test
 	public void testFillReachingEof() throws IOException {
 		final ReadableByteChannel src = Mockito.mock(ReadableByteChannel.class);

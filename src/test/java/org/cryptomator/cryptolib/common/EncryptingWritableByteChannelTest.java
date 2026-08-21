@@ -12,7 +12,6 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
-import java.util.Arrays;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 

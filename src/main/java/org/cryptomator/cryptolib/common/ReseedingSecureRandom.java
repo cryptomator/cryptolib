@@ -8,20 +8,20 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.SecureRandomSpi;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Wraps a fast CSPRNG, which gets reseeded automatically after a certain amount of bytes has been generated.<br>
- * 
+ *
  * <p>
  * Java 8 Example:
- * 
+ *
  * <pre>
  *  SecureRandom csprng = ReseedingSecureRandom.create(SecureRandom.getInstanceStrong());
  * </pre>

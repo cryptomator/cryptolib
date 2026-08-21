@@ -13,7 +13,7 @@ import com.google.common.io.BaseEncoding;
 /**
  * Provides deterministic encryption capabilities as filenames must not change on subsequent encryption attempts,
  * otherwise each change results in major directory structure changes which would be a terrible idea for cloud storage encryption.
- * 
+ *
  * @see <a href="https://en.wikipedia.org/wiki/Deterministic_encryption">Wikipedia on deterministic encryption</a>
  */
 public interface FileNameCryptor {
