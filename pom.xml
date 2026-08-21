@@ -49,6 +49,7 @@
 		<mvn-shade.version>3.6.2</mvn-shade.version>
 		<mvn-source.version>3.4.0</mvn-source.version>
 		<mvn-surefire.version>3.5.6</mvn-surefire.version>
+		<spotless.version>3.10.0</spotless.version>
 
 		<!-- Property used by surefire to determine jacoco engine -->
 		<surefire.jacoco.args />
@@ -154,6 +155,38 @@
 					<execution>
 						<goals>
 							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>${spotless.version}</version>
+				<configuration>
+					<java>
+						<!-- default includes miss the multi-release source roots -->
+						<includes>
+							<include>src/main/java/**/*.java</include>
+							<include>src/main/java9/**/*.java</include>
+							<include>src/main/java22/**/*.java</include>
+							<include>src/test/java/**/*.java</include>
+						</includes>
+						<removeUnusedImports />
+						<!-- everything else, then javax+java, then static; matches the IntelliJ layout in .idea/codeStyles -->
+						<importOrder>
+							<order>,javax|java,\#</order>
+						</importOrder>
+						<trimTrailingWhitespace />
+						<endWithNewline />
+					</java>
+				</configuration>
+				<executions>
+					<execution>
+						<id>spotless-check</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
 						</goals>
 					</execution>
 				</executions>
