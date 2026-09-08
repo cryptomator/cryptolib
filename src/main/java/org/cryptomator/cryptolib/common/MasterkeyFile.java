@@ -20,6 +20,10 @@ import java.io.Writer;
  */
 public class MasterkeyFile {
 
+	static final int MAX_SCRYPT_COST_PARAM = 1 << 20;
+	static final int MAX_SCRYPT_BLOCK_SIZE = 64;
+
+
 	private static final Gson GSON = new GsonBuilder() //
 			.setPrettyPrinting() //
 			.disableHtmlEscaping() //
@@ -75,6 +79,9 @@ public class MasterkeyFile {
 				&& scryptSalt != null
 				&& scryptCostParam > 1
 				&& scryptBlockSize > 0
+				&& scryptCostParam <= MAX_SCRYPT_COST_PARAM
+				&& scryptBlockSize <= MAX_SCRYPT_BLOCK_SIZE
+				&& !Scrypt.exceedsWorkingMemoryLimit(scryptCostParam, scryptBlockSize)
 				&& encMasterKey != null
 				&& macMasterKey != null
 				&& versionMac != null;

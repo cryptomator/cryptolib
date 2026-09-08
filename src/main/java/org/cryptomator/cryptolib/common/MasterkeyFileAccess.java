@@ -177,6 +177,7 @@ public class MasterkeyFileAccess {
 	// visible for testing
 	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
+		Preconditions.checkArgument(scryptCostParam <= MasterkeyFile.MAX_SCRYPT_COST_PARAM, "scryptCostParam out of accepted range");
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, UTF_8)) {
