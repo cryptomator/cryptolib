@@ -17,6 +17,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Scrypt {
 
+	/**
+	 * Upper bound for the scrypt working memory (V + B + XY), in bytes.
+	 * The default configuration is given in {@link MasterkeyFileAccess} and needs ~32MiB
+	 */
+	private static final long MAX_WORKING_MEMORY_BYTES = 1024L * 1024 * 1024; // 1 GiB
 	private static final int P = 1; // scrypt parallelization parameter
 
 	private Scrypt() {
@@ -71,6 +76,9 @@ public class Scrypt {
 		if (blockSize > Integer.MAX_VALUE / 128 / P) {
 			throw new IllegalArgumentException("Parameter r is too large");
 		}
+		if (exceedsWorkingMemoryLimit(costParam, blockSize)) {
+			throw new IllegalArgumentException("Parameter combination r * N requires too much memory");
+		}
 
 		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256");
 			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(key)) {
@@ -90,6 +98,17 @@ public class Scrypt {
 
 			return DK;
 		}
+	}
+
+	/**
+	 * Checks whether the working memory required by the given scrypt parameters exceeds the enforced upper bound.
+	 *
+	 * @param costParam Cost parameter <code>N</code>
+	 * @param blockSize Block size <code>r</code>
+	 * @return <code>true</code> if {@link #scrypt(byte[], byte[], int, int, int)} would reject this parameter combination due to its memory requirements
+	 */
+	static boolean exceedsWorkingMemoryLimit(int costParam, int blockSize) {
+		return (long) blockSize * costParam > MAX_WORKING_MEMORY_BYTES / 128;
 	}
 
 	/**
