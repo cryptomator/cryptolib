@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -22,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 
@@ -124,6 +126,80 @@ public class MasterkeyFileAccessTest {
 			});
 		}
 
+		@Nested
+		@DisplayName("load() with validator")
+		class LoadWithValidator {
+
+			@Test
+			@DisplayName("all-passing validator allows loading the key")
+			public void testLoadWithPassingValidator() throws IOException {
+				InputStream in = new ByteArrayInputStream(serializedKeyFile);
+
+				Masterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
+				});
+
+				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+			}
+
+			@Test
+			@DisplayName("all-rejecting validator throws exception, no key derivation happens")
+			public void testLoadWithRejectingValidator() throws InvalidPassphraseException {
+				InputStream in = new ByteArrayInputStream(serializedKeyFile);
+				IOException rejection = new IOException("scrypt parameters exceed memory limit");
+
+				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
+					masterkeyFileAccess.load(in, "asd", file -> {
+						throw rejection;
+					});
+				});
+				Assertions.assertSame(rejection, thrown);
+				Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+			}
+
+			@Test
+			@DisplayName("validator receives the parsed file")
+			public void testValidatorReceivesParsedFile() throws IOException {
+				InputStream in = new ByteArrayInputStream(serializedKeyFile);
+				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+				masterkeyFileAccess.load(in, "asd", validator);
+
+				ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
+				Mockito.verify(validator).validate(captor.capture());
+				Assertions.assertEquals(999, captor.getValue().version);
+				Assertions.assertEquals(2, captor.getValue().scryptCostParam);
+				Assertions.assertEquals(8, captor.getValue().scryptBlockSize);
+			}
+
+			@Test
+			@DisplayName("validator is not invoked for structurally invalid files")
+			public void testValidatorNotInvokedForInvalidFile() {
+				InputStream in = new ByteArrayInputStream("{\"foo\": 42}".getBytes(UTF_8));
+				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+				Assertions.assertThrows(IOException.class, () -> {
+					masterkeyFileAccess.load(in, "asd", validator);
+				});
+				Mockito.verifyNoInteractions(validator);
+			}
+
+			@Test
+			@DisplayName("load(Path, ...) with rejecting validator -> MasterkeyLoadingFailedException caused by validator's exception")
+			public void testLoadPathWithRejectingValidator(@TempDir Path tmpDir) throws IOException {
+				Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+				Files.write(masterkeyFile, serializedKeyFile);
+				IOException rejection = new IOException("scrypt parameters exceed memory limit");
+
+				MasterkeyLoadingFailedException thrown = Assertions.assertThrows(MasterkeyLoadingFailedException.class, () -> {
+					masterkeyFileAccess.load(masterkeyFile, "asd", file -> {
+						throw rejection;
+					});
+				});
+				Assertions.assertSame(rejection, thrown.getCause());
+			}
+
+		}
+
 	}
 
 	/**
@@ -173,12 +249,12 @@ public class MasterkeyFileAccessTest {
 			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
 		}
 
-		private byte[] serialize(MasterkeyFile keyFile) throws IOException {
-			StringWriter writer = new StringWriter();
-			keyFile.write(writer);
-			return writer.toString().getBytes(UTF_8);
-		}
+	}
 
+	private static byte[] serialize(MasterkeyFile keyFile) throws IOException {
+		StringWriter writer = new StringWriter();
+		keyFile.write(writer);
+		return writer.toString().getBytes(UTF_8);
 	}
 
 	@Nested
