@@ -21,7 +21,7 @@ public class Scrypt {
 	 * Upper bound for the scrypt working memory (V + B + XY), in bytes.
 	 * The default configuration is given in {@link MasterkeyFileAccess} and needs ~32MiB
 	 */
-	private static final long MAX_WORKING_MEMORY_BYTES = 1024L * 1024 * 1024; // 1 GiB
+	private static final long MAX_WORKING_MEMORY_BYTES = 1024L * 1024 * 1024 + 3072; // ~1 GiB, allowing r=8, N=(1<<20)
 	private static final int P = 1; // scrypt parallelization parameter
 
 	private Scrypt() {
