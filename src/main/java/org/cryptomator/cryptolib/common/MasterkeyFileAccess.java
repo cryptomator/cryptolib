@@ -44,6 +44,8 @@ public class MasterkeyFileAccess {
 	private static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
 	private static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
 	private static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
+	private static final MasterkeyFileValidator NO_ADDITIONAL_VALIDATION = file -> {
+	};
 
 	private final byte[] pepper;
 	private final SecureRandom csprng;
@@ -115,19 +117,61 @@ public class MasterkeyFileAccess {
 	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails
 	 */
 	public Masterkey load(Path filePath, CharSequence passphrase) throws MasterkeyLoadingFailedException {
+		return load(filePath, passphrase, NO_ADDITIONAL_VALIDATION);
+	}
+
+	/**
+	 * Loads the JSON contents from the given file, runs the parsed content through <code>validator</code>
+	 * and derives a KEK from the given passphrase to unwrap the contained keys.
+	 * <p>
+	 * The validator runs before any key derivation happens and is meant to reject files that are structurally valid but unsuitable for the calling environment,
+	 * e.g. because their scrypt parameters require more memory than the caller is willing to spend:
+	 * <pre>
+	 * 	masterkeyFileAccess.load(path, passphrase, file -&gt; {
+	 * 		if (128L * file.scryptBlockSize * file.scryptCostParam &gt; 256 * 1024 * 1024) {
+	 * 			throw new IOException("scrypt parameters exceed memory limit");
+	 * 		}
+	 * 	});
+	 * </pre>
+	 *
+	 * @param filePath   Which file to load
+	 * @param passphrase The passphrase used during key derivation
+	 * @param validator  Additional validation the parsed masterkey file must pass
+	 * @return A new masterkey. Should be used in a try-with-resource statement.
+	 * @throws InvalidPassphraseException      If the provided passphrase can not be used to unwrap the stored keys.
+	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails or the <code>validator</code> rejects the parsed content. In the latter case the validator's exception is the cause.
+	 */
+	public Masterkey load(Path filePath, CharSequence passphrase, MasterkeyFileValidator validator) throws MasterkeyLoadingFailedException {
 		try (InputStream in = Files.newInputStream(filePath, StandardOpenOption.READ)) {
-			return load(in, passphrase);
+			return load(in, passphrase, validator);
 		} catch (IOException e) {
 			throw new MasterkeyLoadingFailedException("I/O error", e);
 		}
 	}
 
 	public Masterkey load(InputStream in, CharSequence passphrase) throws IOException {
+		return load(in, passphrase, NO_ADDITIONAL_VALIDATION);
+	}
+
+	/**
+	 * Reads the JSON contents from the given stream, runs the parsed content through <code>validator</code>
+	 * and derives a KEK from the given passphrase to unwrap the contained keys.
+	 *
+	 * @param in         Stream to read the masterkey file from
+	 * @param passphrase The passphrase used during key derivation
+	 * @param validator  Additional validation the parsed masterkey file must pass, see {@link #load(Path, CharSequence, MasterkeyFileValidator)}
+	 * @return A new masterkey. Should be used in a try-with-resource statement.
+	 * @throws InvalidPassphraseException If the provided passphrase can not be used to unwrap the stored keys.
+	 * @throws IOException                If reading the masterkey file fails or the <code>validator</code> rejects the parsed content. In the latter case the validator's exception is rethrown as is.
+	 */
+	public Masterkey load(InputStream in, CharSequence passphrase, MasterkeyFileValidator validator) throws IOException {
+		Preconditions.checkNotNull(validator);
 		try (Reader reader = new InputStreamReader(in, UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			if (!parsedFile.isValid()) {
 				throw new IOException("Invalid key file");
 			} else {
+				validator.validate(parsedFile);
 				return unlock(parsedFile, passphrase);
 			}
 		}
@@ -177,6 +221,7 @@ public class MasterkeyFileAccess {
 	// visible for testing
 	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
+		Preconditions.checkArgument(scryptCostParam <= MasterkeyFile.MAX_SCRYPT_COST_PARAM, "scryptCostParam out of accepted range");
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, UTF_8)) {

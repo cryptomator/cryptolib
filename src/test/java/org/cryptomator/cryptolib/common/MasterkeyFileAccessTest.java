@@ -12,12 +12,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 
@@ -120,6 +126,135 @@ public class MasterkeyFileAccessTest {
 			});
 		}
 
+		@Nested
+		@DisplayName("load() with validator")
+		class LoadWithValidator {
+
+			@Test
+			@DisplayName("all-passing validator allows loading the key")
+			public void testLoadWithPassingValidator() throws IOException {
+				InputStream in = new ByteArrayInputStream(serializedKeyFile);
+
+				Masterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
+				});
+
+				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+			}
+
+			@Test
+			@DisplayName("all-rejecting validator throws exception, no key derivation happens")
+			public void testLoadWithRejectingValidator() throws InvalidPassphraseException {
+				InputStream in = new ByteArrayInputStream(serializedKeyFile);
+				IOException rejection = new IOException("scrypt parameters exceed memory limit");
+
+				IOException thrown = Assertions.assertThrows(IOException.class, () -> {
+					masterkeyFileAccess.load(in, "asd", file -> {
+						throw rejection;
+					});
+				});
+				Assertions.assertSame(rejection, thrown);
+				Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+			}
+
+			@Test
+			@DisplayName("validator receives the parsed file")
+			public void testValidatorReceivesParsedFile() throws IOException {
+				InputStream in = new ByteArrayInputStream(serializedKeyFile);
+				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+				masterkeyFileAccess.load(in, "asd", validator);
+
+				ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
+				Mockito.verify(validator).validate(captor.capture());
+				Assertions.assertEquals(999, captor.getValue().version);
+				Assertions.assertEquals(2, captor.getValue().scryptCostParam);
+				Assertions.assertEquals(8, captor.getValue().scryptBlockSize);
+			}
+
+			@Test
+			@DisplayName("validator is not invoked for structurally invalid files")
+			public void testValidatorNotInvokedForInvalidFile() {
+				InputStream in = new ByteArrayInputStream("{\"foo\": 42}".getBytes(UTF_8));
+				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+				Assertions.assertThrows(IOException.class, () -> {
+					masterkeyFileAccess.load(in, "asd", validator);
+				});
+				Mockito.verifyNoInteractions(validator);
+			}
+
+			@Test
+			@DisplayName("load(Path, ...) with rejecting validator -> MasterkeyLoadingFailedException caused by validator's exception")
+			public void testLoadPathWithRejectingValidator(@TempDir Path tmpDir) throws IOException {
+				Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+				Files.write(masterkeyFile, serializedKeyFile);
+				IOException rejection = new IOException("scrypt parameters exceed memory limit");
+
+				MasterkeyLoadingFailedException thrown = Assertions.assertThrows(MasterkeyLoadingFailedException.class, () -> {
+					masterkeyFileAccess.load(masterkeyFile, "asd", file -> {
+						throw rejection;
+					});
+				});
+				Assertions.assertSame(rejection, thrown.getCause());
+			}
+
+		}
+
+	}
+
+	/**
+	 * Regression tests for <a href="https://github.com/cryptomator/cryptolib/issues/133">#133</a>:
+	 * scrypt parameters read from an untrusted masterkey file must be range-checked before they reach the key derivation.
+	 */
+	@Nested
+	@DisplayName("load() with out of range scrypt parameters")
+	class LoadWithOutOfRangeScryptParams {
+
+		@ParameterizedTest(name = "scryptCostParam = {0}")
+		@DisplayName("rejects oversized scryptCostParam without deriving a key")
+		@ValueSource(ints = {MasterkeyFile.MAX_SCRYPT_COST_PARAM << 1, 1 << 30, Integer.MAX_VALUE})
+		public void testLoadWithOversizedCostParam(int scryptCostParam) throws IOException, InvalidPassphraseException {
+			keyFile.scryptCostParam = scryptCostParam;
+			InputStream in = new ByteArrayInputStream(serialize(keyFile));
+
+			Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.load(in, "asd");
+			});
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+		@ParameterizedTest(name = "scryptBlockSize = {0}")
+		@DisplayName("rejects oversized scryptBlockSize without deriving a key")
+		@ValueSource(ints = {MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE << 1, 1 << 20, Integer.MAX_VALUE})
+		public void testLoadWithOversizedBlockSize(int scryptBlockSize) throws IOException, InvalidPassphraseException {
+			keyFile.scryptBlockSize = scryptBlockSize;
+			InputStream in = new ByteArrayInputStream(serialize(keyFile));
+
+			Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.load(in, "asd");
+			});
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+		@Test
+		@DisplayName("rejects scryptCostParam * scryptBlockSize exceeding the memory limit without deriving a key")
+		public void testLoadWithOversizedMemoryRequirement() throws IOException, InvalidPassphraseException {
+			keyFile.scryptCostParam = MasterkeyFile.MAX_SCRYPT_COST_PARAM;
+			keyFile.scryptBlockSize = MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE; // 2^20 * 64 * 128 = 8 GiB
+			InputStream in = new ByteArrayInputStream(serialize(keyFile));
+
+			Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.load(in, "asd");
+			});
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+	}
+
+	private static byte[] serialize(MasterkeyFile keyFile) throws IOException {
+		StringWriter writer = new StringWriter();
+		keyFile.write(writer);
+		return writer.toString().getBytes(UTF_8);
 	}
 
 	@Nested
@@ -132,6 +267,26 @@ public class MasterkeyFileAccessTest {
 			Masterkey key = masterkeyFileAccess.unlock(keyFile, "asd");
 
 			Assertions.assertNotNull(key);
+		}
+
+		@Test
+		@DisplayName("with oversized scryptCostParam")
+		public void testUnlockWithOversizedCostParam() {
+			keyFile.scryptCostParam = MasterkeyFile.MAX_SCRYPT_COST_PARAM << 1;
+
+			Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				masterkeyFileAccess.unlock(keyFile, "asd");
+			});
+		}
+
+		@Test
+		@DisplayName("with oversized scryptBlockSize")
+		public void testUnlockWithOversizedBlockSize() {
+			keyFile.scryptBlockSize = MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE << 1;
+
+			Assertions.assertThrows(IllegalArgumentException.class, () -> {
+				masterkeyFileAccess.unlock(keyFile, "asd");
+			});
 		}
 
 		@Test
@@ -195,6 +350,18 @@ public class MasterkeyFileAccessTest {
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
 
+	}
+
+	@Test
+	@DisplayName("persist() with oversized scryptCostParam")
+	public void testPersistWithOversizedCostParam() {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			masterkeyFileAccess.persist(key, out, "asd", 999, MasterkeyFile.MAX_SCRYPT_COST_PARAM << 1);
+		});
+		Mockito.verify(masterkeyFileAccess, Mockito.never()).lock(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt());
+		Assertions.assertEquals(0, out.size());
 	}
 
 	@Test
