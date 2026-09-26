@@ -1,7 +1,12 @@
 package org.cryptomator.cryptolib.common;
 
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -9,6 +14,38 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * Tests from https://tools.ietf.org/html/rfc7914#section-12
  */
 public class ScryptTest {
+
+	/**
+	 * Regression test for <a href="https://github.com/cryptomator/cryptolib/issues/133">#133</a>:
+	 * Parameter combinations that pass the individual int-overflow checks on N and r but would allocate more than the working memory limit must be rejected up front instead of running into an OutOfMemoryError.
+	 */
+	@ParameterizedTest(name = "N = {0}, r = {1}")
+	@DisplayName("reject parameter combinations exceeding the working memory limit")
+	@CsvSource({ //
+			"1048576, 9", // 2^20 * 9 * 128 = 1152 MiB
+			"2097152, 5", // 2^21 * 5 * 128 = 1280 MiB
+			"4194304, 3", // 2^22 * 3 * 128 = 1536 MiB
+	})
+	public void testRejectTooMuchMemory(int costParam, int blockSize) {
+		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+			Scrypt.scrypt("pw", "salt".getBytes(US_ASCII), costParam, blockSize, 64);
+		});
+		MatcherAssert.assertThat(e.getMessage(), CoreMatchers.containsString("too much memory"));
+	}
+
+	@ParameterizedTest(name = "N = {0}, r = {1} -> {2}")
+	@DisplayName("exceedsWorkingMemoryLimit() boundary")
+	@CsvSource({ //
+			"32768, 8, false", // default parameters, 32 MiB
+			"8388608, 1, false", // 2^23 * 1 * 128 = 1 GiB, exactly at the limit
+			"524288, 16, false", // 2^19 * 16 * 128 = 1 GiB, exactly at the limit
+			"1048576, 9, true", // 2^20 * 9 * 128 = 1152 MiB
+			"16777216, 1, true", // 2^24 * 1 * 128 = 2 GiB
+			"2147483647, 2147483647, true", // int overflow of r * N must not wrap around
+	})
+	public void testExceedsWorkingMemoryLimit(int costParam, int blockSize, boolean expected) {
+		Assertions.assertEquals(expected, Scrypt.exceedsWorkingMemoryLimit(costParam, blockSize));
+	}
 
 	@Test
 	public void testEmptyString() {
