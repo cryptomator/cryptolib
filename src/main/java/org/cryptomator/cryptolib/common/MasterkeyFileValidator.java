@@ -11,6 +11,10 @@ import java.io.IOException;
 @FunctionalInterface
 public interface MasterkeyFileValidator {
 
+	public static final MasterkeyFileValidator NONE = file -> {
+	};
+
+
 	/**
 	 * Validates the given, structurally valid masterkey file.
 	 *

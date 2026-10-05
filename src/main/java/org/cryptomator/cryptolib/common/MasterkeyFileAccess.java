@@ -44,9 +44,6 @@ public class MasterkeyFileAccess {
 	private static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
 	private static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
 	private static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
-	private static final MasterkeyFileValidator NO_ADDITIONAL_VALIDATION = file -> {
-	};
-
 	private final byte[] pepper;
 	private final SecureRandom csprng;
 
@@ -117,7 +114,7 @@ public class MasterkeyFileAccess {
 	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails
 	 */
 	public Masterkey load(Path filePath, CharSequence passphrase) throws MasterkeyLoadingFailedException {
-		return load(filePath, passphrase, NO_ADDITIONAL_VALIDATION);
+		return load(filePath, passphrase, MasterkeyFileValidator.NONE);
 	}
 
 	/**
@@ -150,7 +147,7 @@ public class MasterkeyFileAccess {
 	}
 
 	public Masterkey load(InputStream in, CharSequence passphrase) throws IOException {
-		return load(in, passphrase, NO_ADDITIONAL_VALIDATION);
+		return load(in, passphrase, MasterkeyFileValidator.NONE);
 	}
 
 	/**
