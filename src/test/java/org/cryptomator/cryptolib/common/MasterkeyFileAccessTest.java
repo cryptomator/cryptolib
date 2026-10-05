@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
@@ -131,17 +131,6 @@ public class MasterkeyFileAccessTest {
 		class LoadWithValidator {
 
 			@Test
-			@DisplayName("all-passing validator allows loading the key")
-			public void testLoadWithPassingValidator() throws IOException {
-				InputStream in = new ByteArrayInputStream(serializedKeyFile);
-
-				Masterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
-				});
-
-				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
-			}
-
-			@Test
 			@DisplayName("all-rejecting validator throws exception, no key derivation happens")
 			public void testLoadWithRejectingValidator() throws InvalidPassphraseException {
 				InputStream in = new ByteArrayInputStream(serializedKeyFile);
@@ -157,13 +146,14 @@ public class MasterkeyFileAccessTest {
 			}
 
 			@Test
-			@DisplayName("validator receives the parsed file")
-			public void testValidatorReceivesParsedFile() throws IOException {
+			@DisplayName("passing validator receives the parsed file and allows loading the key")
+			public void testLoadWithPassingValidator() throws IOException {
 				InputStream in = new ByteArrayInputStream(serializedKeyFile);
 				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
 
-				masterkeyFileAccess.load(in, "asd", validator);
+				Masterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
 
+				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 				ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
 				Mockito.verify(validator).validate(captor.capture());
 				Assertions.assertEquals(999, captor.getValue().version);
@@ -203,52 +193,26 @@ public class MasterkeyFileAccessTest {
 	}
 
 	/**
-	 * Regression tests for <a href="https://github.com/cryptomator/cryptolib/issues/133">#133</a>:
+	 * Regression test for <a href="https://github.com/cryptomator/cryptolib/issues/133">#133</a>:
 	 * scrypt parameters read from an untrusted masterkey file must be range-checked before they reach the key derivation.
+	 * The individual bounds are covered by {@link MasterkeyFileTest}.
 	 */
-	@Nested
-	@DisplayName("load() with out of range scrypt parameters")
-	class LoadWithOutOfRangeScryptParams {
+	@ParameterizedTest(name = "scryptCostParam = {0}, scryptBlockSize = {1}")
+	@DisplayName("load() rejects out of range scrypt parameters without deriving a key")
+	@CsvSource({ //
+			"2097152, 8", // scryptCostParam > MAX_SCRYPT_COST_PARAM
+			"2, 128", // scryptBlockSize > MAX_SCRYPT_BLOCK_SIZE
+			"1048576, 64", // both within their bounds, but 2^20 * 64 * 128 = 8 GiB
+	})
+	public void testLoadWithOutOfRangeScryptParams(int scryptCostParam, int scryptBlockSize) throws IOException, InvalidPassphraseException {
+		keyFile.scryptCostParam = scryptCostParam;
+		keyFile.scryptBlockSize = scryptBlockSize;
+		InputStream in = new ByteArrayInputStream(serialize(keyFile));
 
-		@ParameterizedTest(name = "scryptCostParam = {0}")
-		@DisplayName("rejects oversized scryptCostParam without deriving a key")
-		@ValueSource(ints = {MasterkeyFile.MAX_SCRYPT_COST_PARAM << 1, 1 << 30, Integer.MAX_VALUE})
-		public void testLoadWithOversizedCostParam(int scryptCostParam) throws IOException, InvalidPassphraseException {
-			keyFile.scryptCostParam = scryptCostParam;
-			InputStream in = new ByteArrayInputStream(serialize(keyFile));
-
-			Assertions.assertThrows(IOException.class, () -> {
-				masterkeyFileAccess.load(in, "asd");
-			});
-			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
-		}
-
-		@ParameterizedTest(name = "scryptBlockSize = {0}")
-		@DisplayName("rejects oversized scryptBlockSize without deriving a key")
-		@ValueSource(ints = {MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE << 1, 1 << 20, Integer.MAX_VALUE})
-		public void testLoadWithOversizedBlockSize(int scryptBlockSize) throws IOException, InvalidPassphraseException {
-			keyFile.scryptBlockSize = scryptBlockSize;
-			InputStream in = new ByteArrayInputStream(serialize(keyFile));
-
-			Assertions.assertThrows(IOException.class, () -> {
-				masterkeyFileAccess.load(in, "asd");
-			});
-			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
-		}
-
-		@Test
-		@DisplayName("rejects scryptCostParam * scryptBlockSize exceeding the memory limit without deriving a key")
-		public void testLoadWithOversizedMemoryRequirement() throws IOException, InvalidPassphraseException {
-			keyFile.scryptCostParam = MasterkeyFile.MAX_SCRYPT_COST_PARAM;
-			keyFile.scryptBlockSize = MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE; // 2^20 * 64 * 128 = 8 GiB
-			InputStream in = new ByteArrayInputStream(serialize(keyFile));
-
-			Assertions.assertThrows(IOException.class, () -> {
-				masterkeyFileAccess.load(in, "asd");
-			});
-			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
-		}
-
+		Assertions.assertThrows(IOException.class, () -> {
+			masterkeyFileAccess.load(in, "asd");
+		});
+		Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
 	}
 
 	private static byte[] serialize(MasterkeyFile keyFile) throws IOException {
@@ -270,19 +234,9 @@ public class MasterkeyFileAccessTest {
 		}
 
 		@Test
-		@DisplayName("with oversized scryptCostParam")
-		public void testUnlockWithOversizedCostParam() {
+		@DisplayName("with out of range scrypt parameters")
+		public void testUnlockWithOutOfRangeScryptParams() {
 			keyFile.scryptCostParam = MasterkeyFile.MAX_SCRYPT_COST_PARAM << 1;
-
-			Assertions.assertThrows(IllegalArgumentException.class, () -> {
-				masterkeyFileAccess.unlock(keyFile, "asd");
-			});
-		}
-
-		@Test
-		@DisplayName("with oversized scryptBlockSize")
-		public void testUnlockWithOversizedBlockSize() {
-			keyFile.scryptBlockSize = MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE << 1;
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
 				masterkeyFileAccess.unlock(keyFile, "asd");
