@@ -260,9 +260,9 @@ public class MasterkeyFileAccessTest {
 		}
 
 		@Test
-		@DisplayName("with scrypt parameters exceeding the working memory limit of Scrypt")
+		@DisplayName("with scrypt parameters exceeding the maximum array size")
 		public void testUnlockWithOutOfRangeScryptParams() {
-			keyFile.scryptCostParam = MasterkeyFileValidator.DEFAULT_MAX_SCRYPT_COST_PARAM << 1; // 2^21 * 8 * 128 = 2 GiB
+			keyFile.scryptCostParam = MasterkeyFileValidator.DEFAULT_MAX_SCRYPT_COST_PARAM << 1; // 2^21 * 8 * 128 = 2 GiB, rejected by Scrypt's int overflow check
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
 				masterkeyFileAccess.unlock(keyFile, "asd");

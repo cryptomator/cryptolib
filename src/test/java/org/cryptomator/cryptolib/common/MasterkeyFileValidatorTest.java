@@ -31,9 +31,8 @@ public class MasterkeyFileValidatorTest {
 		@DisplayName("accepts scrypt parameters within the upper bounds")
 		@CsvSource({ //
 				"32768, 8", // default parameters, 32 MiB
-				"1048576, 8", // scryptCostParam at DEFAULT_MAX_SCRYPT_COST_PARAM, 1 GiB
+				"1048576, 8", // scryptCostParam at DEFAULT_MAX_SCRYPT_COST_PARAM, exactly at DEFAULT_MAX_SCRYPT_WORKING_MEMORY
 				"2, 64", // scryptBlockSize at DEFAULT_MAX_SCRYPT_BLOCK_SIZE
-				"524288, 16", // 2^19 * 16 * 128 = 1 GiB, exactly at the memory limit
 		})
 		public void testAccepts(int scryptCostParam, int scryptBlockSize) {
 			masterkeyFile.scryptCostParam = scryptCostParam;
@@ -49,6 +48,7 @@ public class MasterkeyFileValidatorTest {
 				"2147483647, 1", // scryptCostParam > DEFAULT_MAX_SCRYPT_COST_PARAM
 				"2, 65", // scryptBlockSize > DEFAULT_MAX_SCRYPT_BLOCK_SIZE
 				"2, 2147483647", // scryptBlockSize > DEFAULT_MAX_SCRYPT_BLOCK_SIZE
+				"524288, 16", // 1 GiB for V plus 6 KiB for B and XY, just above DEFAULT_MAX_SCRYPT_WORKING_MEMORY
 				"1048576, 16", // 2^20 * 16 * 128 = 2 GiB, while both factors are within their individual bounds
 				"1048576, 64", // both at their upper bounds, 2^20 * 64 * 128 = 8 GiB
 		})

@@ -17,11 +17,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Scrypt {
 
-	/**
-	 * Upper bound for the scrypt working memory (V + B + XY), in bytes.
-	 * The default configuration is given in {@link MasterkeyFileAccess} and needs ~32MiB
-	 */
-	private static final long MAX_WORKING_MEMORY_BYTES = 1024L * 1024 * 1024 + 3072; // ~1 GiB, allowing r=8, N=(1<<20)
 	private static final int P = 1; // scrypt parallelization parameter
 
 	private Scrypt() {
@@ -76,17 +71,22 @@ public class Scrypt {
 		if (blockSize > Integer.MAX_VALUE / 128 / P) {
 			throw new IllegalArgumentException("Parameter r is too large");
 		}
-		if (exceedsWorkingMemoryLimit(costParam, blockSize)) {
-			throw new IllegalArgumentException("Parameter combination r * N requires too much memory");
-		}
 
 		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256");
 			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(key)) {
 
 			byte[] DK = new byte[keyLengthInBytes];
-			byte[] B = new byte[128 * blockSize * P];
-			byte[] XY = new byte[256 * blockSize];
-			byte[] V = new byte[128 * blockSize * costParam];
+			byte[] B;
+			byte[] XY;
+			byte[] V;
+			try {
+				B = new byte[128 * blockSize * P];
+				XY = new byte[256 * blockSize];
+				V = new byte[128 * blockSize * costParam];
+			} catch (OutOfMemoryError e) {
+				// a failed allocation leaves the heap untouched, so it is safe to recover from it
+				throw new IllegalArgumentException("Insufficient memory for parameters N and r", e);
+			}
 
 			pbkdf2(mac.get(), salt, 1, B, P * 128 * blockSize);
 
@@ -101,14 +101,18 @@ public class Scrypt {
 	}
 
 	/**
-	 * Checks whether the working memory required by the given scrypt parameters exceeds the enforced upper bound.
+	 * Computes the working memory (V + B + XY) that {@link #scrypt(byte[], byte[], int, int, int)} allocates for the given parameters.
 	 *
 	 * @param costParam Cost parameter <code>N</code>
 	 * @param blockSize Block size <code>r</code>
-	 * @return <code>true</code> if {@link #scrypt(byte[], byte[], int, int, int)} would reject this parameter combination due to its memory requirements
+	 * @return Required working memory in bytes, saturated at {@link Long#MAX_VALUE}
 	 */
-	static boolean exceedsWorkingMemoryLimit(int costParam, int blockSize) {
-		return (long) blockSize * costParam > MAX_WORKING_MEMORY_BYTES / 128;
+	static long workingMemoryBytes(int costParam, int blockSize) {
+		try {
+			return Math.multiplyExact(128L * blockSize, costParam + 2L + P);
+		} catch (ArithmeticException e) {
+			return Long.MAX_VALUE;
+		}
 	}
 
 	/**

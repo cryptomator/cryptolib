@@ -22,12 +22,17 @@ public interface MasterkeyFileValidator {
 	public static final int DEFAULT_MAX_SCRYPT_BLOCK_SIZE = 64;
 
 	/**
-	 * Rejects masterkey files whose scrypt parameters exceed the upper bounds accepted by this library, limiting the working memory of the key derivation to ~1 GiB.
+	 * Upper bound of the working memory in bytes the scrypt key derivation may require for files accepted by {@link #DEFAULT}.
+	 */
+	public static final long DEFAULT_MAX_SCRYPT_WORKING_MEMORY = 1024L * 1024 * 1024 + 3072; // 1 GiB for V plus 3 KiB for B and XY, allowing N=2^20, r=8
+
+	/**
+	 * Rejects masterkey files whose scrypt parameters exceed {@link #DEFAULT_MAX_SCRYPT_COST_PARAM}, {@link #DEFAULT_MAX_SCRYPT_BLOCK_SIZE} or {@link #DEFAULT_MAX_SCRYPT_WORKING_MEMORY}.
 	 */
 	public static final MasterkeyFileValidator DEFAULT = file -> {
 		if (file.scryptCostParam > DEFAULT_MAX_SCRYPT_COST_PARAM
 				|| file.scryptBlockSize > DEFAULT_MAX_SCRYPT_BLOCK_SIZE
-				|| Scrypt.exceedsWorkingMemoryLimit(file.scryptCostParam, file.scryptBlockSize)) {
+				|| Scrypt.workingMemoryBytes(file.scryptCostParam, file.scryptBlockSize) > DEFAULT_MAX_SCRYPT_WORKING_MEMORY) {
 			throw new IOException("scrypt parameters out of accepted range");
 		}
 	};
