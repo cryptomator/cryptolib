@@ -91,6 +91,7 @@ public class MasterkeyFileAccess {
 		try (Reader reader = new InputStreamReader(oldIn, UTF_8);
 			 Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
 			MasterkeyFile original = MasterkeyFile.read(reader);
+			MasterkeyFileValidator.DEFAULT.validate(original);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			updated.write(writer);
 		}
@@ -104,17 +105,17 @@ public class MasterkeyFileAccess {
 	}
 
 	/**
-	 * Loads the JSON contents from the given file and derives a KEK from the given passphrase to
+	 * Loads the JSON contents from the given file, validates it using {@link MasterkeyFileValidator#DEFAULT} and derives a KEK from the given passphrase to
 	 * unwrap the contained keys.
 	 *
 	 * @param filePath   Which file to load
 	 * @param passphrase The passphrase used during key derivation
 	 * @return A new masterkey. Should be used in a try-with-resource statement.
 	 * @throws InvalidPassphraseException      If the provided passphrase can not be used to unwrap the stored keys.
-	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails
+	 * @throws MasterkeyLoadingFailedException If reading or validating the masterkey file fails
 	 */
 	public Masterkey load(Path filePath, CharSequence passphrase) throws MasterkeyLoadingFailedException {
-		return load(filePath, passphrase, MasterkeyFileValidator.NONE);
+		return load(filePath, passphrase, MasterkeyFileValidator.DEFAULT);
 	}
 
 	/**
@@ -122,7 +123,8 @@ public class MasterkeyFileAccess {
 	 * and derives a KEK from the given passphrase to unwrap the contained keys.
 	 * <p>
 	 * The validator runs before any key derivation happens and is meant to reject files that are structurally valid but unsuitable for the calling environment,
-	 * e.g. because their scrypt parameters require more memory than the caller is willing to spend:
+	 * e.g. because their scrypt parameters require more memory than the caller is willing to spend.
+	 * It replaces {@link MasterkeyFileValidator#DEFAULT}, so a custom validator can apply both tighter and looser limits:
 	 * <pre>
 	 * 	masterkeyFileAccess.load(path, passphrase, file -&gt; {
 	 * 		if (128L * file.scryptBlockSize * file.scryptCostParam &gt; 256 * 1024 * 1024) {
@@ -133,7 +135,7 @@ public class MasterkeyFileAccess {
 	 *
 	 * @param filePath   Which file to load
 	 * @param passphrase The passphrase used during key derivation
-	 * @param validator  Additional validation the parsed masterkey file must pass
+	 * @param validator  Validation the parsed masterkey file must pass
 	 * @return A new masterkey. Should be used in a try-with-resource statement.
 	 * @throws InvalidPassphraseException      If the provided passphrase can not be used to unwrap the stored keys.
 	 * @throws MasterkeyLoadingFailedException If reading the masterkey file fails or the <code>validator</code> rejects the parsed content. In the latter case the validator's exception is the cause.
@@ -147,7 +149,7 @@ public class MasterkeyFileAccess {
 	}
 
 	public Masterkey load(InputStream in, CharSequence passphrase) throws IOException {
-		return load(in, passphrase, MasterkeyFileValidator.NONE);
+		return load(in, passphrase, MasterkeyFileValidator.DEFAULT);
 	}
 
 	/**
@@ -156,7 +158,7 @@ public class MasterkeyFileAccess {
 	 *
 	 * @param in         Stream to read the masterkey file from
 	 * @param passphrase The passphrase used during key derivation
-	 * @param validator  Additional validation the parsed masterkey file must pass, see {@link #load(Path, CharSequence, MasterkeyFileValidator)}
+	 * @param validator  Validation the parsed masterkey file must pass, see {@link #load(Path, CharSequence, MasterkeyFileValidator)}
 	 * @return A new masterkey. Should be used in a try-with-resource statement.
 	 * @throws InvalidPassphraseException If the provided passphrase can not be used to unwrap the stored keys.
 	 * @throws IOException                If reading the masterkey file fails or the <code>validator</code> rejects the parsed content. In the latter case the validator's exception is rethrown as is.
@@ -218,7 +220,6 @@ public class MasterkeyFileAccess {
 	// visible for testing
 	void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
-		Preconditions.checkArgument(scryptCostParam <= MasterkeyFile.MAX_SCRYPT_COST_PARAM, "scryptCostParam out of accepted range");
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, UTF_8)) {

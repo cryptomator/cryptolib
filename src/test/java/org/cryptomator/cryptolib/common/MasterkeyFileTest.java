@@ -41,51 +41,17 @@ public class MasterkeyFileTest {
 		}
 
 		@Test
-		@DisplayName("scryptCostParam at the upper bound is valid")
-		public void testMaxCostParamIsValid() {
-			masterkeyFile.scryptCostParam = MasterkeyFile.MAX_SCRYPT_COST_PARAM;
+		@DisplayName("scrypt parameters exceeding the memory limit are valid, as resource limits are left to MasterkeyFileValidator")
+		public void testOversizedScryptParamsAreValid() {
+			masterkeyFile.scryptCostParam = Integer.MAX_VALUE;
+			masterkeyFile.scryptBlockSize = Integer.MAX_VALUE;
 
 			Assertions.assertTrue(masterkeyFile.isValid());
-		}
-
-		@Test
-		@DisplayName("scryptBlockSize at the upper bound is valid")
-		public void testMaxBlockSizeIsValid() {
-			masterkeyFile.scryptBlockSize = MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE;
-
-			Assertions.assertTrue(masterkeyFile.isValid());
-		}
-
-		@Test
-		@DisplayName("scryptCostParam * scryptBlockSize at the memory limit is valid")
-		public void testProductAtMemoryLimitIsValid() {
-			masterkeyFile.scryptCostParam = 1 << 19;
-			masterkeyFile.scryptBlockSize = 16; // 2^19 * 16 * 128 = 1 GiB
-
-			Assertions.assertTrue(masterkeyFile.isValid());
-		}
-
-		@Test
-		@DisplayName("scryptCostParam * scryptBlockSize exceeding the memory limit is invalid")
-		public void testProductExceedingMemoryLimitIsInvalid() {
-			masterkeyFile.scryptCostParam = 1 << 20;
-			masterkeyFile.scryptBlockSize = 16; // 2^20 * 16 * 128 = 2 GiB, while both factors are within their individual bounds
-
-			Assertions.assertFalse(masterkeyFile.isValid());
-		}
-
-		@Test
-		@DisplayName("both scrypt parameters at their upper bounds are invalid")
-		public void testBothUpperBoundsAreInvalid() {
-			masterkeyFile.scryptCostParam = MasterkeyFile.MAX_SCRYPT_COST_PARAM;
-			masterkeyFile.scryptBlockSize = MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE; // 2^20 * 64 * 128 = 8 GiB
-
-			Assertions.assertFalse(masterkeyFile.isValid());
 		}
 
 		@ParameterizedTest(name = "scryptCostParam = {0}")
 		@DisplayName("out of range scryptCostParam is invalid")
-		@ValueSource(ints = {Integer.MIN_VALUE, -1, 0, 1, MasterkeyFile.MAX_SCRYPT_COST_PARAM + 1, MasterkeyFile.MAX_SCRYPT_COST_PARAM << 1, Integer.MAX_VALUE})
+		@ValueSource(ints = {Integer.MIN_VALUE, -1, 0, 1})
 		public void testOutOfRangeCostParamIsInvalid(int scryptCostParam) {
 			masterkeyFile.scryptCostParam = scryptCostParam;
 
@@ -94,7 +60,7 @@ public class MasterkeyFileTest {
 
 		@ParameterizedTest(name = "scryptBlockSize = {0}")
 		@DisplayName("out of range scryptBlockSize is invalid")
-		@ValueSource(ints = {Integer.MIN_VALUE, -1, 0, MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE + 1, MasterkeyFile.MAX_SCRYPT_BLOCK_SIZE << 1, Integer.MAX_VALUE})
+		@ValueSource(ints = {Integer.MIN_VALUE, -1, 0})
 		public void testOutOfRangeBlockSizeIsInvalid(int scryptBlockSize) {
 			masterkeyFile.scryptBlockSize = scryptBlockSize;
 
