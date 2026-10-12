@@ -4,33 +4,14 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    ignore:
+      # Maven 3.10 breaks the central-publishing-maven-plugin bundle, see https://github.com/mavenplugins/central-publishing-maven-plugin/issues/78
+      - dependency-name: "org.apache.maven:apache-maven"
+        versions: [">=3.10.0"]
     groups:
-      java-test-dependencies:
-        patterns:
-          - "org.junit.jupiter:*"
-          - "org.mockito:*"
-          - "org.hamcrest:*"
-          - "org.openjdk.jmh:*"
-      maven-build-plugins:
-        patterns:
-          - "org.apache.maven.plugins:*"
-          - "org.codehaus.mojo:exec-maven-plugin"
-          - "org.jacoco:jacoco-maven-plugin"
-          - "org.owasp:dependency-check-maven"
-          - "org.sonatype.central:central-publishing-maven-plugin"
-      java-production-dependencies:
+      maven-dependencies:
         patterns:
           - "*"
-        exclude-patterns:
-          - "org.junit.jupiter:*"
-          - "org.mockito:*"
-          - "org.hamcrest:*"
-          - "org.openjdk.jmh:*"
-          - "org.apache.maven.plugins:*"
-          - "org.codehaus.mojo:exec-maven-plugin"
-          - "org.jacoco:jacoco-maven-plugin"
-          - "org.owasp:dependency-check-maven"
-          - "org.sonatype.central:central-publishing-maven-plugin"
 
 
   - package-ecosystem: "github-actions"

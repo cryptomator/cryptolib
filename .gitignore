@@ -16,3 +16,4 @@ pom.xml.versionsBackup
 .idea/compiler.xml
 .idea/inspectionProfiles/
 *.iml
+.vscode/
