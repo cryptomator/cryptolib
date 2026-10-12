@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    ignore:
+      # Maven 3.10 breaks the central-publishing-maven-plugin bundle, see https://github.com/mavenplugins/central-publishing-maven-plugin/issues/78
+      - dependency-name: "org.apache.maven:apache-maven"
+        versions: [">=3.10.0"]
     groups:
       maven-dependencies:
         patterns:
