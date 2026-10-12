@@ -76,9 +76,17 @@ public class Scrypt {
 			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(key)) {
 
 			byte[] DK = new byte[keyLengthInBytes];
-			byte[] B = new byte[128 * blockSize * P];
-			byte[] XY = new byte[256 * blockSize];
-			byte[] V = new byte[128 * blockSize * costParam];
+			byte[] B;
+			byte[] XY;
+			byte[] V;
+			try {
+				B = new byte[128 * blockSize * P];
+				XY = new byte[256 * blockSize];
+				V = new byte[128 * blockSize * costParam];
+			} catch (OutOfMemoryError e) {
+				// a failed allocation leaves the heap untouched, so it is safe to recover from it
+				throw new IllegalArgumentException("Insufficient memory for parameters N and r", e);
+			}
 
 			pbkdf2(mac.get(), salt, 1, B, P * 128 * blockSize);
 
@@ -89,6 +97,21 @@ public class Scrypt {
 			pbkdf2(mac.get(), B, 1, DK, keyLengthInBytes);
 
 			return DK;
+		}
+	}
+
+	/**
+	 * Computes the working memory (V + B + XY) that {@link #scrypt(byte[], byte[], int, int, int)} allocates for the given parameters.
+	 *
+	 * @param costParam Cost parameter <code>N</code>
+	 * @param blockSize Block size <code>r</code>
+	 * @return Required working memory in bytes, saturated at {@link Long#MAX_VALUE}
+	 */
+	static long workingMemoryBytes(int costParam, int blockSize) {
+		try {
+			return Math.multiplyExact(128L * blockSize, costParam + 2L + P);
+		} catch (ArithmeticException e) {
+			return Long.MAX_VALUE;
 		}
 	}
 
