@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-The changelog starts with version 2.3.0.
+The changelog starts with version 2.2.2.
 Changes to prior versions can be found on the [Github release page](https://github.com/cryptomator/cryptolib/releases).
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
@@ -25,7 +25,6 @@ No changes yet.
     - Updated `com.google.code.gson:gson` from 2.13.2 to 2.14.0
     - Updated `com.google.guava:guava` from 33.5.0-jre to 33.7.2-jre
     - Updated `org.slf4j:slf4j-api` from 2.0.17 to 2.0.20
-
 
 
 ## [2.2.2](https://github.com/cryptomator/cryptolib/releases/tag/2.2.2) - 2026-01-30
