@@ -148,7 +148,7 @@ public class MasterkeyFileAccessTest {
 				InputStream in = new ByteArrayInputStream(serializedKeyFile);
 				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
 
-				Masterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
+				PerpetualMasterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
 
 				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 				ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
