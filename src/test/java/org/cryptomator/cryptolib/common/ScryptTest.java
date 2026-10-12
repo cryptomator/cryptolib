@@ -1,7 +1,10 @@
 package org.cryptomator.cryptolib.common;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -9,6 +12,17 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * Tests from https://tools.ietf.org/html/rfc7914#section-12
  */
 public class ScryptTest {
+
+	@ParameterizedTest(name = "N = {0}, r = {1} -> {2}")
+	@DisplayName("workingMemoryBytes()")
+	@CsvSource({ //
+			"32768, 8, 33557504", // default parameters, 32 MiB for V plus 3 KiB for B and XY
+			"1048576, 8, 1073744896", // 1 GiB for V plus 3 KiB for B and XY
+			"2147483647, 2147483647, 9223372036854775807", // overflow saturates at Long.MAX_VALUE
+	})
+	public void testWorkingMemoryBytes(int costParam, int blockSize, long expected) {
+		Assertions.assertEquals(expected, Scrypt.workingMemoryBytes(costParam, blockSize));
+	}
 
 	@Test
 	public void testEmptyString() {
