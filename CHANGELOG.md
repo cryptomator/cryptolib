@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The changelog starts with version 2.3.0.
 Changes to prior versions can be found on the [Github release page](https://github.com/cryptomator/cryptolib/releases).
 
-## [2.3.0](https://github.com/cryptomator/cryptolib/releases/tag/2.3.0) - tbd
+## [2.3.0](https://github.com/cryptomator/cryptolib/releases/tag/2.3.0) - 2026-10-12
 
 ### Added
 * `MasterkeyFileValidator`: Overloaded `MasterkeyFileAccess::load` to apply custom checks (e.g. scrypt memory limits) to a masterkey file before key derivation ([#134](https://github.com/cryptomator/cryptolib/pull/134))
