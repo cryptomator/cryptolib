@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -23,11 +23,11 @@ public class CryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 
-	private Masterkey masterkey;
+	private CvfMasterkey masterkey;
 
 	@BeforeEach
 	public void setup() {
-		this.masterkey = new Masterkey(new byte[64]);
+		this.masterkey = new CvfMasterkey(new byte[64]);
 	}
 
 	@Test
@@ -53,7 +53,7 @@ public class CryptorImplTest {
 
 	@Test
 	public void testExplicitDestruction() {
-		Masterkey masterkey = Mockito.mock(Masterkey.class);
+		CvfMasterkey masterkey = Mockito.mock(CvfMasterkey.class);
 		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
 			cryptor.destroy();
 			Mockito.verify(masterkey).destroy();
@@ -64,7 +64,7 @@ public class CryptorImplTest {
 
 	@Test
 	public void testImplicitDestruction() {
-		Masterkey masterkey = Mockito.mock(Masterkey.class);
+		CvfMasterkey masterkey = Mockito.mock(CvfMasterkey.class);
 		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
 			Assertions.assertFalse(cryptor.isDestroyed());
 		}

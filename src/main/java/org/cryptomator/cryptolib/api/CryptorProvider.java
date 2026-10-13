@@ -58,6 +58,6 @@ public interface CryptorProvider {
 	 * @param random    A native (if possible) SecureRandom used to seed internal CSPRNGs
 	 * @return A new cryptor
 	 */
-	Cryptor provide(Masterkey masterkey, SecureRandom random);
+	Cryptor provide(CvfMasterkey masterkey, SecureRandom random);
 
 }

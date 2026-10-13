@@ -3,7 +3,7 @@ package org.cryptomator.cryptolib.common;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
@@ -36,7 +36,7 @@ public class MasterkeyFileAccessTest {
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private static final byte[] DEFAULT_PEPPER = new byte[0];
 
-	private Masterkey key = new Masterkey(new byte[64]);
+	private CvfMasterkey key = new CvfMasterkey(new byte[64]);
 	private MasterkeyFile keyFile = new MasterkeyFile();
 	private MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
 
@@ -99,7 +99,7 @@ public class MasterkeyFileAccessTest {
 		public void testLoad() throws IOException {
 			InputStream in = new ByteArrayInputStream(serializedKeyFile);
 
-			Masterkey loaded = masterkeyFileAccess.load(in, "asd");
+			CvfMasterkey loaded = masterkeyFileAccess.load(in, "asd");
 
 			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 		}
@@ -151,7 +151,7 @@ public class MasterkeyFileAccessTest {
 				InputStream in = new ByteArrayInputStream(serializedKeyFile);
 				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
 
-				Masterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
+				CvfMasterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
 
 				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 				ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
@@ -223,7 +223,7 @@ public class MasterkeyFileAccessTest {
 		InputStream in = new ByteArrayInputStream(serialize(keyFile));
 		Mockito.doReturn(key).when(masterkeyFileAccess).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
 
-		Masterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
+		CvfMasterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
 		});
 
 		Assertions.assertSame(key, loaded);
@@ -254,7 +254,7 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("with correct password")
 		public void testUnlockWithCorrectPassword() throws CryptoException {
-			Masterkey key = masterkeyFileAccess.unlock(keyFile, "asd");
+			CvfMasterkey key = masterkeyFileAccess.unlock(keyFile, "asd");
 
 			Assertions.assertNotNull(key);
 		}
@@ -338,7 +338,7 @@ public class MasterkeyFileAccessTest {
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
 
 		masterkeyFileAccess.persist(key, masterkeyFile, "asd");
-		Masterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
+		CvfMasterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
 
 		Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 	}

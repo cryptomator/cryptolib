@@ -11,7 +11,7 @@ package org.cryptomator.cryptolib.v2;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.cryptolib.common.ObjectPool;
@@ -28,9 +28,9 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final ObjectPool<SivMode> AES_SIV = new ObjectPool<>(SivMode::new);
 
-	private final Masterkey masterkey;
+	private final CvfMasterkey masterkey;
 
-	FileNameCryptorImpl(Masterkey masterkey) {
+	FileNameCryptorImpl(CvfMasterkey masterkey) {
 		this.masterkey = masterkey;
 	}
 

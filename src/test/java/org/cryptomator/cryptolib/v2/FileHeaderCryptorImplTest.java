@@ -11,7 +11,7 @@ package org.cryptomator.cryptolib.v2;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.GcmTestHelper;
 import org.cryptomator.cryptolib.common.ObjectPool;
@@ -32,7 +32,7 @@ public class FileHeaderCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		Masterkey masterkey = new Masterkey(new byte[64]);
+		CvfMasterkey masterkey = new CvfMasterkey(new byte[64]);
 		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
 
 		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse

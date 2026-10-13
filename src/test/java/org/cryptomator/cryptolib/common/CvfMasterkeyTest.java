@@ -1,6 +1,6 @@
 package org.cryptomator.cryptolib.common;
 
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,10 +10,10 @@ import javax.crypto.SecretKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-public class MasterkeyTest {
+public class CvfMasterkeyTest {
 
 	private byte[] raw;
-	private Masterkey masterkey;
+	private CvfMasterkey masterkey;
 
 	@BeforeEach
 	public void setup() {
@@ -21,14 +21,14 @@ public class MasterkeyTest {
 		for (byte b=0; b<raw.length; b++) {
 			raw[b] = b;
 		}
-		masterkey = new Masterkey(raw);
+		masterkey = new CvfMasterkey(raw);
 	}
 
 	@Test
 	public void testGenerate() {
 		SecureRandom csprng = Mockito.mock(SecureRandom.class);
 
-		Masterkey masterkey = Masterkey.generate(csprng);
+		CvfMasterkey masterkey = CvfMasterkey.generate(csprng);
 
 		Mockito.verify(csprng, Mockito.atLeastOnce()).nextBytes(Mockito.any());
 		Assertions.assertNotNull(masterkey);
@@ -45,7 +45,7 @@ public class MasterkeyTest {
 		Mockito.when(encKey.getEncoded()).thenReturn(encKeyBytes);
 		Mockito.when(macKey.getEncoded()).thenReturn(macKeyBytes);
 
-		Masterkey masterkey = Masterkey.from(encKey, macKey);
+		CvfMasterkey masterkey = CvfMasterkey.from(encKey, macKey);
 
 		Assertions.assertNotNull(masterkey);
 		Assertions.assertArrayEquals(encKeyBytes, masterkey.getEncKey().getEncoded());
@@ -70,9 +70,9 @@ public class MasterkeyTest {
 	public void testCopy() {
 		byte[] raw = new byte[64];
 		Arrays.fill(raw, (byte) 0x55);
-		Masterkey original = new Masterkey(raw);
+		CvfMasterkey original = new CvfMasterkey(raw);
 
-		Masterkey copy = original.copy();
+		CvfMasterkey copy = original.copy();
 
 		Assertions.assertEquals(original, copy);
 		copy.destroy();

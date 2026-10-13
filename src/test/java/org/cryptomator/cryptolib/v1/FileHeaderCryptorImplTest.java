@@ -11,7 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ public class FileHeaderCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		Masterkey masterkey = new Masterkey(new byte[64]);
+		CvfMasterkey masterkey = new CvfMasterkey(new byte[64]);
 		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
 	}
 

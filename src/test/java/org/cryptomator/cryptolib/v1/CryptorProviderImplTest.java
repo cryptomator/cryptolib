@@ -8,7 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ public class CryptorProviderImplTest {
 
 	@Test
 	public void testProvide() {
-		Masterkey masterkey = Mockito.mock(Masterkey.class);
+		CvfMasterkey masterkey = Mockito.mock(CvfMasterkey.class);
 		CryptorImpl cryptor = new CryptorProviderImpl().provide(masterkey, RANDOM_MOCK);
 		Assertions.assertNotNull(cryptor);
 	}

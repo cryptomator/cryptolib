@@ -33,8 +33,8 @@ public class CryptoLibIntegrationTest {
 
 	private static Stream<Cryptor> getCryptors() {
 		return Stream.of(
-				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK),
-				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(Masterkey.generate(RANDOM_MOCK), RANDOM_MOCK)
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_CTRMAC).provide(CvfMasterkey.generate(RANDOM_MOCK), RANDOM_MOCK),
+				CryptorProvider.forScheme(CryptorProvider.Scheme.SIV_GCM).provide(CvfMasterkey.generate(RANDOM_MOCK), RANDOM_MOCK)
 		);
 	}
 

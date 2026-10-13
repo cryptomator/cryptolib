@@ -10,7 +10,7 @@ package org.cryptomator.cryptolib.v1;
 
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -29,7 +29,7 @@ public class FileNameCryptorImplTest {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 
-	private final Masterkey masterkey = new Masterkey(new byte[64]);
+	private final CvfMasterkey masterkey = new CvfMasterkey(new byte[64]);
 	private final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(masterkey);
 
 	private static Stream<String> filenameGenerator() {

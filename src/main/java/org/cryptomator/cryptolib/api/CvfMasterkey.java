@@ -6,14 +6,14 @@ import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-public class Masterkey extends DestroyableSecretKey {
+public class CvfMasterkey extends DestroyableSecretKey {
 
 	private static final String KEY_ALGORITHM = "MASTERKEY";
 	public static final String ENC_ALG = "AES";
 	public static final String MAC_ALG = "HmacSHA256";
 	public static final int SUBKEY_LEN_BYTES = 32;
 
-	public Masterkey(byte[] key) {
+	public CvfMasterkey(byte[] key) {
 		super(checkKeyLength(key), KEY_ALGORITHM);
 	}
 
@@ -22,32 +22,32 @@ public class Masterkey extends DestroyableSecretKey {
 		return key;
 	}
 
-	public static Masterkey generate(SecureRandom csprng) {
+	public static CvfMasterkey generate(SecureRandom csprng) {
 		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
 		try {
 			csprng.nextBytes(key);
-			return new Masterkey(key);
+			return new CvfMasterkey(key);
 		} finally {
 			Arrays.fill(key, (byte) 0x00);
 		}
 	}
 
-	public static Masterkey from(DestroyableSecretKey encKey, DestroyableSecretKey macKey) {
+	public static CvfMasterkey from(DestroyableSecretKey encKey, DestroyableSecretKey macKey) {
 		Preconditions.checkArgument(encKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of encKey");
 		Preconditions.checkArgument(macKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of macKey");
 		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
 		try {
 			System.arraycopy(encKey.getEncoded(), 0, key, 0, SUBKEY_LEN_BYTES);
 			System.arraycopy(macKey.getEncoded(), 0, key, SUBKEY_LEN_BYTES, SUBKEY_LEN_BYTES);
-			return new Masterkey(key);
+			return new CvfMasterkey(key);
 		} finally {
 			Arrays.fill(key, (byte) 0x00);
 		}
 	}
 
 	@Override
-	public Masterkey copy() {
-		return new Masterkey(getEncoded());
+	public CvfMasterkey copy() {
+		return new CvfMasterkey(getEncoded());
 	}
 
 	/**

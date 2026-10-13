@@ -11,7 +11,7 @@ package org.cryptomator.cryptolib.v2;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileHeader;
 import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.ObjectPool;
@@ -30,10 +30,10 @@ import static org.cryptomator.cryptolib.v2.Constants.GCM_TAG_SIZE;
 
 class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
-	private final Masterkey masterkey;
+	private final CvfMasterkey masterkey;
 	private final SecureRandom random;
 
-	FileHeaderCryptorImpl(Masterkey masterkey, SecureRandom random) {
+	FileHeaderCryptorImpl(CvfMasterkey masterkey, SecureRandom random) {
 		this.masterkey = masterkey;
 		this.random = random;
 	}

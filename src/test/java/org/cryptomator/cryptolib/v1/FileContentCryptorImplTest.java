@@ -11,7 +11,7 @@ package org.cryptomator.cryptolib.v1;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.Cryptor;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DecryptingReadableByteChannel;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.EncryptingWritableByteChannel;
@@ -55,7 +55,7 @@ public class FileContentCryptorImplTest {
 
 	@BeforeEach
 	public void setup() {
-		Masterkey masterkey = new Masterkey(new byte[64]);
+		CvfMasterkey masterkey = new CvfMasterkey(new byte[64]);
 		header = new FileHeaderImpl(new byte[FileHeaderImpl.NONCE_LEN], new FileHeaderImpl.Payload(-1, new byte[FileHeaderImpl.Payload.CONTENT_KEY_LEN]));
 		headerCryptor = new FileHeaderCryptorImpl(masterkey, RANDOM_MOCK);
 		fileContentCryptor = new FileContentCryptorImpl(masterkey, RANDOM_MOCK);

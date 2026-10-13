@@ -9,7 +9,7 @@
 package org.cryptomator.cryptolib.v2;
 
 import org.cryptomator.cryptolib.api.CryptorProvider;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 
 import java.security.SecureRandom;
@@ -22,7 +22,7 @@ public class CryptorProviderImpl implements CryptorProvider {
 	}
 
 	@Override
-	public CryptorImpl provide(Masterkey masterkey, SecureRandom random) {
+	public CryptorImpl provide(CvfMasterkey masterkey, SecureRandom random) {
 		return new CryptorImpl(masterkey, ReseedingSecureRandom.create(random));
 	}
 
