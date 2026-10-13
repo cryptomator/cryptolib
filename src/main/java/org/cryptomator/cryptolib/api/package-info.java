@@ -1,43 +1,51 @@
 /**
- * High-level encryption library used in Cryptomator.
+ * High-level encryption library used in Cryptomator: everything about a vault except the file I/O.
  * <p>
- * Example Usage:
- * 
- * <pre>
- * // Define a pepper used during JSON serialization:
- * MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(pepper, csprng);
+ * Reading and writing of files is left to the caller; cryptolib operates on {@code byte[]}, {@link java.nio.ByteBuffer}, {@link String}, channels and streams, and reads or writes small
+ * metadata files only through the {@link org.cryptomator.cryptolib.api.VaultReader} / {@link org.cryptomator.cryptolib.api.VaultWriter} callbacks. Both the Cryptomator Vault Format 8
+ * and the Unified Vault Format are supported behind the same API.
+ * <p>
+ * Example usage (see the README for more):
  *
- * // Create new masterkey and safe it to a file:
- * SecureRandom csprng = SecureRandom.getInstanceStrong();
- * CvfMasterkey masterkey = {@link org.cryptomator.cryptolib.api.CvfMasterkey#generate(java.security.SecureRandom) CvfMasterkey.generate(csprng)};
- * {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#persist(org.cryptomator.cryptolib.api.CvfMasterkey, java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.persist(masterkey, path, passphrase)};
+ * <pre>{@code
+ * VaultReader reader = relPath -> Files.readAllBytes(vaultDir.resolve(relPath));
+ * VaultWriter writer = (relPath, bytes) -> {
+ *     Path file = vaultDir.resolve(relPath);
+ *     Files.createDirectories(file.getParent());
+ *     Files.write(file, bytes);
+ * };
  *
- * // Load a masterkey from a file:
- * CvfMasterkey masterkey = {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#load(java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.load(path, passphrase)};
- *
- * // Create new cryptor:
- * {@link org.cryptomator.cryptolib.api.Cryptor Cryptor} cryptor = {@link org.cryptomator.cryptolib.api.CryptorProvider#forScheme(org.cryptomator.cryptolib.api.CryptorProvider.Scheme) CryptorProvider.forScheme(SIV_GCM)}.{@link org.cryptomator.cryptolib.api.CryptorProvider#provide(org.cryptomator.cryptolib.api.CvfMasterkey, java.security.SecureRandom) provide(masterkey, csprng)};
- *
- * // Each directory needs a (relatively) unique ID, which affects the encryption/decryption of child names:
- * String uniqueIdOfDirectory = UUID.randomUUID().toString();
- *
- * // Encrypt and decrypt file name:
- * String cleartextFileName = "foo.txt";
- * String encryptedName = cryptor.{@link org.cryptomator.cryptolib.api.Cryptor#fileNameCryptor() fileNameCryptor()}.{@link org.cryptomator.cryptolib.api.FileNameCryptor#encryptFilename(com.google.common.io.BaseEncoding, String, byte[][])  encryptFilename(base32, cleartextFileName, uniqueIdOfDirectory.getBytes())};
- * String decryptedName = cryptor.fileNameCryptor().{@link org.cryptomator.cryptolib.api.FileNameCryptor#decryptFilename(com.google.common.io.BaseEncoding, String, byte[][])  decryptFilename(base32, encryptedName, uniqueIdOfDirectory.getBytes())};
- *
- * // Encrypt file contents:
- * ByteBuffer plaintext = ...;
- * SeekableByteChannel ciphertextOut = ...;
- * try (WritableByteChannel ch = new {@link org.cryptomator.cryptolib.common.EncryptingWritableByteChannel EncryptingWritableByteChannel}(ciphertextOut, cryptor)) {
- * 	ch.write(plaintext);
+ * // Open an existing vault:
+ * LockedVault locked = LockedVault.parse(Files.readAllBytes(configPath)); // vault.cryptomator or vault.uvf
+ * UnlockedVault vault;
+ * if (locked instanceof Cvf8LockedVault) {
+ *     vault = ((Cvf8LockedVault) locked).unlock(masterkeyLoader, csprng);
+ * } else {
+ *     UvfLockedVault uvf = (UvfLockedVault) locked;
+ *     vault = uvf.unlock(uvf.recipients().get(0), passphrase, csprng);
  * }
  *
- * // Decrypt file contents:
- * ReadableByteChannel ciphertextIn = ...;
- * try (ReadableByteChannel ch = new {@link org.cryptomator.cryptolib.common.DecryptingReadableByteChannel DecryptingReadableByteChannel}(ciphertextOut, cryptor, true)) {
- * 	ch.read(plaintext);
+ * // List the root directory:
+ * VaultDirectory root = vault.rootDirectory();
+ * try (DirectoryStream<Path> entries = Files.newDirectoryStream(vaultDir.resolve(root.dirPath()))) {
+ *     for (Path entry : entries) {
+ *         String cleartextName = root.decryptName(entry.getFileName().toString(), reader);
+ *     }
  * }
- * </pre>
+ *
+ * // Create a subdirectory:
+ * root.encryptName("Documents").createDirectory(vault.newDirectory(), writer);
+ *
+ * // Encrypt a file:
+ * try (WritableByteChannel ch = vault.encryptingChannel(Files.newByteChannel(ciphertextPath, CREATE_NEW, WRITE))) {
+ *     ch.write(cleartext);
+ * }
+ *
+ * // Random access to a file:
+ * try (FileChannel ch = FileChannel.open(ciphertextPath, READ, WRITE); VaultFile file = vault.openFile(readHeader(ch), ch.size())) {
+ *     file.read(position, buffer, ch::read);
+ *     file.write(position, data, ch::read, ch::write);
+ * }
+ * }</pre>
  */
 package org.cryptomator.cryptolib.api;

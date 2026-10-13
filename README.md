@@ -13,8 +13,6 @@ cryptolib does "all but I/O": it understands the vault layout (config file, dire
 
 ## Usage
 
-> **Draft for cryptolib 3.0.** The API shown here is under design; nothing below is implemented yet.
-
 ### Overview
 
 | Type | Responsibility |
