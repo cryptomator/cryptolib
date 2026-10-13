@@ -104,7 +104,7 @@ final class Cvf8Directory implements VaultDirectory {
 			return true;
 		} else if (obj instanceof Cvf8Directory) {
 			Cvf8Directory other = (Cvf8Directory) obj;
-			return vault == other.vault && dirId.equals(other.dirId);
+			return dirId.equals(other.dirId);
 		} else {
 			return false;
 		}

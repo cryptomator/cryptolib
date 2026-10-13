@@ -67,6 +67,9 @@ final class DecryptingReadableByteChannel implements ReadableByteChannel {
 				result += ByteBuffers.copy(cleartextBuffer, dst);
 			}
 		}
+		if (result == 0 && reachedEof && dst.hasRemaining()) {
+			return -1; // e.g. an empty file whose only chunk is the EOF chunk
+		}
 		return result;
 	}
 

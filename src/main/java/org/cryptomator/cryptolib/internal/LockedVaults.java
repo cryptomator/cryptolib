@@ -3,6 +3,7 @@ package org.cryptomator.cryptolib.internal;
 import org.cryptomator.cryptolib.api.LockedVault;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.cvf8.Cvf8LockedVaultImpl;
+import org.cryptomator.cryptolib.uvf.UvfLockedVaultImpl;
 
 import java.nio.charset.StandardCharsets;
 
@@ -24,16 +25,12 @@ public final class LockedVaults {
 	public static LockedVault parse(byte[] fileContents) throws VaultConfigLoadException {
 		String text = new String(fileContents, StandardCharsets.UTF_8).trim();
 		if (text.startsWith("{")) {
-			return parseUvf(text);
+			return UvfLockedVaultImpl.parse(fileContents, text);
 		} else if (!text.isEmpty()) {
 			return Cvf8LockedVaultImpl.parse(fileContents, text);
 		} else {
 			throw new VaultConfigLoadException("Empty vault config");
 		}
-	}
-
-	private static LockedVault parseUvf(String json) throws VaultConfigLoadException {
-		throw new VaultConfigLoadException("UVF not supported yet"); // TODO replaced by UvfLockedVaultImpl.parse in the uvf package
 	}
 
 }

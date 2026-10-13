@@ -1,10 +1,13 @@
 package org.cryptomator.cryptolib.api;
 
+import org.cryptomator.cryptolib.uvf.UvfVault;
+
+import javax.crypto.SecretKey;
+import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.crypto.SecretKey;
 
 /**
  * An unlocked Unified Vault Format vault.
@@ -12,6 +15,18 @@ import javax.crypto.SecretKey;
  * Besides the operations common to all vaults, it manages the vault's seeds (key rotation) and recipients. Changes become effective once {@link #serializeConfig()} is written back.
  */
 public interface UvfUnlockedVault extends UnlockedVault {
+
+	/**
+	 * Creates a new vault with a fresh KDF salt and initial seed and no recipients yet.
+	 * <p>
+	 * Add at least one recipient before persisting the result with {@link #serializeConfig()}, then create the root directory with {@link VaultDirectory#writeMetadataBackup(VaultWriter)}.
+	 *
+	 * @param csprng A cryptographically secure random number generator used for seeds, nonces, keys and directory ids
+	 * @return The new, unlocked vault
+	 */
+	static UvfUnlockedVault create(SecureRandom csprng) {
+		return UvfVault.create(csprng);
+	}
 
 	/**
 	 * @return The recipients that can unlock this vault, in file order
