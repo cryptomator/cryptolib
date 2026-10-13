@@ -9,7 +9,11 @@ Changes to prior versions can be found on the [Github release page](https://gith
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
 
-No changes yet.
+### Changed
+* **Breaking:** complete redesign of the public API for version 3.0.0 ("all but I/O"). See the `Usage` section of the README.
+* BouncyCastle is no longer shaded into the jar; `org.bouncycastle:bcpkix-jdk18on` is now a regular (transitive) dependency.
+* Added `com.nimbusds:nimbus-jose-jwt` as a dependency (vault config handling for `vault.cryptomator` and `vault.uvf`).
+* Multi-release jar now has exactly two layers: Java 8 (base) and Java 25 (`module-info`, sealed API roots). JDK 25 is required to build.
 
 
 ## [2.3.0](https://github.com/cryptomator/cryptolib/releases/tag/2.3.0) - 2026-10-12

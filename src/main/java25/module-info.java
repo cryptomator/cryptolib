@@ -8,8 +8,9 @@ import org.cryptomator.cryptolib.api.CryptorProvider;
  * and {@link org.cryptomator.cryptolib.api.CryptorProvider.Scheme#SIV_GCM SIV/GCM}
  */
 module org.cryptomator.cryptolib {
-	requires static org.bouncycastle.provider; // will be shaded
-	requires static org.bouncycastle.pkix; // will be shaded
+	requires org.bouncycastle.provider;
+	requires org.bouncycastle.pkix;
+	requires com.nimbusds.jose.jwt;
 	requires org.cryptomator.siv;
 	requires com.google.gson;
 	requires transitive com.google.common;

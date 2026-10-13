@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cryptomator</groupId>
 	<artifactId>cryptolib</artifactId>
-	<version>2.4.0-SNAPSHOT</version>
+	<version>3.0.0-SNAPSHOT</version>
 	<name>Cryptomator Crypto Library</name>
 	<description>This library contains all cryptographic functions that are used by Cryptomator.</description>
 	<url>https://github.com/cryptomator/cryptolib</url>
@@ -23,6 +23,7 @@
 		<guava.version>33.7.2-jre</guava.version>
 		<siv-mode.version>1.6.1</siv-mode.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
+		<nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
 		<slf4j.version>2.0.20</slf4j.version>
 
 		<!-- test dependencies -->
@@ -46,7 +47,6 @@
 		<mvn-jar.version>3.5.1</mvn-jar.version>
 		<mvn-gpg.version>3.2.8</mvn-gpg.version>
 		<mvn-resources.version>3.5.0</mvn-resources.version>
-		<mvn-shade.version>3.6.2</mvn-shade.version>
 		<mvn-source.version>3.4.0</mvn-source.version>
 		<mvn-surefire.version>3.6.0</mvn-surefire.version>
 
@@ -83,8 +83,12 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk18on</artifactId>
 			<version>${bouncycastle.version}</version>
-			<!-- see maven-shade-plugin; we don't want this as a transitive dependency in other projects -->
-			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>com.nimbusds</groupId>
+			<artifactId>nimbus-jose-jwt</artifactId>
+			<version>${nimbus-jose-jwt.version}</version>
 		</dependency>
 
 		<dependency>
@@ -171,8 +175,8 @@
 						<configuration>
 							<rules>
 								<requireJavaVersion>
-									<message>You need at least JDK 22 to build this project.</message>
-									<version>[22,)</version>
+									<message>You need at least JDK 25 to build this project.</message>
+									<version>[25,)</version>
 								</requireJavaVersion>
 							</rules>
 						</configuration>
@@ -187,69 +191,19 @@
 					<showWarnings>true</showWarnings>
 				</configuration>
 				<executions>
+					<!-- multi-release jar: base layer is Java 8 (src/main/java), the only versioned layer is Java 25 (src/main/java25: module-info and sealed API roots) -->
 					<execution>
-						<id>java9</id>
+						<id>java25</id>
 						<phase>compile</phase>
 						<goals>
 							<goal>compile</goal>
 						</goals>
 						<configuration>
-							<release>9</release>
+							<release>25</release>
 							<compileSourceRoots>
-								<compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+								<compileSourceRoot>${project.basedir}/src/main/java25</compileSourceRoot>
 							</compileSourceRoots>
 							<multiReleaseOutput>true</multiReleaseOutput>
-						</configuration>
-					</execution>
-					<execution>
-						<id>java22</id>
-						<phase>compile</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<release>22</release>
-							<compileSourceRoots>
-								<compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
-							</compileSourceRoots>
-							<multiReleaseOutput>true</multiReleaseOutput>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>${mvn-shade.version}</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<minimizeJar>true</minimizeJar>
-							<keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
-							<createDependencyReducedPom>false</createDependencyReducedPom>
-							<createSourcesJar>false</createSourcesJar>
-							<artifactSet>
-								<includes>
-									<include>org.bouncycastle:*</include>
-								</includes>
-							</artifactSet>
-							<relocations>
-								<relocation>
-									<pattern>org.bouncycastle</pattern>
-									<shadedPattern>org.cryptomator.cryptolib.shaded.bouncycastle</shadedPattern>
-								</relocation>
-							</relocations>
-							<filters>
-								<filter>
-									<artifact>org.bouncycastle:*</artifact>
-									<excludes>
-										<exclude>META-INF/**</exclude>
-									</excludes>
-								</filter>
-							</filters>
 						</configuration>
 					</execution>
 				</executions>
@@ -272,8 +226,7 @@
 								<argument>--update</argument>
 								<argument>--date=${project.build.outputTimestamp}</argument>
 								<argument>--file=${project.build.directory}/${project.build.finalName}.jar</argument>
-								<argument>META-INF/versions/9/module-info.class</argument>
-								<argument>META-INF/versions/22/module-info.class</argument>
+								<argument>META-INF/versions/25/module-info.class</argument>
 							</arguments>
 						</configuration>
 					</execution>
@@ -324,8 +277,8 @@
 					</execution>
 				</executions>
 				<configuration>
-					<release>9</release>
-					<sourcepath>${project.basedir}/src/main/java9:${project.build.sourceDirectory}</sourcepath>
+					<release>25</release>
+					<sourcepath>${project.basedir}/src/main/java25:${project.build.sourceDirectory}</sourcepath>
 					<tags>
 						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
 						<tag>
