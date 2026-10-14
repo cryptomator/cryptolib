@@ -5,21 +5,22 @@ import org.cryptomator.cryptolib.uvf.UvfVault;
 import javax.crypto.SecretKey;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * An unlocked Unified Vault Format vault.
  * <p>
- * Besides the operations common to all vaults, it manages the vault's seeds (key rotation) and recipients. Changes become effective once {@link #serializeConfig()} is written back.
+ * Besides the operations common to all vaults, it manages the vault's seeds (key rotation) and its two recipients, see {@link UvfLockedVault}. Changes become effective once
+ * {@link #serializeConfig()} is written back; every serialization encrypts the metadata with a fresh content key for both recipients.
  */
 public interface UvfUnlockedVault extends UnlockedVault {
 
 	/**
-	 * Creates a new vault with a fresh KDF salt and initial seed and no recipients yet.
+	 * Creates a new vault with a fresh KDF salt and initial seed.
 	 * <p>
-	 * Add at least one recipient before persisting the result with {@link #serializeConfig()}, then create the root directory with {@link VaultDirectory#writeMetadataBackup(VaultWriter)}.
+	 * Set a password or member key and a recovery key before persisting the result with {@link #serializeConfig()}, then create the root directory with
+	 * {@link VaultDirectory#writeMetadataBackup(VaultWriter)}.
 	 *
 	 * @param csprng A cryptographically secure random number generator used for seeds, nonces, keys and directory ids
 	 * @return The new, unlocked vault
@@ -27,11 +28,6 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	static UvfUnlockedVault create(SecureRandom csprng) {
 		return UvfVault.create(csprng);
 	}
-
-	/**
-	 * @return The recipients that can unlock this vault, in file order
-	 */
-	List<UvfRecipient> recipients();
 
 	/**
 	 * @return Fields of the decrypted vault metadata that cryptolib does not interpret (e.g. vendor-specific fields); preserved by {@link #serializeConfig()} (unmodifiable)
@@ -55,46 +51,54 @@ public interface UvfUnlockedVault extends UnlockedVault {
 
 	/**
 	 * Rotates the key: adds a fresh random seed and makes it the latest one, so that new files and directories use keys derived from it.
+	 * <p>
+	 * Call this after replacing a password, member key or recovery key: the previous secret's holder knows all existing seeds, and the UVF specification requires a new seed whenever a recipient is removed.
 	 *
 	 * @return The id of the new seed
 	 */
 	int addSeed();
 
 	/**
-	 * Adds a password-based recipient ({@code PBES2-HS512+A256KW}).
-	 *
-	 * @param kid Key id for the new recipient; should use an application-specific reverse-DNS prefix
-	 * @param password The recipient's password
-	 * @param iterationCount PBKDF2 iteration count ({@code p2c}); at least 1000, at most 1,000,000
+	 * @return {@link UvfLockedVault#PASSWORD_KID}, {@link UvfLockedVault#MEMBER_KEY_KID}, or {@code null} after {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom)} until a new one is set
 	 */
-	void addPasswordRecipient(String kid, CharSequence password, int iterationCount);
+	String keyEncryptionKid();
 
 	/**
-	 * Adds a recipient identified by an EC public key ({@code ECDH-ES+A256KW}).
-	 *
-	 * @param kid Key id for the new recipient; should use an application-specific reverse-DNS prefix
-	 * @param publicKey The recipient's EC public key (P-256, P-384 or P-521)
+	 * @return The key id of the recovery key entry, or {@code null} if none is set yet
 	 */
-	void addEcdhRecipient(String kid, ECPublicKey publicKey);
+	String recoveryKid();
 
 	/**
-	 * Adds a recipient whose key encryption key was derived elsewhere ({@code A256KW}).
-	 *
-	 * @param kid Key id for the new recipient; should use an application-specific reverse-DNS prefix
-	 * @param keyEncryptionKey A 256 bit AES key
-	 */
-	void addKeyWrapRecipient(String kid, SecretKey keyEncryptionKey);
-
-	/**
-	 * Removes a recipient's entry.
+	 * Protects the vault with a password using {@link Argon2Params#DEFAULT}, replacing a previous password or member key.
 	 * <p>
-	 * This does not revoke the recipient's access to existing data: it already knows the content encryption key and all existing seeds. To follow the UVF specification, callers must
-	 * afterwards {@link #addSeed() add a new seed} and re-add all remaining recipients, which cryptolib can not do on its own because it does not hold their secrets or public keys.
+	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Strongly consider calling {@link #addSeed()} afterwards when replacing a secret.
 	 *
-	 * @param kid Key id of the recipient to remove
-	 * @throws IllegalArgumentException If no recipient with this id exists
-	 * @throws IllegalStateException If this is the last recipient
+	 * @param password The password
 	 */
-	void removeRecipient(String kid);
+	void setPassword(CharSequence password);
+
+	/**
+	 * Protects the vault with a password, replacing a previous password or member key.
+	 * <p>
+	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Strongly consider calling {@link #addSeed()} afterwards when replacing a secret.
+	 *
+	 * @param password The password
+	 * @param params Argon2id cost parameters
+	 */
+	void setPassword(CharSequence password, Argon2Params params);
+
+	/**
+	 * Protects the vault with a member key, replacing a previous password or member key. Strongly consider calling {@link #addSeed()} afterwards when replacing a secret.
+	 *
+	 * @param memberKey A 256 bit AES key; the caller remains responsible for destroying it
+	 */
+	void setMemberKey(SecretKey memberKey);
+
+	/**
+	 * Sets the recovery key, replacing a previous one. Strongly consider calling {@link #addSeed()} afterwards when replacing a key.
+	 *
+	 * @param recoveryKey The public key (P-256, P-384 or P-521) whose private counterpart {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom) recovers} the vault
+	 */
+	void setRecoveryKey(ECPublicKey recoveryKey);
 
 }

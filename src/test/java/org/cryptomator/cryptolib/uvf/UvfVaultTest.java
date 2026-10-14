@@ -3,12 +3,15 @@ package org.cryptomator.cryptolib.uvf;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObjectJSON;
+import com.nimbusds.jose.UnprotectedHeader;
+import com.nimbusds.jose.crypto.MultiDecrypter;
+import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.util.Base64URL;
+import org.cryptomator.cryptolib.api.Argon2Params;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.LockedVault;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.api.UvfLockedVault;
-import org.cryptomator.cryptolib.api.UvfRecipient;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultDirectory;
@@ -41,6 +44,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -56,7 +60,7 @@ public class UvfVaultTest {
 	// a vault backed by the spec's example payload (seeds HDm38i, gBryKw, QBsJFo)
 	private static UvfVault specVault() {
 		UvfSeeds seeds = UvfSeeds.fromDecryptedPayload(UvfSeedsTest.SPEC_PAYLOAD);
-		return new UvfVault(seeds, new SecretKeySpec(new byte[32], "AES"), UvfMetadataCodec.newProtectedHeader(), new ArrayList<JWEObjectJSON.Recipient>(), CSPRNG, CSPRNG);
+		return new UvfVault(seeds, UvfMetadataCodec.newProtectedHeader(), null, Collections.<String, Object>emptyMap(), null, CSPRNG, CSPRNG);
 	}
 
 	@Nested
@@ -269,6 +273,8 @@ public class UvfVaultTest {
 	@DisplayName("vault.uvf")
 	public class Config {
 
+		private final Argon2Params CHEAP = new Argon2Params(64, 1, 1);
+
 		@Test
 		@DisplayName("spec example protected header is accepted")
 		public void testSpecProtectedHeader() throws Exception {
@@ -278,18 +284,21 @@ public class UvfVaultTest {
 		}
 
 		@Test
-		@DisplayName("create vault with password and EC recipients, serialize, unlock with each")
-		public void testCreateAndUnlock() {
-			P384KeyPair userKey = P384KeyPair.generate();
+		@DisplayName("create a password vault, serialize, unlock with password and recovery key")
+		public void testPasswordVault() {
+			P384KeyPair recoveryKey = P384KeyPair.generate();
 			byte[] config;
 			VaultDirectory root;
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
 				Assertions.assertEquals("vault.uvf", created.configFileName());
+				Assertions.assertNull(created.keyEncryptionKid());
+				Assertions.assertNull(created.recoveryKid());
 				Assertions.assertThrows(IllegalStateException.class, created::serializeConfig);
-				created.addPasswordRecipient("org.example.password", "correct horse battery staple", 1000);
-				created.addEcdhRecipient("org.example.user.42", userKey.getPublic());
-				created.addKeyWrapRecipient("org.example.kek", new SecretKeySpec(new byte[32], "AES"));
-				Assertions.assertEquals(3, created.recipients().size());
+				created.setPassword("correct horse battery staple", CHEAP);
+				Assertions.assertThrows(IllegalStateException.class, created::serializeConfig, "recovery key missing");
+				created.setRecoveryKey(recoveryKey.getPublic());
+				Assertions.assertEquals("org.cryptomator.password.argon2", created.keyEncryptionKid());
+				Assertions.assertTrue(created.recoveryKid().startsWith("org.cryptomator.hub.recoverykey."));
 				config = created.serializeConfig();
 				root = created.rootDirectory();
 			}
@@ -298,91 +307,116 @@ public class UvfVaultTest {
 			UvfLockedVault uvf = Assertions.assertInstanceOf(UvfLockedVault.class, locked);
 			Assertions.assertEquals(1, uvf.allegedSpecVersion());
 			Assertions.assertArrayEquals(config, uvf.encoded());
-			Assertions.assertEquals(3, uvf.recipients().size());
-			UvfRecipient pw = uvf.recipients().get(0);
-			UvfRecipient ec = uvf.recipients().get(1);
-			UvfRecipient kek = uvf.recipients().get(2);
-			Assertions.assertEquals("org.example.password", pw.kid());
-			Assertions.assertEquals("PBES2-HS512+A256KW", pw.alg());
-			Assertions.assertEquals(1000L, ((Number) pw.header().get("p2c")).longValue());
-			Assertions.assertNotNull(pw.header().get("p2s"));
-			Assertions.assertEquals("ECDH-ES+A256KW", ec.alg());
-			Assertions.assertNotNull(ec.header().get("epk"));
-			Assertions.assertEquals("A256KW", kek.alg());
+			Assertions.assertEquals("org.cryptomator.password.argon2", uvf.keyEncryptionKid());
+			Assertions.assertTrue(uvf.recoveryKid().startsWith("org.cryptomator.hub.recoverykey."));
 
-			try (UvfUnlockedVault unlocked = uvf.unlock(pw, "correct horse battery staple", CSPRNG)) {
+			try (UvfUnlockedVault unlocked = uvf.unlock("correct horse battery staple", CSPRNG)) {
 				Assertions.assertEquals(root, unlocked.rootDirectory());
 				Assertions.assertEquals(1, unlocked.seedIds().size());
 				Assertions.assertEquals(unlocked.initialSeedId(), unlocked.latestSeedId());
+				Assertions.assertEquals("org.cryptomator.password.argon2", unlocked.keyEncryptionKid());
+				Assertions.assertEquals(uvf.recoveryKid(), unlocked.recoveryKid());
 			}
-			try (UvfUnlockedVault unlocked = uvf.unlock(ec, userKey.getPrivate(), CSPRNG)) {
-				Assertions.assertEquals(root, unlocked.rootDirectory());
+			try (UvfUnlockedVault recovered = uvf.recover(recoveryKey.getPrivate(), CSPRNG)) {
+				Assertions.assertEquals(root, recovered.rootDirectory());
+				Assertions.assertNull(recovered.keyEncryptionKid());
+				Assertions.assertEquals(uvf.recoveryKid(), recovered.recoveryKid());
 			}
-			try (UvfUnlockedVault unlocked = uvf.unlock(kek, new SecretKeySpec(new byte[32], "AES"), CSPRNG)) {
-				Assertions.assertEquals(root, unlocked.rootDirectory());
-			}
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.unlock("wrong", CSPRNG));
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.recover(P384KeyPair.generate().getPrivate(), CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> uvf.unlock(new SecretKeySpec(new byte[32], "AES"), CSPRNG), "not a member key vault");
 		}
 
 		@Test
-		@DisplayName("wrong secrets are rejected")
-		public void testWrongSecrets() {
-			P384KeyPair userKey = P384KeyPair.generate();
+		@DisplayName("create a member key vault, serialize, unlock with member key")
+		public void testMemberKeyVault() {
+			SecretKeySpec memberKey = new SecretKeySpec(new byte[32], "AES");
 			byte[] config;
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
-				created.addPasswordRecipient("org.example.password", "secret", 1000);
-				created.addEcdhRecipient("org.example.user.42", userKey.getPublic());
-				created.addKeyWrapRecipient("org.example.kek", new SecretKeySpec(new byte[32], "AES"));
+				Assertions.assertThrows(IllegalArgumentException.class, () -> created.setMemberKey(new SecretKeySpec(new byte[16], "AES")));
+				created.setMemberKey(memberKey);
+				created.setRecoveryKey(P384KeyPair.generate().getPublic());
 				config = created.serializeConfig();
 			}
 			UvfLockedVault uvf = (UvfLockedVault) LockedVault.parse(config);
-			UvfRecipient pw = uvf.recipients().get(0);
-			UvfRecipient ec = uvf.recipients().get(1);
-			UvfRecipient kek = uvf.recipients().get(2);
-			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.unlock(pw, "wrong", CSPRNG));
-			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.unlock(ec, P384KeyPair.generate().getPrivate(), CSPRNG));
-			byte[] wrongKek = new byte[32];
-			wrongKek[0] = 1;
-			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.unlock(kek, new SecretKeySpec(wrongKek, "AES"), CSPRNG));
-			// recipient / secret type mismatch:
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> uvf.unlock(ec, "secret", CSPRNG));
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> uvf.unlock(pw, userKey.getPrivate(), CSPRNG));
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> uvf.unlock(pw, new SecretKeySpec(new byte[32], "AES"), CSPRNG));
+			Assertions.assertEquals("org.cryptomator.hub.memberkey", uvf.keyEncryptionKid());
+			uvf.unlock(memberKey, CSPRNG).close();
+			byte[] wrong = new byte[32];
+			wrong[0] = 1;
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.unlock(new SecretKeySpec(wrong, "AES"), CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> uvf.unlock("password", CSPRNG), "not a password vault");
 		}
 
 		@Test
-		@DisplayName("key rotation and recipient management survive serialization")
+		@DisplayName("key rotation and re-encryption survive serialization")
 		public void testRotation() {
+			P384KeyPair recoveryKey = P384KeyPair.generate();
 			byte[] config;
 			VaultDirectory rootBefore;
 			byte[] fileBefore;
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
-				created.addPasswordRecipient("org.example.password", "secret", 1000);
+				created.setPassword("secret", CHEAP);
+				created.setRecoveryKey(recoveryKey.getPublic());
 				config = created.serializeConfig();
 				rootBefore = created.rootDirectory();
 				fileBefore = created.encryptFile("before".getBytes(UTF_8));
 			}
 			int newSeed;
+			byte[] rotated;
 			UvfLockedVault locked = (UvfLockedVault) LockedVault.parse(config);
-			try (UvfUnlockedVault unlocked = locked.unlock(locked.recipients().get(0), "secret", CSPRNG)) {
+			try (UvfUnlockedVault unlocked = locked.unlock("secret", CSPRNG)) {
 				newSeed = unlocked.addSeed();
 				Assertions.assertEquals(newSeed, unlocked.latestSeedId());
 				Assertions.assertEquals(2, unlocked.seedIds().size());
 				Assertions.assertEquals(rootBefore, unlocked.rootDirectory());
 				Assertions.assertArrayEquals(Base64.getUrlDecoder().decode(UvfSeeds.encodeSeedId(newSeed)), Arrays.copyOfRange(unlocked.encryptFile(new byte[1]), 4, 8));
-				unlocked.addPasswordRecipient("org.example.second", "other", 1000);
-				unlocked.removeRecipient("org.example.password");
-				Assertions.assertThrows(IllegalArgumentException.class, () -> unlocked.removeRecipient("org.example.password"));
-				Assertions.assertThrows(IllegalStateException.class, () -> unlocked.removeRecipient("org.example.second"));
-				config = unlocked.serializeConfig();
+				rotated = unlocked.serializeConfig(); // re-encrypted with the retained password-derived key and the recovery key from the file
 			}
-			UvfLockedVault relocked = (UvfLockedVault) LockedVault.parse(config);
-			Assertions.assertEquals(1, relocked.recipients().size());
-			Assertions.assertEquals("org.example.second", relocked.recipients().get(0).kid());
-			try (UvfUnlockedVault unlocked = relocked.unlock(relocked.recipients().get(0), "other", CSPRNG)) {
+			Assertions.assertFalse(Arrays.equals(config, rotated));
+			UvfLockedVault relocked = (UvfLockedVault) LockedVault.parse(rotated);
+			Assertions.assertEquals(locked.recoveryKid(), relocked.recoveryKid());
+			for (UvfUnlockedVault unlocked : new UvfUnlockedVault[]{relocked.unlock("secret", CSPRNG), relocked.recover(recoveryKey.getPrivate(), CSPRNG)}) {
 				Assertions.assertEquals(newSeed, unlocked.latestSeedId());
 				Assertions.assertEquals(rootBefore, unlocked.rootDirectory());
 				Assertions.assertArrayEquals("before".getBytes(UTF_8), unlocked.decryptFile(fileBefore), "old seed still decrypts old files");
+				unlocked.close();
 			}
+		}
+
+		@Test
+		@DisplayName("password change and recovery flow")
+		public void testPasswordChangeAndRecovery() {
+			P384KeyPair recoveryKey = P384KeyPair.generate();
+			P384KeyPair newRecoveryKey = P384KeyPair.generate();
+			byte[] config;
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				created.setPassword("old", CHEAP);
+				created.setRecoveryKey(recoveryKey.getPublic());
+				config = created.serializeConfig();
+			}
+			// password change
+			try (UvfUnlockedVault unlocked = ((UvfLockedVault) LockedVault.parse(config)).unlock("old", CSPRNG)) {
+				unlocked.setPassword("new", CHEAP);
+				config = unlocked.serializeConfig();
+			}
+			UvfLockedVault changed = (UvfLockedVault) LockedVault.parse(config);
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> changed.unlock("old", CSPRNG));
+			changed.unlock("new", CSPRNG).close();
+			// recovery: forgotten password, set a member key and a new recovery key
+			SecretKeySpec memberKey = new SecretKeySpec(new byte[32], "AES");
+			try (UvfUnlockedVault recovered = changed.recover(recoveryKey.getPrivate(), CSPRNG)) {
+				Assertions.assertThrows(IllegalStateException.class, recovered::serializeConfig, "no key encryption key after recovery");
+				recovered.setMemberKey(memberKey);
+				recovered.setRecoveryKey(newRecoveryKey.getPublic());
+				Assertions.assertNotEquals(changed.recoveryKid(), recovered.recoveryKid());
+				config = recovered.serializeConfig();
+			}
+			UvfLockedVault recovered = (UvfLockedVault) LockedVault.parse(config);
+			Assertions.assertEquals("org.cryptomator.hub.memberkey", recovered.keyEncryptionKid());
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> recovered.unlock("new", CSPRNG));
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> recovered.recover(recoveryKey.getPrivate(), CSPRNG));
+			recovered.unlock(memberKey, CSPRNG).close();
+			recovered.recover(newRecoveryKey.getPrivate(), CSPRNG).close();
 		}
 
 		@Test
@@ -390,12 +424,13 @@ public class UvfVaultTest {
 		public void testCustomFields() {
 			byte[] config;
 			try (UvfVault vault = specVault()) {
-				vault.addPasswordRecipient("org.example.password", "secret", 1000);
+				vault.setPassword("secret", CHEAP);
+				vault.setRecoveryKey(P384KeyPair.generate().getPublic());
 				Assertions.assertEquals(42L, vault.customFields().get("org.example.customfield"));
 				config = vault.serializeConfig();
 			}
 			UvfLockedVault locked = (UvfLockedVault) LockedVault.parse(config);
-			try (UvfUnlockedVault unlocked = locked.unlock(locked.recipients().get(0), "secret", CSPRNG)) {
+			try (UvfUnlockedVault unlocked = locked.unlock("secret", CSPRNG)) {
 				Assertions.assertEquals(42L, unlocked.customFields().get("org.example.customfield"));
 				Assertions.assertEquals(473544690, unlocked.initialSeedId());
 				Assertions.assertEquals(1075513622, unlocked.latestSeedId());
@@ -403,11 +438,13 @@ public class UvfVaultTest {
 		}
 
 		@Test
-		@DisplayName("serialized config has the structure required by the spec")
+		@DisplayName("serialized config has the structure required by the spec and is readable by nimbus")
 		public void testSerializedStructure() throws Exception {
+			P384KeyPair recoveryKey = P384KeyPair.generate();
 			byte[] config;
 			try (UvfVault vault = specVault()) {
-				vault.addPasswordRecipient("org.example.password", "secret", 1000);
+				vault.setPassword("secret", CHEAP);
+				vault.setRecoveryKey(recoveryKey.getPublic());
 				config = vault.serializeConfig();
 			}
 			JWEObjectJSON jwe = JWEObjectJSON.parse(new String(config, StandardCharsets.UTF_8));
@@ -415,9 +452,25 @@ public class UvfVaultTest {
 			Assertions.assertEquals("json", jwe.getHeader().getContentType());
 			Assertions.assertNull(jwe.getHeader().getAlgorithm());
 			Assertions.assertNull(jwe.getHeader().getCompressionAlgorithm());
-			Assertions.assertEquals(1, jwe.getRecipients().size());
-			Assertions.assertEquals("PBES2-HS512+A256KW", jwe.getRecipients().get(0).getUnprotectedHeader().getParam("alg"));
-			Assertions.assertTrue(new String(config, StandardCharsets.UTF_8).contains("\"recipients\""));
+			Assertions.assertEquals(2, jwe.getRecipients().size());
+			UnprotectedHeader password = jwe.getRecipients().get(0).getUnprotectedHeader();
+			UnprotectedHeader recovery = jwe.getRecipients().get(1).getUnprotectedHeader();
+			Assertions.assertEquals("A256KW", password.getParam("alg"));
+			Assertions.assertEquals("org.cryptomator.password.argon2", password.getKeyID());
+			Assertions.assertEquals(22, ((String) password.getParam("org.cryptomator.password.argon2.salt")).length());
+			Assertions.assertEquals(64L, password.getParam("org.cryptomator.password.argon2.memoryKiB"));
+			Assertions.assertEquals(1L, password.getParam("org.cryptomator.password.argon2.iterations"));
+			Assertions.assertEquals(1L, password.getParam("org.cryptomator.password.argon2.parallelism"));
+			Assertions.assertEquals("ECDH-ES+A256KW", recovery.getParam("alg"));
+			ECKey embedded = ECKey.parse((Map<String, Object>) recovery.getParam("jwk"));
+			Assertions.assertEquals("org.cryptomator.hub.recoverykey." + embedded.computeThumbprint(), recovery.getKeyID());
+			Assertions.assertEquals(recoveryKey.getPublic(), embedded.toECPublicKey());
+			Assertions.assertFalse(embedded.isPrivate());
+			Assertions.assertNotNull(recovery.getParam("epk"));
+			// nimbus' own multi-recipient decrypter reads it:
+			ECKey privateJwk = new ECKey.Builder(embedded).privateKey(recoveryKey.getPrivate()).keyID(recovery.getKeyID()).build();
+			jwe.decrypt(new MultiDecrypter(privateJwk, Collections.singleton("uvf.spec.version")));
+			Assertions.assertEquals(JsonParser.parseString(UvfSeedsTest.SPEC_PAYLOAD.replace("HDm38i", "HDm38g").replace("QBsJFo", "QBsJFg")), JsonParser.parseString(jwe.getPayload().toString()), "seed ids are serialized canonically");
 		}
 
 		@ParameterizedTest(name = "rejected protected header: {0}")
@@ -436,32 +489,44 @@ public class UvfVaultTest {
 		}
 
 		@Test
-		@DisplayName("garbage and empty recipients are rejected")
+		@DisplayName("garbage, empty recipients and unknown recipients are rejected")
 		public void testGarbage() {
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse("{\"foo\":1}".getBytes(UTF_8)));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse("{".getBytes(UTF_8)));
+			String json = "{\"protected\":\"" + SPEC_PROTECTED_HEADER + "\",\"iv\":\"AAAAAAAAAAAAAAAA\",\"ciphertext\":\"AAAA\",\"tag\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"recipients\":[{\"header\":{\"alg\":\"PBES2-HS512+A256KW\",\"kid\":\"org.cryptomator.password\",\"p2s\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"p2c\":1000},\"encrypted_key\":\"AAAA\"}]}";
+			UvfLockedVault unknown = (UvfLockedVault) LockedVault.parse(json.getBytes(UTF_8));
+			Assertions.assertNull(unknown.keyEncryptionKid());
+			Assertions.assertNull(unknown.recoveryKid());
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> unknown.unlock("secret", CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> unknown.unlock(new SecretKeySpec(new byte[32], "AES"), CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> unknown.recover(P384KeyPair.generate().getPrivate(), CSPRNG));
 		}
 
 		@Test
-		@DisplayName("foreign recipient object is rejected")
-		public void testForeignRecipient() {
+		@DisplayName("tampered recipient headers are rejected")
+		public void testTamperedHeaders() {
+			P384KeyPair recoveryKey = P384KeyPair.generate();
 			byte[] config;
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
-				created.addPasswordRecipient("org.example.password", "secret", 1000);
+				created.setPassword("secret", CHEAP);
+				created.setRecoveryKey(recoveryKey.getPublic());
 				config = created.serializeConfig();
 			}
-			UvfLockedVault a = (UvfLockedVault) LockedVault.parse(config);
-			UvfLockedVault b = (UvfLockedVault) LockedVault.parse(config);
-			Assertions.assertThrows(IllegalArgumentException.class, () -> a.unlock(b.recipients().get(0), "secret", CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 0, h -> h.remove("org.cryptomator.password.argon2.salt")).unlock("secret", CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 0, h -> h.addProperty("org.cryptomator.password.argon2.memoryKiB", Argon2Params.MAX_MEMORY_KIB + 1L)).unlock("secret", CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 0, h -> h.addProperty("org.cryptomator.password.argon2.parallelism", "1")).unlock("secret", CSPRNG));
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> tampered(config, 0, h -> h.addProperty("org.cryptomator.password.argon2.iterations", 2)).unlock("secret", CSPRNG), "different cost: different key");
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.remove("jwk")).recover(recoveryKey.getPrivate(), CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.remove("jwk")).unlock("secret", CSPRNG), "the password unlock needs the recovery key to re-encrypt");
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.addProperty("jwk", "garbage")).recover(recoveryKey.getPrivate(), CSPRNG));
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> tampered(config, 1, h -> h.remove("epk")).recover(recoveryKey.getPrivate(), CSPRNG));
 		}
 
-		@Test
-		@DisplayName("iteration count limits")
-		public void testIterationCountLimits() {
-			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
-				Assertions.assertThrows(IllegalArgumentException.class, () -> created.addPasswordRecipient("x", "secret", 999));
-				Assertions.assertThrows(IllegalArgumentException.class, () -> created.addPasswordRecipient("x", "secret", 1_000_001));
-			}
+		// modifies the (unprotected, thus unauthenticated) header of one recipient entry
+		private UvfLockedVault tampered(byte[] config, int recipient, java.util.function.Consumer<com.google.gson.JsonObject> modification) {
+			com.google.gson.JsonObject jwe = JsonParser.parseString(new String(config, UTF_8)).getAsJsonObject();
+			modification.accept(jwe.getAsJsonArray("recipients").get(recipient).getAsJsonObject().getAsJsonObject("header"));
+			return (UvfLockedVault) LockedVault.parse(jwe.toString().getBytes(UTF_8));
 		}
 
 	}

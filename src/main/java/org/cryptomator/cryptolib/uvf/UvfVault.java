@@ -1,29 +1,30 @@
 package org.cryptomator.cryptolib.uvf;
 
 import com.google.common.base.Preconditions;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEHeader;
-import com.nimbusds.jose.JWEObjectJSON;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.OctetSequenceKey;
+import org.cryptomator.cryptolib.api.Argon2Params;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.UvfRecipient;
+import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultDirectory;
-import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.cryptomator.cryptolib.internal.AbstractUnlockedVault;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.cryptomator.cryptolib.internal.VaultFileImpl;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
 import java.text.Normalizer;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,25 +34,27 @@ import java.util.Set;
 public final class UvfVault extends AbstractUnlockedVault implements UvfUnlockedVault {
 
 	private final UvfSeeds seeds;
-	private final DestroyableSecretKey contentKey; // the JWE's CEK, kept to re-encrypt the metadata after changes
 	private final JWEHeader protectedHeader;
-	private final List<JWEObjectJSON.Recipient> recipients;
 	private final SecureRandom csprng;
 	private final SecureRandom random;
 	private final UvfContentCodec codec;
 	private final UvfNames names;
+	private OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
+	private Map<String, Object> keyEncryptionKeyParams; // Argon2 parameters of a password-derived key, else empty
+	private ECKey recoveryKey; // public key only
 
-	UvfVault(UvfSeeds seeds, SecretKey contentKey, JWEHeader protectedHeader, List<JWEObjectJSON.Recipient> recipients, SecureRandom csprng) {
-		this(seeds, contentKey, protectedHeader, recipients, csprng, ReseedingSecureRandom.create(csprng));
+	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, ECKey recoveryKey, SecureRandom csprng) {
+		this(seeds, protectedHeader, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
 	}
 
 	// visible for testing
-	UvfVault(UvfSeeds seeds, SecretKey contentKey, JWEHeader protectedHeader, List<JWEObjectJSON.Recipient> recipients, SecureRandom csprng, SecureRandom random) {
+	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, ECKey recoveryKey, SecureRandom csprng, SecureRandom random) {
 		super(UvfContentCodec.LAYOUT);
 		this.seeds = seeds;
-		this.contentKey = new DestroyableSecretKey(contentKey.getEncoded(), "AES");
 		this.protectedHeader = protectedHeader;
-		this.recipients = recipients;
+		this.keyEncryptionKey = keyEncryptionKey;
+		this.keyEncryptionKeyParams = keyEncryptionKeyParams;
+		this.recoveryKey = recoveryKey;
 		this.csprng = csprng;
 		this.random = random;
 		this.codec = new UvfContentCodec(seeds, random);
@@ -65,7 +68,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	 * @return The new, unlocked vault without recipients
 	 */
 	public static UvfVault create(SecureRandom csprng) {
-		return new UvfVault(UvfSeeds.create(csprng), UvfMetadataCodec.newContentKey(csprng), UvfMetadataCodec.newProtectedHeader(), new ArrayList<JWEObjectJSON.Recipient>(), csprng);
+		return new UvfVault(UvfSeeds.create(csprng), UvfMetadataCodec.newProtectedHeader(), null, Collections.<String, Object>emptyMap(), null, csprng);
 	}
 
 	// CONFIG
@@ -78,24 +81,14 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public byte[] serializeConfig() {
 		assertNotDestroyed();
-		if (recipients.isEmpty()) {
-			throw new IllegalStateException("Vault has no recipients, nobody could unlock it");
-		}
+		Preconditions.checkState(keyEncryptionKey != null, "No password or member key set");
+		Preconditions.checkState(recoveryKey != null, "No recovery key set");
 		byte[] payload = seeds.toDecryptedPayload().getBytes(StandardCharsets.UTF_8);
-		try (DestroyableSecretKey cek = contentKey.copy()) {
-			return UvfMetadataCodec.serialize(protectedHeader, payload, cek, recipients).getBytes(StandardCharsets.UTF_8);
+		try {
+			return UvfMetadataCodec.serialize(protectedHeader, payload, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey).getBytes(StandardCharsets.UTF_8);
 		} finally {
-			java.util.Arrays.fill(payload, (byte) 0x00);
+			Arrays.fill(payload, (byte) 0x00);
 		}
-	}
-
-	@Override
-	public List<UvfRecipient> recipients() {
-		List<UvfRecipient> result = new ArrayList<>();
-		for (JWEObjectJSON.Recipient recipient : recipients) {
-			result.add(new UvfRecipientImpl(recipient));
-		}
-		return Collections.unmodifiableList(result);
 	}
 
 	@Override
@@ -125,42 +118,53 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	@Override
-	public void addPasswordRecipient(String kid, CharSequence password, int iterationCount) {
+	public String keyEncryptionKid() {
+		return keyEncryptionKey == null ? null : keyEncryptionKey.getKeyID();
+	}
+
+	@Override
+	public String recoveryKid() {
+		return recoveryKey == null ? null : recoveryKey.getKeyID();
+	}
+
+	@Override
+	public void setPassword(CharSequence password) {
+		setPassword(password, Argon2Params.DEFAULT);
+	}
+
+	@Override
+	public void setPassword(CharSequence password, Argon2Params params) {
 		assertNotDestroyed();
-		try (DestroyableSecretKey cek = contentKey.copy()) {
-			recipients.add(UvfMetadataCodec.wrapWithPassword(kid, password, iterationCount, cek, csprng));
+		Map<String, Object> headerParams = Argon2Kdf.newHeaderParams(params, csprng);
+		byte[] kek = Argon2Kdf.deriveKey(password, headerParams);
+		try {
+			this.keyEncryptionKey = new OctetSequenceKey.Builder(kek).keyID(UvfLockedVault.PASSWORD_KID).algorithm(JWEAlgorithm.A256KW).build();
+			this.keyEncryptionKeyParams = headerParams;
+		} finally {
+			Arrays.fill(kek, (byte) 0x00);
 		}
 	}
 
 	@Override
-	public void addEcdhRecipient(String kid, ECPublicKey publicKey) {
+	public void setMemberKey(SecretKey memberKey) {
 		assertNotDestroyed();
-		try (DestroyableSecretKey cek = contentKey.copy()) {
-			recipients.add(UvfMetadataCodec.wrapWithPublicKey(kid, publicKey, cek, csprng));
-		}
+		byte[] encoded = memberKey.getEncoded();
+		Preconditions.checkArgument(encoded != null && encoded.length == Argon2Kdf.KEY_LEN, "Member key must be a 256 bit AES key");
+		this.keyEncryptionKey = new OctetSequenceKey.Builder(encoded).keyID(UvfLockedVault.MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build();
+		this.keyEncryptionKeyParams = Collections.emptyMap();
 	}
 
 	@Override
-	public void addKeyWrapRecipient(String kid, SecretKey keyEncryptionKey) {
+	public void setRecoveryKey(ECPublicKey recoveryKey) {
 		assertNotDestroyed();
-		try (DestroyableSecretKey cek = contentKey.copy()) {
-			recipients.add(UvfMetadataCodec.wrapWithKeyEncryptionKey(kid, keyEncryptionKey, cek));
+		Curve curve = Curve.forECParameterSpec(recoveryKey.getParams());
+		Preconditions.checkArgument(curve != null, "Unsupported EC curve");
+		try {
+			ECKey key = new ECKey.Builder(curve, recoveryKey).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
+			this.recoveryKey = new ECKey.Builder(key).keyID(UvfLockedVault.RECOVERY_KEY_KID_PREFIX + key.computeThumbprint()).build();
+		} catch (JOSEException e) {
+			throw new IllegalArgumentException("Invalid recovery key", e);
 		}
-	}
-
-	@Override
-	public void removeRecipient(String kid) {
-		assertNotDestroyed();
-		Iterator<JWEObjectJSON.Recipient> iter = recipients.iterator();
-		while (iter.hasNext()) {
-			JWEObjectJSON.Recipient recipient = iter.next();
-			if (recipient.getUnprotectedHeader() != null && kid.equals(recipient.getUnprotectedHeader().getKeyID())) {
-				Preconditions.checkState(recipients.size() > 1, "Can not remove the last recipient");
-				iter.remove();
-				return;
-			}
-		}
-		throw new IllegalArgumentException("No recipient with kid " + kid);
 	}
 
 	// DIRECTORIES
@@ -265,7 +269,6 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public void destroy() {
 		names.destroy();
-		contentKey.destroy();
 		seeds.destroy();
 	}
 
@@ -273,11 +276,6 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		if (isDestroyed()) {
 			throw new IllegalStateException("Vault destroyed.");
 		}
-	}
-
-	// visible for testing
-	static SecretKey contentKey(byte[] raw) {
-		return new SecretKeySpec(raw, "AES");
 	}
 
 }

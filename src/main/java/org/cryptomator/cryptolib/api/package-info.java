@@ -22,7 +22,7 @@
  *     vault = ((Cvf8LockedVault) locked).unlock(masterkeyLoader, csprng);
  * } else {
  *     UvfLockedVault uvf = (UvfLockedVault) locked;
- *     vault = uvf.unlock(uvf.recipients().get(0), passphrase, csprng);
+ *     vault = uvf.unlock(passphrase, csprng); // or unlock(memberKey, csprng), see uvf.keyEncryptionKid()
  * }
  *
  * // List the root directory:
