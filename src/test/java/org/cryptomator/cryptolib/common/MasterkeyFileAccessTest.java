@@ -18,13 +18,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -61,16 +65,6 @@ public class MasterkeyFileAccessTest {
 		Assertions.assertArrayEquals(keyFile.encMasterKey, changed2.encMasterKey);
 	}
 
-	@Test
-	@DisplayName("readAllegedVaultVersion()")
-	public void testReadAllegedVaultVersion() throws IOException {
-		byte[] content = "{\"version\": 1337}".getBytes(UTF_8);
-
-		int version = MasterkeyFileAccess.readAllegedVaultVersion(content);
-
-		Assertions.assertEquals(1337, version);
-	}
-
 	@Nested
 	@DisplayName("with serialized keyfile")
 	class WithSerializedKeyFile {
@@ -80,7 +74,7 @@ public class MasterkeyFileAccessTest {
 		@BeforeEach
 		public void setup() throws IOException {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			masterkeyFileAccess.persist(key, out, "asd", 999, 2);
+			masterkeyFileAccess.persist(key, out, "asd", 2);
 			serializedKeyFile = out.toByteArray();
 		}
 
@@ -293,25 +287,32 @@ public class MasterkeyFileAccessTest {
 	@DisplayName("lock()")
 	class Lock {
 
+		// HMAC-SHA256 with the all-zero mac key over the version as 4 byte big-endian integer
+		private byte[] versionMac(int version) throws GeneralSecurityException {
+			Mac mac = Mac.getInstance("HmacSHA256");
+			mac.init(new SecretKeySpec(new byte[32], "HmacSHA256"));
+			return mac.doFinal(ByteBuffer.allocate(4).putInt(version).array());
+		}
+
 		@Test
 		@DisplayName("creates expected values")
-		public void testLock() {
-			MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 3, 2);
+		public void testLock() throws GeneralSecurityException {
+			MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 2);
 
-			Assertions.assertEquals(3, keyFile.version);
+			Assertions.assertEquals(999, keyFile.version);
 			Assertions.assertArrayEquals(new byte[8], keyFile.scryptSalt);
 			Assertions.assertEquals(2, keyFile.scryptCostParam);
 			Assertions.assertEquals(8, keyFile.scryptBlockSize);
 			Assertions.assertArrayEquals(BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.encMasterKey);
 			Assertions.assertArrayEquals(BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.macMasterKey);
-			Assertions.assertArrayEquals(BaseEncoding.base64().decode("iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA="), keyFile.versionMac);
+			Assertions.assertArrayEquals(versionMac(999), keyFile.versionMac);
 		}
 
 		@Test
 		@DisplayName("different passwords -> different wrapped keys")
 		public void testLockWithDifferentPasswords() {
-			MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 8, 2);
-			MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 8, 2);
+			MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 2);
+			MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
@@ -324,8 +325,8 @@ public class MasterkeyFileAccessTest {
 			MasterkeyFileAccess masterkeyFileAccess1 = new MasterkeyFileAccess(pepper1, RANDOM_MOCK);
 			MasterkeyFileAccess masterkeyFileAccess2 = new MasterkeyFileAccess(pepper2, RANDOM_MOCK);
 
-			MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 8, 2);
-			MasterkeyFile keyFile2 = masterkeyFileAccess2.lock(key, "asd", 8, 2);
+			MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 2);
+			MasterkeyFile keyFile2 = masterkeyFileAccess2.lock(key, "asd", 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}

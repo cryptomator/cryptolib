@@ -24,13 +24,10 @@ public class MessageDigestSupplierTest {
 
 	@Test
 	public void testGetSha1() {
-		try (ObjectPool.Lease<MessageDigest> digest = MessageDigestSupplier.SHA1.instance()) {
-			Assertions.assertNotNull(digest);
-		}
-
-		try (ObjectPool.Lease<MessageDigest> digest = MessageDigestSupplier.SHA1.instance()) {
-			Assertions.assertNotNull(digest);
-		}
+		MessageDigest digest1 = MessageDigestSupplier.SHA1.instance();
+		MessageDigest digest2 = MessageDigestSupplier.SHA1.instance();
+		Assertions.assertNotNull(digest1);
+		Assertions.assertNotSame(digest1, digest2);
 	}
 
 }

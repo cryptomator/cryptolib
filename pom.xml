@@ -195,6 +195,8 @@
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<showWarnings>true</showWarnings>
+					<!-- JDK 23+ no longer runs annotation processors found on the class path unless asked to; needed for the JMH benchmark generator in src/test -->
+					<proc>full</proc>
 				</configuration>
 				<executions>
 					<!-- multi-release jar: base layer is Java 8 (src/main/java), the only versioned layer is Java 25 (src/main/java25: module-info and sealed API roots) -->

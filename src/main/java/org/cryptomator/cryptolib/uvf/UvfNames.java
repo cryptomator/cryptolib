@@ -4,7 +4,6 @@ import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
@@ -23,7 +22,7 @@ final class UvfNames {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final BaseEncoding BASE64URL = BaseEncoding.base64Url().omitPadding();
-	private static final ObjectPool<SivMode> AES_SIV = new ObjectPool<>(SivMode::new);
+	private static final SivMode AES_SIV = new SivMode(); // thread-safe, uses thread-local block ciphers
 	private static final int DIR_HASH_LEN = 20; // only the leftmost 160 bits of the HMAC are used
 
 	private final UvfSeeds seeds;
@@ -57,8 +56,9 @@ final class UvfNames {
 	 * @return A 32 character base32 string: the leftmost 160 bits of HMAC-SHA256(dirId)
 	 */
 	String hashDirectoryId(byte[] dirId, int seedId) {
-		try (DestroyableSecretKey key = keys(seedId).hmacKey.copy(); ObjectPool.Lease<Mac> hmacSha256 = MacSupplier.HMAC_SHA256.keyed(key)) {
-			byte[] hash = hmacSha256.get().doFinal(dirId);
+		try (DestroyableSecretKey key = keys(seedId).hmacKey.copy()) {
+			Mac hmacSha256 = MacSupplier.HMAC_SHA256.keyed(key);
+			byte[] hash = hmacSha256.doFinal(dirId);
 			return BASE32.encode(hash, 0, DIR_HASH_LEN);
 		}
 	}
@@ -70,9 +70,9 @@ final class UvfNames {
 	 * @return The unpadded base64url-encoded AES-SIV ciphertext, without any extension
 	 */
 	String encryptName(String cleartextName, byte[] dirId, int seedId) {
-		try (DestroyableSecretKey key = keys(seedId).sivKey.copy(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		try (DestroyableSecretKey key = keys(seedId).sivKey.copy()) {
 			byte[] cleartext = Normalizer.normalize(cleartextName, Normalizer.Form.NFC).getBytes(UTF_8);
-			byte[] encrypted = siv.get().encrypt(key, cleartext, dirId);
+			byte[] encrypted = AES_SIV.encrypt(key, cleartext, dirId);
 			return BASE64URL.encode(encrypted);
 		}
 	}
@@ -85,9 +85,9 @@ final class UvfNames {
 	 * @throws AuthenticationFailedException If the ciphertext is unauthentic or malformed
 	 */
 	String decryptName(String ciphertextName, byte[] dirId, int seedId) throws AuthenticationFailedException {
-		try (DestroyableSecretKey key = keys(seedId).sivKey.copy(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		try (DestroyableSecretKey key = keys(seedId).sivKey.copy()) {
 			byte[] encrypted = BASE64URL.decode(ciphertextName);
-			byte[] cleartext = siv.get().decrypt(key, encrypted, dirId);
+			byte[] cleartext = AES_SIV.decrypt(key, encrypted, dirId);
 			return new String(cleartext, UTF_8);
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);

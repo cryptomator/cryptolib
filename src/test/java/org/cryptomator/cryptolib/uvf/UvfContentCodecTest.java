@@ -1,10 +1,7 @@
 package org.cryptomator.cryptolib.uvf;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
-import org.cryptomator.cryptolib.common.GcmTestHelper;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.junit.jupiter.api.AfterEach;
@@ -29,12 +26,6 @@ public class UvfContentCodecTest {
 	@BeforeEach
 	public void setup() {
 		seeds = UvfSeedsTest.testSeeds();
-		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
-		GcmTestHelper.reset((mode, key, params) -> {
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
-				cipher.get();
-			}
-		});
 	}
 
 	@AfterEach

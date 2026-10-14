@@ -3,18 +3,13 @@ package org.cryptomator.cryptolib.cvf8;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
-import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
-import org.cryptomator.cryptolib.common.GcmTestHelper;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.Cipher;
 import java.nio.ByteBuffer;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -25,16 +20,6 @@ public class GcmCodecTest {
 	private static final String CHUNK_VECTOR = "MzMzMzMzMzMzMzMzbYvL7CusRmzk70Kn1QxFA5WQg/hgKeba4bln"; // echo -n "hello world" | openssl enc -aes-256-gcm -K 0 -iv 333333333333333333333333 -a
 
 	private final CvfMasterkey masterkey = new CvfMasterkey(new byte[64]);
-
-	@BeforeEach
-	public void resetGcmNonce() {
-		// reset cipher state to avoid InvalidAlgorithmParameterExceptions due to IV-reuse
-		GcmTestHelper.reset((mode, key, params) -> {
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
-				cipher.get();
-			}
-		});
-	}
 
 	@Test
 	@DisplayName("layout is 68 byte header, 32768 byte payload, 32796 byte chunks, no EOF chunk")

@@ -31,13 +31,10 @@ public class MacSupplierTest {
 	@Test
 	public void testGetMac() {
 		SecretKey key = new SecretKeySpec(new byte[16], "HmacSHA256");
-		try (ObjectPool.Lease<Mac> mac1 = MacSupplier.HMAC_SHA256.keyed(key)) {
-			Assertions.assertNotNull(mac1);
-		}
-
-		try (ObjectPool.Lease<Mac> mac2 = MacSupplier.HMAC_SHA256.keyed(key)) {
-			Assertions.assertNotNull(mac2);
-		}
+		Mac mac1 = MacSupplier.HMAC_SHA256.keyed(key);
+		Mac mac2 = MacSupplier.HMAC_SHA256.keyed(key);
+		Assertions.assertNotNull(mac1);
+		Assertions.assertNotSame(mac1, mac2);
 	}
 
 	@Test

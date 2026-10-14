@@ -9,6 +9,11 @@ Changes to prior versions can be found on the [Github release page](https://gith
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
 
+### Removed
+* All APIs deprecated in 2.x: `CipherSupplier.for*`, `MacSupplier.withKey`, `MessageDigestSupplier.get`, `MasterkeyFileAccess.readAllegedVaultVersion` and the `vaultVersion` parameter of `persist` (the file always records 999).
+* `ObjectPool` and the pooling of `Cipher`/`Mac`/`MessageDigest` instances: `CipherSupplier`, `MacSupplier` and `MessageDigestSupplier` now return fresh JCA objects. On current JDKs instantiation costs well under a microsecond, which is negligible against the work per chunk, and the pool was a contention point under parallel load.
+* `P384KeyPair`, `ECKeyPair`, `Pkcs12Helper` and the PKCS#12 exceptions. `X509CertBuilder` stays.
+
 ### Changed
 * **Breaking:** complete redesign of the public API for version 3.0.0 ("all but I/O"). See the `Usage` section of the README.
 * Unified Vault Format support (`vault.uvf`). A vault has two recipients: a key encryption key, derived from a password with Argon2id (BouncyCastle; kid `org.cryptomator.password.argon2`, parameters in the recipient header) or supplied by Cryptomator Hub as member key (kid `org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.hub.recoverykey.{jwk-thumbprint}`). Unlocking, recovery and re-encryption use nimbus' multi-recipient JWE API.

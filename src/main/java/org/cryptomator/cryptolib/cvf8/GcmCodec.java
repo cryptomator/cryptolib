@@ -4,7 +4,6 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.cryptomator.cryptolib.internal.FileLayout;
 
@@ -76,10 +75,9 @@ final class GcmCodec implements Cvf8ContentCodec {
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
 			ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE);
 			result.put(nonce);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				int encrypted = cipher.get().doFinal(payloadCleartext, result);
-				assert encrypted == HEADER_PAYLOAD_LEN + GCM_TAG_SIZE;
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.encryptionCipher(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			int encrypted = cipher.doFinal(payloadCleartext, result);
+			assert encrypted == HEADER_PAYLOAD_LEN + GCM_TAG_SIZE;
 			result.flip();
 			return result;
 		} catch (ShortBufferException e) {
@@ -108,10 +106,9 @@ final class GcmCodec implements Cvf8ContentCodec {
 		// HEADER_PAYLOAD_LEN + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888 and #24
 		ByteBuffer payloadCleartext = ByteBuffer.allocate(HEADER_PAYLOAD_LEN + GCM_TAG_SIZE);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartext);
-				assert decrypted == HEADER_PAYLOAD_LEN;
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.decryptionCipher(ek, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), payloadCleartext);
+			assert decrypted == HEADER_PAYLOAD_LEN;
 			payloadCleartext.flip();
 			payloadCleartext.getLong(); // reserved, ignored
 			byte[] contentKey = new byte[HEADER_CONTENT_KEY_LEN];
@@ -149,12 +146,11 @@ final class GcmCodec implements Cvf8ContentCodec {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
 			random.nextBytes(nonce);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				cipher.get().updateAAD(longToBigEndianByteArray(chunkIndex));
-				cipher.get().updateAAD(headerNonce);
-				ciphertextChunk.put(nonce);
-				cipher.get().doFinal(cleartextChunk, ciphertextChunk);
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			cipher.updateAAD(longToBigEndianByteArray(chunkIndex));
+			cipher.updateAAD(headerNonce);
+			ciphertextChunk.put(nonce);
+			cipher.doFinal(cleartextChunk, ciphertextChunk);
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -173,11 +169,10 @@ final class GcmCodec implements Cvf8ContentCodec {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
 			ciphertextChunk.get(nonce, 0, GCM_NONCE_SIZE);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				cipher.get().updateAAD(longToBigEndianByteArray(chunkIndex));
-				cipher.get().updateAAD(headerNonce);
-				cipher.get().doFinal(ciphertextChunk, cleartextChunk);
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			cipher.updateAAD(longToBigEndianByteArray(chunkIndex));
+			cipher.updateAAD(headerNonce);
+			cipher.doFinal(ciphertextChunk, cleartextChunk);
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Content tag mismatch.", e);
 		} catch (ShortBufferException e) {

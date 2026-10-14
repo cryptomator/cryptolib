@@ -16,9 +16,6 @@ import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
 import org.cryptomator.cryptolib.api.VaultNode;
 import org.cryptomator.cryptolib.api.VaultReader;
 import org.cryptomator.cryptolib.api.VaultWriter;
-import org.cryptomator.cryptolib.common.CipherSupplier;
-import org.cryptomator.cryptolib.common.GcmTestHelper;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +27,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import javax.crypto.Cipher;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -144,15 +140,6 @@ public class Cvf8VaultTest {
 	@Nested
 	@DisplayName("files")
 	public class Files {
-
-		@BeforeEach
-		public void resetGcmNonce() {
-			GcmTestHelper.reset((mode, key, params) -> {
-				try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(key, params)) {
-					cipher.get();
-				}
-			});
-		}
 
 		@Test
 		@DisplayName("SIV_CTRMAC: encrypt file 'hello world' with all-zero nonces")

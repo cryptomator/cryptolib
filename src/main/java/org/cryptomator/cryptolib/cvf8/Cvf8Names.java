@@ -5,7 +5,6 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
@@ -21,7 +20,7 @@ final class Cvf8Names {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final BaseEncoding BASE64URL = BaseEncoding.base64Url();
-	private static final ObjectPool<SivMode> AES_SIV = new ObjectPool<>(SivMode::new);
+	private static final SivMode AES_SIV = new SivMode(); // thread-safe, uses thread-local block ciphers
 
 	private final CvfMasterkey masterkey;
 
@@ -34,11 +33,10 @@ final class Cvf8Names {
 	 * @return A 32 character base32 string: SHA-1 of the AES-SIV encrypted id
 	 */
 	String hashDirectoryId(String dirId) {
-		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
-			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
-			byte[] encrypted = siv.get().encrypt(ek, mk, dirId.getBytes(UTF_8));
-			byte[] hashed = sha1.get().digest(encrypted);
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+			MessageDigest sha1 = MessageDigestSupplier.SHA1.instance();
+			byte[] encrypted = AES_SIV.encrypt(ek, mk, dirId.getBytes(UTF_8));
+			byte[] hashed = sha1.digest(encrypted);
 			return BASE32.encode(hashed);
 		}
 	}
@@ -49,8 +47,8 @@ final class Cvf8Names {
 	 * @return The base64url-encoded AES-SIV ciphertext, without any extension
 	 */
 	String encryptName(String cleartextName, String dirId) {
-		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
-			byte[] encrypted = siv.get().encrypt(ek, mk, cleartextName.getBytes(UTF_8), dirId.getBytes(UTF_8));
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
+			byte[] encrypted = AES_SIV.encrypt(ek, mk, cleartextName.getBytes(UTF_8), dirId.getBytes(UTF_8));
 			return BASE64URL.encode(encrypted);
 		}
 	}
@@ -62,9 +60,9 @@ final class Cvf8Names {
 	 * @throws AuthenticationFailedException If the ciphertext is unauthentic or malformed
 	 */
 	String decryptName(String ciphertextName, String dirId) throws AuthenticationFailedException {
-		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] encrypted = BASE64URL.decode(ciphertextName);
-			byte[] cleartext = siv.get().decrypt(ek, mk, encrypted, dirId.getBytes(UTF_8));
+			byte[] cleartext = AES_SIV.decrypt(ek, mk, encrypted, dirId.getBytes(UTF_8));
 			return new String(cleartext, UTF_8);
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
@@ -76,10 +74,9 @@ final class Cvf8Names {
 	 * @return The shortened name: base64url(SHA-1(name)) + {@code .c9s}
 	 */
 	static String shorten(String ciphertextName) {
-		try (ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance()) {
-			byte[] hash = sha1.get().digest(ciphertextName.getBytes(UTF_8));
-			return BASE64URL.encode(hash) + Constants.SHORTENED_FILE_EXT;
-		}
+		MessageDigest sha1 = MessageDigestSupplier.SHA1.instance();
+		byte[] hash = sha1.digest(ciphertextName.getBytes(UTF_8));
+		return BASE64URL.encode(hash) + Constants.SHORTENED_FILE_EXT;
 	}
 
 }

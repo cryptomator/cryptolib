@@ -53,23 +53,6 @@ public class MasterkeyFileAccess {
 	}
 
 	/**
-	 * Parses the given masterkey file contents and returns the alleged vault version without verifying the version MAC.
-	 *
-	 * @param masterkey The file contents of a masterkey file.
-	 * @return The (unverified) vault version
-	 * @throws IOException In case of errors, such as unparseable JSON.
-	 * @deprecated Starting with vault format 8, the vault version is no longer stored inside the masterkey file.
-	 */
-	@Deprecated
-	public static int readAllegedVaultVersion(byte[] masterkey) throws IOException {
-		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
-			 Reader reader = new InputStreamReader(in, UTF_8)) {
-			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
-			return parsedFile.version;
-		}
-	}
-
-	/**
 	 * Reencrypts a masterkey with a new passphrase.
 	 *
 	 * @param masterkey     The original JSON representation of the masterkey
@@ -100,7 +83,7 @@ public class MasterkeyFileAccess {
 	// visible for testing
 	MasterkeyFile changePassphrase(MasterkeyFile masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws InvalidPassphraseException {
 		try (CvfMasterkey key = unlock(masterkey, oldPassphrase)) {
-			return lock(key, newPassphrase, masterkey.version, masterkey.scryptCostParam);
+			return lock(key, newPassphrase, masterkey.scryptCostParam);
 		}
 	}
 
@@ -202,33 +185,29 @@ public class MasterkeyFileAccess {
 	 * @throws IOException When unable to write to the given file
 	 */
 	public void persist(CvfMasterkey masterkey, Path filePath, CharSequence passphrase) throws IOException {
-		persist(masterkey, filePath, passphrase, DEFAULT_MASTERKEY_FILE_VERSION);
-	}
-
-	public void persist(CvfMasterkey masterkey, Path filePath, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
 		Path tmpFilePath = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
 		try (OutputStream out = Files.newOutputStream(tmpFilePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
-			persist(masterkey, out, passphrase, vaultVersion);
+			persist(masterkey, out, passphrase);
 		}
 		Files.move(tmpFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
 	}
 
-	public void persist(CvfMasterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
-		persist(masterkey, out, passphrase, vaultVersion, DEFAULT_SCRYPT_COST_PARAM);
+	public void persist(CvfMasterkey masterkey, OutputStream out, CharSequence passphrase) throws IOException {
+		persist(masterkey, out, passphrase, DEFAULT_SCRYPT_COST_PARAM);
 	}
 
 	// visible for testing
-	void persist(CvfMasterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion, int scryptCostParam) throws IOException {
+	void persist(CvfMasterkey masterkey, OutputStream out, CharSequence passphrase, int scryptCostParam) throws IOException {
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
 
-		MasterkeyFile fileContent = lock(masterkey, passphrase, vaultVersion, scryptCostParam);
+		MasterkeyFile fileContent = lock(masterkey, passphrase, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, UTF_8)) {
 			fileContent.write(writer);
 		}
 	}
 
 	// visible for testing
-	MasterkeyFile lock(CvfMasterkey masterkey, CharSequence passphrase, int vaultVersion, int scryptCostParam) {
+	MasterkeyFile lock(CvfMasterkey masterkey, CharSequence passphrase, int scryptCostParam) {
 		Preconditions.checkNotNull(masterkey);
 		Preconditions.checkNotNull(passphrase);
 		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
@@ -236,11 +215,11 @@ public class MasterkeyFileAccess {
 		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		csprng.nextBytes(salt);
 		try (DestroyableSecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE);
-			 DestroyableSecretKey macKey = masterkey.getMacKey();
-			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(macKey)) {
-			final byte[] versionMac = mac.get().doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
+			 DestroyableSecretKey macKey = masterkey.getMacKey()) {
+			Mac mac = MacSupplier.HMAC_SHA256.keyed(macKey);
+			final byte[] versionMac = mac.doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(DEFAULT_MASTERKEY_FILE_VERSION).array());
 			MasterkeyFile result = new MasterkeyFile();
-			result.version = vaultVersion;
+			result.version = DEFAULT_MASTERKEY_FILE_VERSION;
 			result.versionMac = versionMac;
 			result.scryptSalt = salt;
 			result.scryptCostParam = scryptCostParam;

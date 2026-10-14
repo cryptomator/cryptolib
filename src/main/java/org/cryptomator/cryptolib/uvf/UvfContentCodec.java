@@ -3,7 +3,6 @@ package org.cryptomator.cryptolib.uvf;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.internal.ChunkCodec;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.cryptomator.cryptolib.internal.FileLayout;
@@ -67,11 +66,10 @@ final class UvfContentCodec implements ChunkCodec {
 			ByteBuffer generalHeader = result.duplicate();
 			generalHeader.position(0).limit(GENERAL_HEADER_LEN);
 			result.put(nonce);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				cipher.get().updateAAD(generalHeader);
-				int encrypted = cipher.get().doFinal(ByteBuffer.wrap(contentKey), result);
-				assert encrypted == HEADER_CONTENT_KEY_LEN + GCM_TAG_SIZE;
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.encryptionCipher(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			cipher.updateAAD(generalHeader);
+			int encrypted = cipher.doFinal(ByteBuffer.wrap(contentKey), result);
+			assert encrypted == HEADER_CONTENT_KEY_LEN + GCM_TAG_SIZE;
 			result.flip();
 			return new FileHeaderParts(result, nonce, new DestroyableSecretKey(contentKey, CONTENT_ENC_ALG), seedId);
 		} catch (ShortBufferException e) {
@@ -113,11 +111,10 @@ final class UvfContentCodec implements ChunkCodec {
 		// HEADER_CONTENT_KEY_LEN + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888 and #24
 		ByteBuffer contentKeyBuf = ByteBuffer.allocate(HEADER_CONTENT_KEY_LEN + GCM_TAG_SIZE);
 		try (DestroyableSecretKey headerKey = seeds.subKey(seedId, 32, Constants.KDF_CONTEXT_FILE_HEADER, CONTENT_ENC_ALG)) {
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				cipher.get().updateAAD(generalHeader);
-				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextAndTag), contentKeyBuf);
-				assert decrypted == HEADER_CONTENT_KEY_LEN;
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.decryptionCipher(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			cipher.updateAAD(generalHeader);
+			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), contentKeyBuf);
+			assert decrypted == HEADER_CONTENT_KEY_LEN;
 			contentKeyBuf.flip();
 			byte[] contentKey = new byte[HEADER_CONTENT_KEY_LEN];
 			contentKeyBuf.get(contentKey);
@@ -155,12 +152,11 @@ final class UvfContentCodec implements ChunkCodec {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
 			random.nextBytes(nonce);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				cipher.get().updateAAD(chunkIndexBigEndian(chunkIndex));
-				cipher.get().updateAAD(headerNonce);
-				ciphertextChunk.put(nonce);
-				cipher.get().doFinal(cleartextChunk, ciphertextChunk);
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			cipher.updateAAD(chunkIndexBigEndian(chunkIndex));
+			cipher.updateAAD(headerNonce);
+			ciphertextChunk.put(nonce);
+			cipher.doFinal(cleartextChunk, ciphertextChunk);
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
 		} catch (IllegalBlockSizeException | BadPaddingException e) {
@@ -180,11 +176,10 @@ final class UvfContentCodec implements ChunkCodec {
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			byte[] nonce = new byte[GCM_NONCE_SIZE];
 			ciphertextChunk.get(nonce, 0, GCM_NONCE_SIZE);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				cipher.get().updateAAD(chunkIndexBigEndian(chunkIndex));
-				cipher.get().updateAAD(headerNonce);
-				cipher.get().doFinal(ciphertextChunk, cleartextChunk);
-			}
+			Cipher cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
+			cipher.updateAAD(chunkIndexBigEndian(chunkIndex));
+			cipher.updateAAD(headerNonce);
+			cipher.doFinal(ciphertextChunk, cleartextChunk);
 		} catch (AEADBadTagException e) {
 			throw new AuthenticationFailedException("Content tag mismatch.", e);
 		} catch (ShortBufferException e) {

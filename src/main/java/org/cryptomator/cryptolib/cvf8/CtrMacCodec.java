@@ -5,7 +5,6 @@ import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
-import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.cryptomator.cryptolib.internal.FileLayout;
 
@@ -80,18 +79,16 @@ final class CtrMacCodec implements Cvf8ContentCodec {
 			result.put(nonce);
 
 			// encrypt payload:
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encryptionCipher(ek, new IvParameterSpec(nonce))) {
-				int encrypted = cipher.get().doFinal(payloadCleartext, result);
-				assert encrypted == HEADER_PAYLOAD_LEN;
-			}
+			Cipher cipher = CipherSupplier.AES_CTR.encryptionCipher(ek, new IvParameterSpec(nonce));
+			int encrypted = cipher.doFinal(payloadCleartext, result);
+			assert encrypted == HEADER_PAYLOAD_LEN;
 
 			// mac nonce and ciphertext:
 			ByteBuffer nonceAndCiphertext = result.duplicate();
 			nonceAndCiphertext.flip();
-			try (ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
-				mac.get().update(nonceAndCiphertext);
-				result.put(mac.get().doFinal());
-			}
+			Mac mac = MacSupplier.HMAC_SHA256.keyed(mk);
+			mac.update(nonceAndCiphertext);
+			result.put(mac.doFinal());
 
 			result.flip();
 			return result;
@@ -122,11 +119,12 @@ final class CtrMacCodec implements Cvf8ContentCodec {
 		buf.get(expectedMac);
 
 		// check mac:
-		try (DestroyableSecretKey mk = masterkey.getMacKey(); ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+			Mac mac = MacSupplier.HMAC_SHA256.keyed(mk);
 			ByteBuffer nonceAndCiphertext = buf.duplicate();
 			nonceAndCiphertext.position(HEADER_NONCE_POS).limit(HEADER_NONCE_POS + CTRMAC_NONCE_SIZE + HEADER_PAYLOAD_LEN);
-			mac.get().update(nonceAndCiphertext);
-			byte[] calculatedMac = mac.get().doFinal();
+			mac.update(nonceAndCiphertext);
+			byte[] calculatedMac = mac.doFinal();
 			if (!MessageDigest.isEqual(expectedMac, calculatedMac)) {
 				throw new AuthenticationFailedException("Header MAC doesn't match.");
 			}
@@ -134,10 +132,9 @@ final class CtrMacCodec implements Cvf8ContentCodec {
 
 		ByteBuffer payloadCleartext = ByteBuffer.allocate(HEADER_PAYLOAD_LEN);
 		try (DestroyableSecretKey ek = masterkey.getEncKey()) {
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decryptionCipher(ek, new IvParameterSpec(nonce))) {
-				int decrypted = cipher.get().doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartext);
-				assert decrypted == HEADER_PAYLOAD_LEN;
-			}
+			Cipher cipher = CipherSupplier.AES_CTR.decryptionCipher(ek, new IvParameterSpec(nonce));
+			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextPayload), payloadCleartext);
+			assert decrypted == HEADER_PAYLOAD_LEN;
 			payloadCleartext.flip();
 			payloadCleartext.getLong(); // reserved, ignored
 			byte[] contentKey = new byte[HEADER_CONTENT_KEY_LEN];
@@ -178,9 +175,8 @@ final class CtrMacCodec implements Cvf8ContentCodec {
 			ciphertextChunk.put(nonce);
 
 			// payload:
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.encryptionCipher(fk, new IvParameterSpec(nonce))) {
-				cipher.get().doFinal(cleartextChunk, ciphertextChunk);
-			}
+			Cipher cipher = CipherSupplier.AES_CTR.encryptionCipher(fk, new IvParameterSpec(nonce));
+			cipher.doFinal(cleartextChunk, ciphertextChunk);
 
 			// mac:
 			ByteBuffer nonceAndPayload = ciphertextChunk.duplicate();
@@ -214,9 +210,8 @@ final class CtrMacCodec implements Cvf8ContentCodec {
 			// payload:
 			ByteBuffer payload = ciphertextChunk.duplicate();
 			payload.limit(ciphertextChunk.limit() - CTRMAC_MAC_SIZE);
-			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_CTR.decryptionCipher(fk, new IvParameterSpec(nonce))) {
-				cipher.get().doFinal(payload, cleartextChunk);
-			}
+			Cipher cipher = CipherSupplier.AES_CTR.decryptionCipher(fk, new IvParameterSpec(nonce));
+			cipher.doFinal(payload, cleartextChunk);
 			ciphertextChunk.position(ciphertextChunk.limit());
 		} catch (ShortBufferException e) {
 			throw new IllegalStateException("Buffer allocated for reported output size apparently not big enough.", e);
@@ -239,12 +234,13 @@ final class CtrMacCodec implements Cvf8ContentCodec {
 	}
 
 	private byte[] calcChunkMac(byte[] headerNonce, long chunkIndex, ByteBuffer nonceAndCiphertext) {
-		try (DestroyableSecretKey mk = masterkey.getMacKey(); ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+		try (DestroyableSecretKey mk = masterkey.getMacKey()) {
+			Mac mac = MacSupplier.HMAC_SHA256.keyed(mk);
 			byte[] chunkIndexBigEndian = ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN).putLong(chunkIndex).array();
-			mac.get().update(headerNonce);
-			mac.get().update(chunkIndexBigEndian);
-			mac.get().update(nonceAndCiphertext);
-			return mac.get().doFinal();
+			mac.update(headerNonce);
+			mac.update(chunkIndexBigEndian);
+			mac.update(nonceAndCiphertext);
+			return mac.doFinal();
 		}
 	}
 
