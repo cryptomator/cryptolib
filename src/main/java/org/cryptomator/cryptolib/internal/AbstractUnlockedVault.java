@@ -14,8 +14,10 @@ import java.nio.channels.WritableByteChannel;
 
 /**
  * Format-independent parts of an {@link UnlockedVault}: whole-file, stream and channel encryption on top of the format's header handling and layout.
+ * <p>
+ * Deliberately does not implement {@link UnlockedVault}: it is sealed to the two format interfaces in the Java 25 layer, so only the concrete vaults may be direct subtypes.
  */
-public abstract class AbstractUnlockedVault implements UnlockedVault {
+public abstract class AbstractUnlockedVault {
 
 	private final FileLayout layout;
 
@@ -42,18 +44,15 @@ public abstract class AbstractUnlockedVault implements UnlockedVault {
 		return layout;
 	}
 
-	@Override
 	public VaultFile createFile() {
 		return newFile();
 	}
 
-	@Override
 	public VaultFile openFile(ByteBuffer encryptedHeader, long ciphertextFileSize) throws AuthenticationFailedException {
 		long cleartextSize = layout.cleartextSize(ciphertextFileSize);
 		return parseHeader(encryptedHeader, cleartextSize);
 	}
 
-	@Override
 	public byte[] encryptFile(byte[] cleartext) {
 		try (VaultFileImpl file = newFile()) {
 			ByteBuffer result = ByteBuffer.allocate((int) layout.ciphertextSize(cleartext.length));
@@ -69,7 +68,6 @@ public abstract class AbstractUnlockedVault implements UnlockedVault {
 		}
 	}
 
-	@Override
 	public byte[] decryptFile(byte[] ciphertext) throws AuthenticationFailedException {
 		Preconditions.checkArgument(ciphertext.length >= layout.headerSize(), "ciphertext shorter than header");
 		long cleartextSize = layout.cleartextSize(ciphertext.length);
@@ -87,52 +85,42 @@ public abstract class AbstractUnlockedVault implements UnlockedVault {
 		}
 	}
 
-	@Override
 	public WritableByteChannel encryptingChannel(WritableByteChannel ciphertextSink) {
 		return new EncryptingWritableByteChannel(ciphertextSink, newFile(), layout);
 	}
 
-	@Override
 	public ReadableByteChannel decryptingChannel(ReadableByteChannel ciphertextSource) {
 		return new DecryptingReadableByteChannel(ciphertextSource, header -> parseHeader(header, 0), layout);
 	}
 
-	@Override
 	public ReadableByteChannel encryptingChannel(ReadableByteChannel cleartextSource) {
 		return new EncryptingReadableByteChannel(cleartextSource, newFile(), layout);
 	}
 
-	@Override
 	public OutputStream encryptingStream(OutputStream ciphertextSink) {
 		return Channels.newOutputStream(encryptingChannel(Channels.newChannel(ciphertextSink)));
 	}
 
-	@Override
 	public InputStream decryptingStream(InputStream ciphertextSource) {
 		return Channels.newInputStream(decryptingChannel(Channels.newChannel(ciphertextSource)));
 	}
 
-	@Override
 	public int headerSize() {
 		return layout.headerSize();
 	}
 
-	@Override
 	public int cleartextChunkSize() {
 		return layout.cleartextChunkSize();
 	}
 
-	@Override
 	public int ciphertextChunkSize() {
 		return layout.ciphertextChunkSize();
 	}
 
-	@Override
 	public long ciphertextSize(long cleartextSize) {
 		return layout.ciphertextSize(cleartextSize);
 	}
 
-	@Override
 	public long cleartextSize(long ciphertextFileSize) {
 		return layout.cleartextSize(ciphertextFileSize);
 	}

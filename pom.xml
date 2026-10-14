@@ -249,6 +249,19 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<!-- integration tests (*IT) run against the packaged jar, where the JVM applies the multi-release layer (sealed API roots, module descriptor) that it ignores for target/classes -->
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>${mvn-surefire.version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>${mvn-jar.version}</version>
