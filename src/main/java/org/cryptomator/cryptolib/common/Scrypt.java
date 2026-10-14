@@ -58,7 +58,7 @@ public class Scrypt {
 	 * @param blockSize        Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
-	 * @author Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
+	 * @implNote Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 */
 	public static byte[] scrypt(byte[] passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
@@ -123,7 +123,7 @@ public class Scrypt {
 	 * @param c     Iteration count.
 	 * @param DK    Byte array that derived key will be placed in.
 	 * @param dkLen Intended length, in octets, of the derived key.
-	 * @author Derived from com.lambdaworks.crypto.PBKDF, Apache License 2.0, Copyright (C) 2011 - Will Glozer
+	 * @implNote Derived from com.lambdaworks.crypto.PBKDF, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 */
 	private static void pbkdf2(Mac mac, byte[] S, int c, byte[] DK, int dkLen) {
 		int hLen = mac.getMacLength();

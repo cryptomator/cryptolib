@@ -9,6 +9,7 @@ import com.google.gson.JsonSyntaxException;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.HKDFHelper;
+import org.jspecify.annotations.Nullable;
 
 import javax.security.auth.Destroyable;
 import java.nio.ByteBuffer;
@@ -183,15 +184,15 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	/**
 	 * @return Unknown payload fields as plain Java objects (String, Long, Double, Boolean, List, Map, null)
 	 */
-	Map<String, Object> customFields() {
-		Map<String, Object> result = new LinkedHashMap<>();
+	Map<String, @Nullable Object> customFields() {
+		Map<String, @Nullable Object> result = new LinkedHashMap<>();
 		for (Map.Entry<String, JsonElement> entry : customFields.entrySet()) {
 			result.put(entry.getKey(), toJavaObject(entry.getValue()));
 		}
 		return Collections.unmodifiableMap(result);
 	}
 
-	private static Object toJavaObject(JsonElement element) {
+	private static @Nullable Object toJavaObject(JsonElement element) {
 		if (element.isJsonNull()) {
 			return null;
 		} else if (element.isJsonPrimitive()) {

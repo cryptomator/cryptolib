@@ -1,5 +1,7 @@
 package org.cryptomator.cryptolib.api;
 
+import org.jspecify.annotations.Nullable;
+
 import javax.crypto.SecretKey;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
@@ -27,12 +29,12 @@ public interface UvfLockedVault extends LockedVault {
 	/**
 	 * @return {@link #PASSWORD_KID} or {@link #MEMBER_KEY_KID}, telling the application which secret to ask for; {@code null} if the file has neither entry (unverified)
 	 */
-	String keyEncryptionKid();
+	@Nullable String keyEncryptionKid();
 
 	/**
 	 * @return The key id of the recovery key entry, {@link #RECOVERY_KEY_KID_PREFIX} followed by the key's JWK thumbprint; {@code null} if the file has no such entry (unverified)
 	 */
-	String recoveryKid();
+	@Nullable String recoveryKid();
 
 	/**
 	 * Unlocks a password-protected vault.

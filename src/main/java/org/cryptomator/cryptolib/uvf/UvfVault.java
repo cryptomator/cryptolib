@@ -16,6 +16,7 @@ import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.cryptomator.cryptolib.internal.AbstractUnlockedVault;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
 import org.cryptomator.cryptolib.internal.VaultFileImpl;
+import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
 import java.nio.ByteBuffer;
@@ -39,16 +40,16 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	private final SecureRandom random;
 	private final UvfContentCodec codec;
 	private final UvfNames names;
-	private OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
+	private @Nullable OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
 	private Map<String, Object> keyEncryptionKeyParams; // Argon2 parameters of a password-derived key, else empty
-	private ECKey recoveryKey; // public key only
+	private @Nullable ECKey recoveryKey; // public key only
 
-	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, ECKey recoveryKey, SecureRandom csprng) {
+	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, @Nullable OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, @Nullable ECKey recoveryKey, SecureRandom csprng) {
 		this(seeds, protectedHeader, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
 	}
 
 	// visible for testing
-	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, ECKey recoveryKey, SecureRandom csprng, SecureRandom random) {
+	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, @Nullable OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, @Nullable ECKey recoveryKey, SecureRandom csprng, SecureRandom random) {
 		super(UvfContentCodec.LAYOUT);
 		this.seeds = seeds;
 		this.protectedHeader = protectedHeader;
@@ -92,7 +93,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	@Override
-	public Map<String, Object> customFields() {
+	public Map<String, @Nullable Object> customFields() {
 		return seeds.customFields();
 	}
 
@@ -118,12 +119,12 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	@Override
-	public String keyEncryptionKid() {
+	public @Nullable String keyEncryptionKid() {
 		return keyEncryptionKey == null ? null : keyEncryptionKey.getKeyID();
 	}
 
 	@Override
-	public String recoveryKid() {
+	public @Nullable String recoveryKid() {
 		return recoveryKey == null ? null : recoveryKey.getKeyID();
 	}
 

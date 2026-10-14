@@ -11,6 +11,7 @@ module org.cryptomator.cryptolib {
 	requires com.google.gson;
 	requires com.google.common;
 	requires org.slf4j;
+	requires static org.jspecify;
 
 	exports org.cryptomator.cryptolib.api;
 	exports org.cryptomator.cryptolib.common;

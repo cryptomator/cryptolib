@@ -24,6 +24,7 @@
 		<siv-mode.version>1.6.1</siv-mode.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 		<nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
+		<jspecify.version>1.0.1</jspecify.version>
 		<slf4j.version>2.0.20</slf4j.version>
 
 		<!-- test dependencies -->
@@ -100,6 +101,11 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>${guava.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jspecify</groupId>
+			<artifactId>jspecify</artifactId>
+			<version>${jspecify.version}</version>
 		</dependency>
 
 		<!-- Logging -->
@@ -279,6 +285,8 @@
 				<configuration>
 					<release>25</release>
 					<sourcepath>${project.basedir}/src/main/java25:${project.build.sourceDirectory}</sourcepath>
+					<!-- doclint "missing" would warn about every undocumented getter, equals/hashCode etc.; all other checks (references, syntax, html, accessibility) stay enabled -->
+					<doclint>all,-missing</doclint>
 					<tags>
 						<!-- workaround for "unknown tag: implNote", see https://blog.codefx.org/java/new-javadoc-tags/#Maven  -->
 						<tag>

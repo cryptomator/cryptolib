@@ -5,6 +5,7 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CiphertextReader;
 import org.cryptomator.cryptolib.api.CiphertextWriter;
 import org.cryptomator.cryptolib.api.VaultFile;
+import org.jspecify.annotations.Nullable;
 import org.cryptomator.cryptolib.common.ByteBuffers;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
@@ -118,7 +119,7 @@ public final class VaultFileImpl implements VaultFile {
 	}
 
 	// writes [pos, pos + length) from src (or zeros if src is null); pos must not exceed the current size
-	private void writeRegion(long pos, long length, ByteBuffer src, CiphertextReader in, CiphertextWriter out) throws IOException {
+	private void writeRegion(long pos, long length, @Nullable ByteBuffer src, CiphertextReader in, CiphertextWriter out) throws IOException {
 		assert pos <= size;
 		long end = pos + length;
 		long cur = pos;

@@ -48,4 +48,7 @@
  * }
  * }</pre>
  */
+@NullMarked
 package org.cryptomator.cryptolib.api;
+
+import org.jspecify.annotations.NullMarked;

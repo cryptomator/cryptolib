@@ -1,6 +1,7 @@
 package org.cryptomator.cryptolib.api;
 
 import org.cryptomator.cryptolib.uvf.UvfVault;
+import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
 import java.security.SecureRandom;
@@ -32,7 +33,7 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	/**
 	 * @return Fields of the decrypted vault metadata that cryptolib does not interpret (e.g. vendor-specific fields); preserved by {@link #serializeConfig()} (unmodifiable)
 	 */
-	Map<String, Object> customFields();
+	Map<String, @Nullable Object> customFields();
 
 	/**
 	 * @return The id of the seed the vault was created with
@@ -61,12 +62,12 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	/**
 	 * @return {@link UvfLockedVault#PASSWORD_KID}, {@link UvfLockedVault#MEMBER_KEY_KID}, or {@code null} after {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom)} until a new one is set
 	 */
-	String keyEncryptionKid();
+	@Nullable String keyEncryptionKid();
 
 	/**
 	 * @return The key id of the recovery key entry, or {@code null} if none is set yet
 	 */
-	String recoveryKid();
+	@Nullable String recoveryKid();
 
 	/**
 	 * Protects the vault with a password using {@link Argon2Params#DEFAULT}, replacing a previous password or member key.

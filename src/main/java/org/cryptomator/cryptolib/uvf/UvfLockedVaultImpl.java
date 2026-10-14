@@ -10,6 +10,7 @@ import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
+import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -62,7 +63,7 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 	}
 
 	@Override
-	public String keyEncryptionKid() {
+	public @Nullable String keyEncryptionKid() {
 		if (UvfMetadataCodec.recipientHeader(jwe, PASSWORD_KID) != null) {
 			return PASSWORD_KID;
 		} else if (UvfMetadataCodec.recipientHeader(jwe, MEMBER_KEY_KID) != null) {
@@ -73,7 +74,7 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 	}
 
 	@Override
-	public String recoveryKid() {
+	public @Nullable String recoveryKid() {
 		return UvfMetadataCodec.findKid(jwe, RECOVERY_KEY_KID_PREFIX);
 	}
 
@@ -109,7 +110,7 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 
 	private UvfUnlockedVault unlock(OctetSequenceKey key, Map<String, Object> keyParams, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
 		String kid = recoveryKid();
-		ECKey recoveryKey = kid == null ? null : recoveryPublicKey(kid);
+		@Nullable ECKey recoveryKey = kid == null ? null : recoveryPublicKey(kid);
 		return new UvfVault(seeds(key), jwe.getHeader(), key, keyParams, recoveryKey, csprng);
 	}
 
