@@ -9,9 +9,11 @@ import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
+import org.cryptomator.cryptolib.internal.RecoveryKeys;
 
 import java.net.URI;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 /**
  * {@link Cvf8LockedVault} backed by a parsed {@code vault.cryptomator} token.
@@ -84,6 +86,21 @@ public final class Cvf8LockedVaultImpl implements Cvf8LockedVault {
 	public Cvf8UnlockedVault unlock(MasterkeyLoader keyLoader, SecureRandom csprng) throws MasterkeyLoadingFailedException, VaultKeyInvalidException, UnsupportedVaultFormatException, VaultConfigLoadException {
 		try (CvfMasterkey masterkey = keyLoader.loadKey(claims.keyId)) {
 			return unlock(masterkey, csprng);
+		}
+	}
+
+	@Override
+	public Cvf8UnlockedVault recover(CharSequence recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, UnsupportedVaultFormatException, VaultConfigLoadException {
+		byte[] raw = RecoveryKeys.decode(recoveryKey, false);
+		try {
+			if (raw.length != CvfMasterkey.SUBKEY_LEN_BYTES * 2) {
+				throw new IllegalArgumentException("Invalid recovery key length");
+			}
+			try (CvfMasterkey masterkey = new CvfMasterkey(raw)) {
+				return unlock(masterkey, csprng);
+			}
+		} finally {
+			Arrays.fill(raw, (byte) 0x00);
 		}
 	}
 

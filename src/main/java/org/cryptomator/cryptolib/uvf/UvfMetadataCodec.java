@@ -153,13 +153,13 @@ final class UvfMetadataCodec {
 	 * @param payload The payload to encrypt
 	 * @param keyEncryptionKey The {@code A256KW} recipient's key with its {@code kid} set
 	 * @param keyEncryptionKeyParams Additional per-recipient header parameters for that entry, e.g. the Argon2 parameters
-	 * @param recoveryKey The recovery key recipient's public key with its {@code kid} set; it is also embedded in the entry as {@value #JWK_PARAM}
+	 * @param recoveryKey The recovery key recipient's key with its {@code kid} set; only its public part is used, which is also embedded in the entry as {@value #JWK_PARAM}
 	 * @return The general JSON serialization
 	 */
 	static String serialize(JWEHeader protectedHeader, byte[] payload, OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, ECKey recoveryKey) {
 		try {
 			JWEObjectJSON jwe = new JWEObjectJSON(protectedHeader, new Payload(payload));
-			jwe.encrypt(new MultiEncrypter(new JWKSet(Arrays.<JWK>asList(keyEncryptionKey, recoveryKey))));
+			jwe.encrypt(new MultiEncrypter(new JWKSet(Arrays.<JWK>asList(keyEncryptionKey, recoveryKey.toPublicJWK()))));
 			// nimbus only carries kid, alg and x5* into the per-recipient headers; the rest is added afterwards (the recipient headers are unprotected)
 			List<JWEObjectJSON.Recipient> recipients = new ArrayList<>();
 			for (JWEObjectJSON.Recipient recipient : jwe.getRecipients()) {

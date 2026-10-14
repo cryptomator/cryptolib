@@ -18,14 +18,14 @@ cryptolib does "all but I/O": it understands the vault layout (config file, dire
 | Type | Responsibility |
 |---|---|
 | `LockedVault` | Parsed but not yet authenticated `vault.cryptomator` / `vault.uvf`. Sealed: it is either a `Cvf8LockedVault` (tells you the `kid` of the required masterkey) or a `UvfLockedVault` (lists the recipients). `unlock(...)` yields the matching `UnlockedVault`. |
-| `UnlockedVault` | An unlocked vault. Serializes its config, hands out `VaultDirectory` objects, creates/opens `VaultFile`s, encrypts whole files and streams, does the header/chunk size arithmetic, encodes symlink targets. Sealed: `Cvf8UnlockedVault` (masterkey, cipher combo, shortening threshold) or `UvfUnlockedVault` (seed rotation, recipient management). |
+| `UnlockedVault` | An unlocked vault. Serializes its config and its recovery key (as words, see below), hands out `VaultDirectory` objects, creates/opens `VaultFile`s, encrypts whole files and streams, does the header/chunk size arithmetic, encodes symlink targets. Sealed: `Cvf8UnlockedVault` (masterkey, cipher combo, shortening threshold) or `UvfUnlockedVault` (seed rotation, recipient management). |
 | `VaultDirectory` | One directory in the vault (its dirId and, for UVF, its seed). Computes the `d/XX/YYY` storage path and the path of its backup metadata file, encrypts/decrypts child names, produces the `dir.*` metadata bytes. |
 | `VaultNode` | Result of `VaultDirectory.encryptName`: the on-disk entry name, whether it was shortened, the inflated name for `name.c9s`, the relative paths of the node's well-known files (`dir.*`, `symlink.*`, `contents.c9r`, `name.c9s`), plus `directory(reader)` / `symlinkTarget(reader)` to resolve and `createDirectory(child, writer)` / `createSymlink(target, writer)` to create them. |
 | `VaultReader`, `VaultWriter` | Functional interfaces `byte[] read(String pathRelativeToVaultRoot)` and `void write(String pathRelativeToVaultRoot, byte[] contents)`. The only way cryptolib reads or writes vault metadata files (`name.c9s`, `dir.*`, `dirid.c9r`, `symlink.*`). A writer must create missing parent directories. |
 | `VaultFile` | One open file: its (encrypted-once) header, file key and cleartext size. Positional `read`/`write`/`truncate` via `CiphertextReader`/`CiphertextWriter` callbacks, plus the raw chunk layer with its index/offset arithmetic. |
 | `CiphertextReader`, `CiphertextWriter` | Functional interfaces shaped like `FileChannel.read(ByteBuffer, long)` / `write(ByteBuffer, long)`; the only way cryptolib touches a file's bytes. |
 | `CvfMasterkey` | The 512-bit key of all Cryptomator Vault Format versions. `MasterkeyLoader` resolves a CVF8 config's `kid` to one; `MasterkeyFileAccess` (package `common`) reads/writes `masterkey.cryptomator`. UVF has no standalone key type: seeds live inside `vault.uvf` and are managed by `UvfUnlockedVault`. |
-| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.hub.recoverykey.{jwk-thumbprint}`, whose public key is embedded in its entry). `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)`; `setPassword`/`setMemberKey`/`setRecoveryKey` replace them. |
+| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.hub.recoverykey.{jwk-thumbprint}`, whose public key is embedded in its entry). `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)` or `recover(words)`; `setPassword`/`setMemberKey`/`setRecoveryKey` replace them. |
 
 `LockedVault` and `UnlockedVault` are declared `sealed` in a Java 25 variant of their class files (multi-release jar), so consumers on Java 21+ can `switch` over them exhaustively; on Java 8 they are plain interfaces and `instanceof` does the job.
 
@@ -61,7 +61,7 @@ UnlockedVault vault = switch (locked) { // Java 21+; exhaustive, no default need
 
 On Java 8 the same code uses `instanceof` and casts. Unlocking with a wrong key/password throws `VaultKeyInvalidException`; an unsupported `format`/`uvf.spec.version` throws `UnsupportedVaultFormatException`. An `UnlockedVault` is likewise either a `Cvf8UnlockedVault` or a `UvfUnlockedVault`; format-agnostic code only needs `UnlockedVault`.
 
-`UvfLockedVault.keyEncryptionKid()` tells whether the vault expects a password or a member key; `recover(ecPrivateKey, csprng)` unlocks it with the recovery key instead, e.g. to set a new password.
+`UvfLockedVault.keyEncryptionKid()` tells whether the vault expects a password or a member key; `recover(recoveryKeyWords, csprng)` (on either format) unlocks it with the recovery key instead, e.g. to set a new password, see below.
 
 ### Create a new vault
 
@@ -77,10 +77,11 @@ try (CvfMasterkey masterkey = CvfMasterkey.generate(csprng)) {
 
 // UVF
 try (UvfUnlockedVault vault = UvfUnlockedVault.create(csprng)) { // fresh KDF salt and initial seed
-	vault.setPassword(passphrase);          // Argon2id → A256KW; or vault.setMemberKey(aesKey) for Hub vaults
-	vault.setRecoveryKey(recoveryPublicKey); // ECDH-ES+A256KW
-	writer.write(vault.configFileName(), vault.serializeConfig()); // vault.uvf
-	vault.rootDirectory().writeMetadataBackup(writer);              // d/XX/YYY…/dir.uvf
+	vault.setPassword(passphrase);                                       // Argon2id → A256KW; or vault.setMemberKey(aesKey) for Hub vaults
+	vault.setRecoveryKey(UvfUnlockedVault.generateRecoveryKey(csprng)); // ECDH-ES+A256KW; or setRecoveryKey(ecPublicKey) if only the public key is known
+	String recoveryKey = vault.serializedRecoveryKey();                  // 126 words for the user to write down
+	writer.write(vault.configFileName(), vault.serializeConfig());       // vault.uvf
+	vault.rootDirectory().writeMetadataBackup(writer);                    // d/XX/YYY…/dir.uvf
 }
 ```
 
@@ -233,14 +234,31 @@ try (UvfUnlockedVault vault = uvfLocked.unlock(passphrase, csprng)) {
 }
 
 // forgotten password: unlock with the recovery key and set a new one
-try (UvfUnlockedVault vault = uvfLocked.recover(recoveryPrivateKey, csprng)) {
+try (UvfUnlockedVault vault = uvfLocked.recover(recoveryKeyWords, csprng)) { // or recover(ecPrivateKey, csprng)
 	vault.setPassword(newPassphrase);
 	vault.addSeed();
 	Files.write(vaultDir.resolve("vault.uvf"), vault.serializeConfig(), TRUNCATE_EXISTING);
 }
 ```
 
-Every `serializeConfig()` encrypts the metadata with a fresh content key for both recipients. The unlocked vault keeps what it needs for that: the key encryption key (the Argon2id output with its salt and cost parameters, or the member key) and the recovery key's public key from the file. Passwords are never retained.
+Every `serializeConfig()` encrypts the metadata with a fresh content key for both recipients. The unlocked vault keeps what it needs for that: the key encryption key (the Argon2id output with its salt and cost parameters, or the member key) and the recovery key's public key from the file. Passwords are never retained. The private recovery key is retained only if the vault was created with a key pair or unlocked with the recovery key; only then is `serializedRecoveryKey()` available.
+
+### Recovery keys
+
+Both formats encode their recovery key as words from a 4096-word dictionary (`WordEncoder` in package `common`) with a checksum, compatible with Cryptomator and Cryptomator Hub: for CVF8 it is the masterkey (44 words), for UVF the private recovery key (126 words).
+
+```java
+String words = unlocked.serializedRecoveryKey(); // show to the user
+
+LockedVault locked = LockedVault.parse(configBytes);
+try (UnlockedVault recovered = locked.recover(words, csprng)) { // IllegalArgumentException for malformed words, VaultKeyInvalidException if they don't match
+	// CVF8: persist recovered masterkey with a new passphrase
+	if (recovered instanceof Cvf8UnlockedVault cvf8) {
+		masterkeyFileAccess.persist(cvf8.masterkey(), vaultDir.resolve("masterkey.cryptomator"), newPassphrase);
+	}
+	// UVF: set a new password and write the config, see above
+}
+```
 
 ### Keys
 

@@ -10,6 +10,7 @@ import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
+import org.cryptomator.cryptolib.internal.RecoveryKeys;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
@@ -104,8 +105,18 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 			throw new VaultConfigLoadException("Vault has no recovery key entry");
 		}
 		ECKey publicKey = recoveryPublicKey(kid);
-		ECKey key = new ECKey.Builder(publicKey).privateKey(recoveryKey).keyID(kid).build();
-		return new UvfVault(seeds(key), jwe.getHeader(), null, Collections.<String, Object>emptyMap(), publicKey, csprng);
+		ECKey keyPair = new ECKey.Builder(publicKey).privateKey(recoveryKey).keyID(kid).build();
+		return new UvfVault(seeds(keyPair), jwe.getHeader(), null, Collections.<String, Object>emptyMap(), keyPair, csprng); // retains the key pair for serializedRecoveryKey()
+	}
+
+	@Override
+	public UvfUnlockedVault recover(CharSequence recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
+		byte[] pkcs8 = RecoveryKeys.decode(recoveryKey, true);
+		try {
+			return recover(RecoveryKeyPkcs8.decode(pkcs8), csprng);
+		} finally {
+			Arrays.fill(pkcs8, (byte) 0x00);
+		}
 	}
 
 	private UvfUnlockedVault unlock(OctetSequenceKey key, Map<String, Object> keyParams, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {

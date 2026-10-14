@@ -2,6 +2,8 @@ package org.cryptomator.cryptolib.api;
 
 import org.cryptomator.cryptolib.internal.LockedVaults;
 
+import java.security.SecureRandom;
+
 /**
  * A parsed but not yet authenticated vault configuration file ({@code vault.cryptomator} or {@code vault.uvf}).
  * <p>
@@ -32,5 +34,20 @@ public sealed interface LockedVault permits Cvf8LockedVault, UvfLockedVault {
 	 * @return The original file contents this instance was parsed from
 	 */
 	byte[] encoded();
+
+	/**
+	 * Unlocks the vault with a recovery key as produced by {@link UnlockedVault#serializedRecoveryKey()}.
+	 * <p>
+	 * For a CVF8 vault the words are the masterkey, which is verified against the configuration's signature; persist it with a new passphrase via {@link Cvf8UnlockedVault#masterkey()}.
+	 * For a UVF vault they are the private recovery key, see {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom)}; set a new password afterwards.
+	 *
+	 * @param recoveryKey The recovery key as words, separated by whitespace
+	 * @param csprng A cryptographically secure random number generator used for nonces, new keys, seeds and directory ids
+	 * @return The unlocked vault
+	 * @throws IllegalArgumentException If the words are not a well-formed recovery key for this format (unknown word, wrong length, invalid checksum, ...)
+	 * @throws VaultKeyInvalidException If the key does not match this vault
+	 * @throws VaultConfigLoadException If the configuration is malformed
+	 */
+	UnlockedVault recover(CharSequence recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException;
 
 }

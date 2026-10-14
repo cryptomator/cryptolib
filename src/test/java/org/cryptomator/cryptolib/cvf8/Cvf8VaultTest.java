@@ -8,6 +8,7 @@ import org.cryptomator.cryptolib.api.Cvf8UnlockedVault;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.api.LockedVault;
 import org.cryptomator.cryptolib.api.MasterkeyLoader;
+import org.cryptomator.cryptolib.api.UnlockedVault;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultDirectory;
@@ -83,6 +84,36 @@ public class Cvf8VaultTest {
 				Assertions.assertEquals(CipherCombo.SIV_GCM, unlocked.cipherCombo());
 				Assertions.assertArrayEquals(ZERO_KEY.getEncoded(), unlocked.masterkey().getEncoded());
 			}
+		}
+
+		@Test
+		@DisplayName("recovery key as words: serialize and recover")
+		public void testRecoveryKeyWords() {
+			byte[] config;
+			String words;
+			try (Cvf8UnlockedVault created = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG)) {
+				config = created.serializeConfig();
+				words = created.serializedRecoveryKey();
+			}
+			Assertions.assertEquals(44, words.split(" ").length);
+			Assertions.assertEquals("ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad ad", words.substring(0, words.lastIndexOf(' ', words.lastIndexOf(' ') - 1)), "64 zero bytes");
+
+			Cvf8LockedVault locked = (Cvf8LockedVault) LockedVault.parse(config);
+			try (Cvf8UnlockedVault recovered = locked.recover(words, CSPRNG)) {
+				Assertions.assertArrayEquals(ZERO_KEY.getEncoded(), recovered.masterkey().getEncoded());
+				Assertions.assertEquals(words, recovered.serializedRecoveryKey());
+			}
+			try (UnlockedVault recovered = ((LockedVault) locked).recover(words, CSPRNG)) {
+				Assertions.assertInstanceOf(Cvf8UnlockedVault.class, recovered);
+			}
+			String otherWords;
+			try (CvfMasterkey other = CvfMasterkey.generate(CSPRNG); Cvf8UnlockedVault vault = Cvf8UnlockedVault.create(other, 220, CSPRNG)) {
+				otherWords = vault.serializedRecoveryKey();
+			}
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> locked.recover(otherWords, CSPRNG));
+			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover("hallo bonjour", CSPRNG));
+			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover(words + " ad ad", CSPRNG), "46 words: valid checksum impossible, or wrong length");
+			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover(words.substring(0, words.lastIndexOf(' ')) + " ad", CSPRNG), "checksum mismatch");
 		}
 
 		@Test

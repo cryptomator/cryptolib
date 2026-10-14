@@ -52,4 +52,18 @@ public interface Cvf8LockedVault extends LockedVault {
 	 */
 	Cvf8UnlockedVault unlock(MasterkeyLoader keyLoader, SecureRandom csprng) throws MasterkeyLoadingFailedException, VaultKeyInvalidException, UnsupportedVaultFormatException, VaultConfigLoadException;
 
+	/**
+	 * Unlocks the vault with its masterkey encoded as recovery key, see {@link LockedVault#recover(CharSequence, SecureRandom)}.
+	 *
+	 * @param recoveryKey The 44 words
+	 * @param csprng A cryptographically secure random number generator used for nonces, new keys and directory ids
+	 * @return The unlocked vault; persist {@link Cvf8UnlockedVault#masterkey()} with a new passphrase to regain regular access
+	 * @throws IllegalArgumentException If the words are not a well-formed CVF8 recovery key
+	 * @throws VaultKeyInvalidException If the signature does not verify with the decoded key
+	 * @throws UnsupportedVaultFormatException If the configuration is for a vault format version other than 8
+	 * @throws VaultConfigLoadException If the configuration is malformed
+	 */
+	@Override
+	Cvf8UnlockedVault recover(CharSequence recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, UnsupportedVaultFormatException, VaultConfigLoadException;
+
 }

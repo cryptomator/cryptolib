@@ -31,6 +31,18 @@ public sealed interface UnlockedVault extends Destroyable, AutoCloseable permits
 	 */
 	byte[] serializeConfig();
 
+	/**
+	 * Encodes the vault's recovery key as a sequence of words for the user to write down: the masterkey of a CVF8 vault, the private recovery key of a UVF vault.
+	 * <p>
+	 * {@link LockedVault#recover(CharSequence, java.security.SecureRandom)} accepts the result. The encoding (key bytes, a CRC32-based checksum and, for UVF, padding, mapped onto a 4096-word
+	 * dictionary) is shared with Cryptomator and Cryptomator Hub.
+	 *
+	 * @return The recovery key as space-separated words
+	 * @throws IllegalStateException If this UVF vault only knows the public part of its recovery key, i.e. it was neither created with {@link UvfUnlockedVault#setRecoveryKey(java.security.KeyPair)}
+	 * nor unlocked with the recovery key
+	 */
+	String serializedRecoveryKey();
+
 	// DIRECTORIES
 
 	/**

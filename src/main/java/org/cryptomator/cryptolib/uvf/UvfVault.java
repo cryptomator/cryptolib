@@ -15,14 +15,21 @@ import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.cryptomator.cryptolib.internal.AbstractUnlockedVault;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
+import org.cryptomator.cryptolib.internal.RecoveryKeys;
 import org.cryptomator.cryptolib.internal.VaultFileImpl;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +49,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	private final UvfNames names;
 	private @Nullable OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
 	private Map<String, Object> keyEncryptionKeyParams; // Argon2 parameters of a password-derived key, else empty
-	private @Nullable ECKey recoveryKey; // public key only
+	private @Nullable ECKey recoveryKey; // public key, plus the private part if set as key pair or recovered with it
 
 	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, @Nullable OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, @Nullable ECKey recoveryKey, SecureRandom csprng) {
 		this(seeds, protectedHeader, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
@@ -72,6 +79,22 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		return new UvfVault(UvfSeeds.create(csprng), UvfMetadataCodec.newProtectedHeader(), null, Collections.<String, Object>emptyMap(), null, csprng);
 	}
 
+	/**
+	 * Generates a P-384 key pair, see {@link UvfUnlockedVault#generateRecoveryKey(SecureRandom)}.
+	 *
+	 * @param csprng A cryptographically secure random number generator
+	 * @return The key pair
+	 */
+	public static KeyPair generateRecoveryKey(SecureRandom csprng) {
+		try {
+			KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+			generator.initialize(new ECGenParameterSpec(Curve.P_384.getStdName()), csprng);
+			return generator.generateKeyPair();
+		} catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+			throw new IllegalStateException("P-384 not supported by this JVM", e);
+		}
+	}
+
 	// CONFIG
 
 	@Override
@@ -89,6 +112,18 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 			return UvfMetadataCodec.serialize(protectedHeader, payload, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey).getBytes(StandardCharsets.UTF_8);
 		} finally {
 			Arrays.fill(payload, (byte) 0x00);
+		}
+	}
+
+	@Override
+	public String serializedRecoveryKey() {
+		assertNotDestroyed();
+		Preconditions.checkState(recoveryKey != null && recoveryKey.isPrivate(), "Private recovery key unknown");
+		byte[] pkcs8 = RecoveryKeyPkcs8.encode(recoveryKey);
+		try {
+			return RecoveryKeys.encode(pkcs8, true);
+		} finally {
+			Arrays.fill(pkcs8, (byte) 0x00);
 		}
 	}
 
@@ -156,13 +191,27 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	@Override
+	public void setRecoveryKey(KeyPair recoveryKey) {
+		assertNotDestroyed();
+		Preconditions.checkArgument(recoveryKey.getPublic() instanceof ECPublicKey && recoveryKey.getPrivate() instanceof ECPrivateKey, "Not an EC key pair");
+		ECPublicKey publicKey = (ECPublicKey) recoveryKey.getPublic();
+		Preconditions.checkArgument(Curve.P_384.equals(Curve.forECParameterSpec(publicKey.getParams())), "Not a P-384 key pair");
+		setRecoveryKey(publicKey, (ECPrivateKey) recoveryKey.getPrivate());
+	}
+
+	@Override
 	public void setRecoveryKey(ECPublicKey recoveryKey) {
 		assertNotDestroyed();
 		Curve curve = Curve.forECParameterSpec(recoveryKey.getParams());
 		Preconditions.checkArgument(curve != null, "Unsupported EC curve");
+		setRecoveryKey(recoveryKey, null);
+	}
+
+	private void setRecoveryKey(ECPublicKey publicKey, @Nullable ECPrivateKey privateKey) {
+		Curve curve = Curve.forECParameterSpec(publicKey.getParams());
 		try {
-			ECKey key = new ECKey.Builder(curve, recoveryKey).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
-			this.recoveryKey = new ECKey.Builder(key).keyID(UvfLockedVault.RECOVERY_KEY_KID_PREFIX + key.computeThumbprint()).build();
+			ECKey key = new ECKey.Builder(curve, publicKey).privateKey(privateKey).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
+			this.recoveryKey = new ECKey.Builder(key).keyID(UvfLockedVault.RECOVERY_KEY_KID_PREFIX + key.computeThumbprint()).build(); // the thumbprint covers the public part only
 		} catch (JOSEException e) {
 			throw new IllegalArgumentException("Invalid recovery key", e);
 		}
@@ -271,6 +320,8 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	public void destroy() {
 		names.destroy();
 		seeds.destroy();
+		recoveryKey = null; // JCA EC keys cannot be zeroed, at least drop the reference
+		keyEncryptionKey = null;
 	}
 
 	private void assertNotDestroyed() {

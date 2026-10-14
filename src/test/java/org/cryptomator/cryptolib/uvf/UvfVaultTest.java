@@ -10,6 +10,7 @@ import com.nimbusds.jose.util.Base64URL;
 import org.cryptomator.cryptolib.api.Argon2Params;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.LockedVault;
+import org.cryptomator.cryptolib.api.UnlockedVault;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
@@ -431,6 +432,71 @@ public class UvfVaultTest {
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> recovered.recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG));
 			recovered.unlock(memberKey, CSPRNG).close();
 			recovered.recover((ECPrivateKey) newRecoveryKey.getPrivate(), CSPRNG).close();
+		}
+
+		@Test
+		@DisplayName("recovery key as words: create, serialize, recover, re-encode")
+		public void testRecoveryKeyWords() throws Exception {
+			KeyPair recoveryKey = UvfUnlockedVault.generateRecoveryKey(CSPRNG);
+			Assertions.assertEquals("secp384r1", ((ECPublicKey) recoveryKey.getPublic()).getParams().toString().substring(0, 9));
+			byte[] config;
+			String words;
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				Assertions.assertThrows(IllegalStateException.class, created::serializedRecoveryKey, "no recovery key yet");
+				created.setPassword("secret", CHEAP);
+				created.setRecoveryKey(recoveryKey);
+				words = created.serializedRecoveryKey();
+				Assertions.assertEquals(126, words.split(" ").length);
+				Assertions.assertEquals(words, created.serializedRecoveryKey(), "deterministic");
+				config = created.serializeConfig();
+			}
+			String json = new String(config, UTF_8);
+			Assertions.assertFalse(json.contains("\"d\""), "private key must not be serialized");
+			Assertions.assertTrue(json.contains("\"x\""), "public key is serialized");
+
+			UvfLockedVault locked = (UvfLockedVault) LockedVault.parse(config);
+			try (UvfUnlockedVault unlocked = locked.unlock("secret", CSPRNG)) {
+				Assertions.assertThrows(IllegalStateException.class, unlocked::serializedRecoveryKey, "password unlock knows the public key only");
+			}
+			try (UvfUnlockedVault recovered = locked.recover(words, CSPRNG)) {
+				Assertions.assertEquals(locked.recoveryKid(), recovered.recoveryKid());
+				Assertions.assertNull(recovered.keyEncryptionKid());
+				Assertions.assertEquals(words, recovered.serializedRecoveryKey(), "recovery retains the key pair");
+				recovered.setRecoveryKey((ECPublicKey) recoveryKey.getPublic());
+				Assertions.assertThrows(IllegalStateException.class, recovered::serializedRecoveryKey, "public-only setter drops the private key");
+			}
+			try (UnlockedVault recovered = ((LockedVault) locked).recover(words, CSPRNG)) {
+				Assertions.assertInstanceOf(UvfUnlockedVault.class, recovered);
+			}
+			try (UvfUnlockedVault recovered = locked.recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG)) {
+				Assertions.assertEquals(words, recovered.serializedRecoveryKey());
+			}
+
+			// wrong or malformed keys
+			String otherWords;
+			try (UvfUnlockedVault other = UvfUnlockedVault.create(CSPRNG)) {
+				other.setRecoveryKey(UvfUnlockedVault.generateRecoveryKey(CSPRNG));
+				otherWords = other.serializedRecoveryKey();
+			}
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> locked.recover(otherWords, CSPRNG));
+			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover("hallo bonjour", CSPRNG));
+			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover(words.substring(words.indexOf(' ') + 1), CSPRNG), "one word missing");
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+				generator.initialize(new ECGenParameterSpec("secp256r1"));
+				Assertions.assertThrows(IllegalArgumentException.class, () -> created.setRecoveryKey(generator.generateKeyPair()), "P-256 pair cannot be encoded");
+			}
+		}
+
+		@Test
+		@DisplayName("recovery key words are compatible with Cryptomator Hub")
+		public void testHubRecoveryKey() throws Exception {
+			ECKey hub = RecoveryKeyPkcs8Test.hubKeyPair();
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				created.setRecoveryKey(new KeyPair(hub.toECPublicKey(), hub.toECPrivateKey()));
+				Assertions.assertEquals("org.cryptomator.hub.recoverykey." + RecoveryKeyPkcs8Test.HUB_THUMBPRINT, created.recoveryKid());
+				Assertions.assertEquals(RecoveryKeyPkcs8Test.HUB_WORDS, created.serializedRecoveryKey());
+			}
 		}
 
 		@Test

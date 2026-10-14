@@ -9,12 +9,14 @@ import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.cryptomator.cryptolib.internal.AbstractUnlockedVault;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
+import org.cryptomator.cryptolib.internal.RecoveryKeys;
 import org.cryptomator.cryptolib.internal.VaultFileImpl;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.UUID;
 
 /**
@@ -81,6 +83,17 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	public byte[] serializeConfig() {
 		assertNotDestroyed();
 		return Cvf8ConfigCodec.sign(vaultId, keyId, cipherCombo, shorteningThreshold, masterkey).getBytes(StandardCharsets.US_ASCII);
+	}
+
+	@Override
+	public String serializedRecoveryKey() {
+		assertNotDestroyed();
+		byte[] raw = masterkey.getEncoded().clone(); // getEncoded() returns the live array
+		try {
+			return RecoveryKeys.encode(raw, false);
+		} finally {
+			Arrays.fill(raw, (byte) 0x00);
+		}
 	}
 
 	@Override

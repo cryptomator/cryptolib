@@ -62,6 +62,7 @@ public interface UvfLockedVault extends LockedVault {
 	 * Unlocks a vault with its recovery key, e.g. to set a new password with {@link UvfUnlockedVault#setPassword(CharSequence)}.
 	 * <p>
 	 * The result has no key encryption key: {@link UvfUnlockedVault#setPassword(CharSequence)} or {@link UvfUnlockedVault#setMemberKey(SecretKey)} must be called before it can be serialized.
+	 * It retains the recovery key pair, so {@link UvfUnlockedVault#serializedRecoveryKey()} is available.
 	 *
 	 * @param recoveryKey The private key matching the {@link #recoveryKid() recovery key entry}
 	 * @param csprng A cryptographically secure random number generator used for nonces, new keys, seeds and directory ids
@@ -70,5 +71,18 @@ public interface UvfLockedVault extends LockedVault {
 	 * @throws VaultConfigLoadException If the vault has no recovery key entry or the configuration is malformed
 	 */
 	UvfUnlockedVault recover(ECPrivateKey recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException;
+
+	/**
+	 * Unlocks a vault with its recovery key encoded as words, see {@link #recover(ECPrivateKey, SecureRandom)} and {@link LockedVault#recover(CharSequence, SecureRandom)}.
+	 *
+	 * @param recoveryKey The words
+	 * @param csprng A cryptographically secure random number generator used for nonces, new keys, seeds and directory ids
+	 * @return The unlocked vault
+	 * @throws IllegalArgumentException If the words are not a well-formed UVF recovery key (a P-384 private key)
+	 * @throws VaultKeyInvalidException If the key is wrong
+	 * @throws VaultConfigLoadException If the vault has no recovery key entry or the configuration is malformed
+	 */
+	@Override
+	UvfUnlockedVault recover(CharSequence recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException;
 
 }

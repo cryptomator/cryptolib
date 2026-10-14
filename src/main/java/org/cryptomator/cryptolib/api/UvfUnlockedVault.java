@@ -4,6 +4,7 @@ import org.cryptomator.cryptolib.uvf.UvfVault;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
+import java.security.KeyPair;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
 import java.util.Map;
@@ -96,7 +97,30 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	void setMemberKey(SecretKey memberKey);
 
 	/**
+	 * Generates a key pair suitable for {@link #setRecoveryKey(KeyPair)}.
+	 *
+	 * @param csprng A cryptographically secure random number generator
+	 * @return A fresh P-384 key pair
+	 */
+	static KeyPair generateRecoveryKey(SecureRandom csprng) {
+		return UvfVault.generateRecoveryKey(csprng);
+	}
+
+	/**
 	 * Sets the recovery key, replacing a previous one. Strongly consider calling {@link #addSeed()} afterwards when replacing a key.
+	 * <p>
+	 * The vault retains the key pair, so that {@link #serializedRecoveryKey()} can encode it for the user. The private key is dropped on {@link #destroy()}, but as a JCA object it cannot be
+	 * zeroed.
+	 *
+	 * @param recoveryKey A P-384 key pair, see {@link #generateRecoveryKey(SecureRandom)}
+	 * @throws IllegalArgumentException If the pair is not a P-384 EC key pair
+	 */
+	void setRecoveryKey(KeyPair recoveryKey);
+
+	/**
+	 * Sets the recovery key by its public part only, replacing a previous one. Strongly consider calling {@link #addSeed()} afterwards when replacing a key.
+	 * <p>
+	 * {@link #serializedRecoveryKey()} is unavailable afterwards, as the vault does not know the private key.
 	 *
 	 * @param recoveryKey The public key (P-256, P-384 or P-521) whose private counterpart {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom) recovers} the vault
 	 */

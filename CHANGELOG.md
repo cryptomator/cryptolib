@@ -9,6 +9,9 @@ Changes to prior versions can be found on the [Github release page](https://gith
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
 
+### Added
+* Recovery keys as words: `UnlockedVault.serializedRecoveryKey()` encodes the CVF8 masterkey (44 words) or the UVF private recovery key (126 words, PKCS#8 as produced by Cryptomator Hub), `LockedVault.recover(words, csprng)` unlocks with them. The encoding (CRC32-based checksum, 4096-word dictionary, now `common.WordEncoder`) is the one used by Cryptomator and Cryptomator Hub. `UvfUnlockedVault.generateRecoveryKey(csprng)` and `setRecoveryKey(KeyPair)` let a vault retain its P-384 key pair for that.
+
 ### Removed
 * All APIs deprecated in 2.x: `CipherSupplier.for*`, `MacSupplier.withKey`, `MessageDigestSupplier.get`, `MasterkeyFileAccess.readAllegedVaultVersion` and the `vaultVersion` parameter of `persist` (the file always records 999).
 * `ObjectPool` and the pooling of `Cipher`/`Mac`/`MessageDigest` instances: `CipherSupplier`, `MacSupplier` and `MessageDigestSupplier` now return fresh JCA objects. On current JDKs instantiation costs well under a microsecond, which is negligible against the work per chunk, and the pool was a contention point under parallel load.

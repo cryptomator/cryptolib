@@ -13,11 +13,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
-import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECGenParameterSpec;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.SecureRandom;
 
 /**
  * Smoke test of the public API through the packaged jar, run by the failsafe plugin after packaging: the JVM applies the multi-release layer with the sealed {@code LockedVault}/{@code UnlockedVault}
@@ -48,17 +46,17 @@ public class PackagedJarIT {
 
 	@Test
 	@DisplayName("create, serialize, parse and unlock a UVF vault")
-	public void testUvf() throws Exception {
-		KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
-		generator.initialize(new ECGenParameterSpec("secp384r1"));
-		ECPublicKey recoveryKey = (ECPublicKey) generator.generateKeyPair().getPublic();
+	public void testUvf() {
+		KeyPair recoveryKey = UvfUnlockedVault.generateRecoveryKey(CSPRNG);
 		byte[] config;
 		byte[] ciphertext;
+		String recoveryWords;
 		VaultDirectory root;
 		try (UvfUnlockedVault vault = UvfUnlockedVault.create(CSPRNG)) {
 			vault.setPassword("secret", new Argon2Params(64, 1, 1));
 			vault.setRecoveryKey(recoveryKey);
 			config = vault.serializeConfig();
+			recoveryWords = vault.serializedRecoveryKey();
 			ciphertext = vault.encryptFile("hello".getBytes(StandardCharsets.UTF_8));
 			root = vault.rootDirectory();
 		}
@@ -67,6 +65,10 @@ public class PackagedJarIT {
 		try (UnlockedVault unlocked = uvf.unlock("secret", CSPRNG)) {
 			Assertions.assertEquals(root, unlocked.rootDirectory());
 			Assertions.assertArrayEquals("hello".getBytes(StandardCharsets.UTF_8), unlocked.decryptFile(ciphertext));
+		}
+		try (UnlockedVault recovered = locked.recover(recoveryWords, CSPRNG)) {
+			Assertions.assertEquals(root, recovered.rootDirectory());
+			Assertions.assertEquals(recoveryWords, recovered.serializedRecoveryKey());
 		}
 	}
 
