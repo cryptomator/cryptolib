@@ -13,7 +13,7 @@ import java.util.Base64;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class UvfNamesTest {
+class UvfNamesTest {
 
 	private static final byte[] ROOT_DIR_ID = Base64.getDecoder().decode("24UBEDeGu5taq7U4GqyA0MXUXb9HTYS6p3t9vvHGJAc=");
 
@@ -21,13 +21,13 @@ public class UvfNamesTest {
 	private UvfNames names;
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		seeds = UvfSeedsTest.testSeeds();
 		names = new UvfNames(seeds);
 	}
 
 	@AfterEach
-	public void tearDown() {
+	void tearDown() {
 		names.destroy();
 		seeds.destroy();
 	}
@@ -38,13 +38,13 @@ public class UvfNamesTest {
 
 	@Test
 	@DisplayName("hash root dir id vector")
-	public void testHashRootDirId() {
+	void testHashRootDirId() {
 		Assertions.assertEquals("6DYU3E5BTPAZ4DWEQPQK3AIHX2DXSPHG", names.hashDirectoryId(ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
 	}
 
 	@ParameterizedTest(name = "decrypt(encrypt({0}))")
 	@MethodSource("filenameGenerator")
-	public void testRoundTrip(String name) throws AuthenticationFailedException {
+	void testRoundTrip(String name) throws AuthenticationFailedException {
 		String encrypted1 = names.encryptName(name, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
 		String encrypted2 = names.encryptName(name, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
 		Assertions.assertEquals(encrypted1, encrypted2);
@@ -54,14 +54,14 @@ public class UvfNamesTest {
 
 	@Test
 	@DisplayName("names are bound to the directory id")
-	public void testWrongDirId() {
+	void testWrongDirId() {
 		String encrypted = names.encryptName("test", ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> names.decryptName(encrypted, new byte[32], UvfSeedsTest.TEST_SEED_ID));
 	}
 
 	@Test
 	@DisplayName("names are normalized to NFC")
-	public void testNfc() throws AuthenticationFailedException {
+	void testNfc() throws AuthenticationFailedException {
 		String nfd = "über.txt"; // u + combining diaeresis
 		String nfc = "über.txt";
 		Assertions.assertEquals(names.encryptName(nfc, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID), names.encryptName(nfd, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
@@ -70,7 +70,7 @@ public class UvfNamesTest {
 
 	@Test
 	@DisplayName("malformed and tampered ciphertext")
-	public void testInvalidCiphertext() {
+	void testInvalidCiphertext() {
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> names.decryptName("lol", ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
 		String encrypted = names.encryptName("test", ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
 		String tampered = (encrypted.charAt(0) == 'A' ? 'B' : 'A') + encrypted.substring(1);
@@ -79,7 +79,7 @@ public class UvfNamesTest {
 
 	@Test
 	@DisplayName("unknown seed")
-	public void testUnknownSeed() {
+	void testUnknownSeed() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> names.encryptName("test", ROOT_DIR_ID, 42));
 	}
 

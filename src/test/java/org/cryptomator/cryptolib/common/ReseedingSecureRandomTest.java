@@ -14,12 +14,12 @@ import org.mockito.Mockito;
 
 import java.security.SecureRandom;
 
-public class ReseedingSecureRandomTest {
+class ReseedingSecureRandomTest {
 
 	private SecureRandom seeder, csprng;
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		seeder = Mockito.mock(SecureRandom.class);
 		csprng = Mockito.mock(SecureRandom.class);
 		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(invocation ->  {
@@ -30,7 +30,7 @@ public class ReseedingSecureRandomTest {
 	}
 
 	@Test
-	public void testReseedAfterLimitReached() {
+	void testReseedAfterLimitReached() {
 		SecureRandom rand = new ReseedingSecureRandom(seeder, csprng, 10, 3);
 		Mockito.verify(seeder, Mockito.never()).generateSeed(3);
 		rand.nextBytes(new byte[4]);

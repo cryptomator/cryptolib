@@ -14,11 +14,11 @@ import java.util.Random;
 /**
  * Vectors from Cryptomator Hub's {@code vaultFormat8.spec.ts} / {@code universalVaultFormat.spec.ts} and Cryptomator's {@code RecoveryKeyFactoryTest}.
  */
-public class RecoveryKeysTest {
+class RecoveryKeysTest {
 
 	@Nested
 	@DisplayName("CVF8 (unpadded)")
-	public class Unpadded {
+	class Unpadded {
 
 		private static final String TEST_KEY_WORDS = "water water water water water water water water water water water water water water water water water " //
 				+ "water water water water asset partly partly partly partly partly partly partly partly partly partly " //
@@ -29,7 +29,7 @@ public class RecoveryKeysTest {
 
 		@Test
 		@DisplayName("Hub test key 0x55*32 || 0x77*32")
-		public void testHubTestKey() {
+		void testHubTestKey() {
 			byte[] key = new byte[64];
 			Arrays.fill(key, 0, 32, (byte) 0x55);
 			Arrays.fill(key, 32, 64, (byte) 0x77);
@@ -39,7 +39,7 @@ public class RecoveryKeysTest {
 
 		@Test
 		@DisplayName("Hub actual key")
-		public void testHubActualKey() {
+		void testHubActualKey() {
 			byte[] key = Base64.getUrlDecoder().decode("uwHiVreDbmv47K7oZzlwZbHcEql2Z29brbgFxKA7i54pXVPoHoxKK5rzZS3VEhPxHegQKCwa5Mk4ep7OsYutAw");
 			Assertions.assertArrayEquals(key, RecoveryKeys.decode("\n  " + ACTUAL_KEY_WORDS.replace("charity ", "charity\n  ") + "\n", false), "whitespace-tolerant");
 			Assertions.assertEquals(ACTUAL_KEY_WORDS, RecoveryKeys.encode(key, false));
@@ -47,7 +47,7 @@ public class RecoveryKeysTest {
 
 		@Test
 		@DisplayName("invalid keys")
-		public void testInvalid() {
+		void testInvalid() {
 			assertThrowsWithMessage("multiple of two words", () -> RecoveryKeys.decode("pathway", false));
 			assertThrowsWithMessage("not in dictionary", () -> RecoveryKeys.decode("hallo bonjour", false));
 			assertThrowsWithMessage("Invalid recovery key length", () -> RecoveryKeys.decode("", false));
@@ -60,12 +60,12 @@ public class RecoveryKeysTest {
 
 	@Nested
 	@DisplayName("UVF (padded)")
-	public class Padded {
+	class Padded {
 
 		@ParameterizedTest(name = "{0} bytes")
 		@ValueSource(ints = {0, 1, 2, 3, 4, 64, 80, 185, 194})
 		@DisplayName("round trip with 1-3 padding bytes")
-		public void testRoundTrip(int len) {
+		void testRoundTrip(int len) {
 			byte[] key = new byte[len];
 			new Random(len).nextBytes(key);
 			String words = RecoveryKeys.encode(key, true);
@@ -76,7 +76,7 @@ public class RecoveryKeysTest {
 
 		@Test
 		@DisplayName("invalid keys (Hub's cases)")
-		public void testInvalid() {
+		void testInvalid() {
 			assertThrowsWithMessage("not in dictionary", () -> RecoveryKeys.decode("hallo bonjour", true));
 			assertThrowsWithMessage("Invalid padding", () -> RecoveryKeys.decode("cult hold all away buck do law relaxed other stimulus", true));
 			assertThrowsWithMessage("Invalid padding", () -> RecoveryKeys.decode("", true));

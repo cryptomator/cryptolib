@@ -16,7 +16,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 
-public class UvfSeedsTest {
+class UvfSeedsTest {
 
 	// example payload from the UVF specification (vault metadata/README.md)
 	static final String SPEC_PAYLOAD = "{\n" //
@@ -44,7 +44,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("parse spec example payload")
-	public void testFromDecryptedPayload() {
+	void testFromDecryptedPayload() {
 		UvfSeeds seeds = UvfSeeds.fromDecryptedPayload(SPEC_PAYLOAD);
 		Assertions.assertEquals(473544690, seeds.initialSeedId());
 		Assertions.assertEquals(1075513622, seeds.latestSeedId());
@@ -55,7 +55,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("serialize preserves everything incl. custom fields")
-	public void testRoundTrip() {
+	void testRoundTrip() {
 		UvfSeeds seeds = UvfSeeds.fromDecryptedPayload(SPEC_PAYLOAD);
 		String json = seeds.toDecryptedPayload();
 		// the spec example uses non-canonical base64url seed ids ("HDm38i" has non-zero trailing bits), we re-emit canonical ones ("HDm38g"):
@@ -71,7 +71,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("seed id encoding")
-	public void testSeedIdEncoding() {
+	void testSeedIdEncoding() {
 		Assertions.assertEquals(473544690, UvfSeeds.decodeSeedId("HDm38i")); // non-canonical trailing bits are tolerated
 		Assertions.assertEquals(473544690, UvfSeeds.decodeSeedId("HDm38g"));
 		Assertions.assertEquals("HDm38g", UvfSeeds.encodeSeedId(473544690));
@@ -81,7 +81,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("subkey derivation vector")
-	public void testSubkey() {
+	void testSubkey() {
 		try (UvfSeeds seeds = testSeeds(); DestroyableSecretKey subkey = seeds.subKey(TEST_SEED_ID, 32, "fileHeader".getBytes(StandardCharsets.US_ASCII), "AES")) {
 			Assertions.assertEquals("PwnW2t/pK9dmzc+GTLdBSaB8ilcwsTq4sYOeiyo3cpU=", Base64.getEncoder().encodeToString(subkey.getEncoded()));
 		}
@@ -89,7 +89,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("root dir id vector")
-	public void testRootDirId() {
+	void testRootDirId() {
 		try (UvfSeeds seeds = testSeeds()) {
 			Assertions.assertEquals("24UBEDeGu5taq7U4GqyA0MXUXb9HTYS6p3t9vvHGJAc=", Base64.getEncoder().encodeToString(seeds.rootDirId()));
 		}
@@ -98,7 +98,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("unknown seed")
-	public void testUnknownSeed() {
+	void testUnknownSeed() {
 		try (UvfSeeds seeds = testSeeds()) {
 			Assertions.assertThrows(IllegalArgumentException.class, () -> seeds.subKey(42, 32, new byte[0], "AES"));
 		}
@@ -106,7 +106,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("add seed")
-	public void testAddSeed() {
+	void testAddSeed() {
 		try (UvfSeeds seeds = testSeeds()) {
 			int newId = seeds.addSeed(SecureRandomMock.PRNG_RANDOM);
 			Assertions.assertNotEquals(TEST_SEED_ID, newId);
@@ -121,7 +121,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("create")
-	public void testCreate() {
+	void testCreate() {
 		try (UvfSeeds seeds = UvfSeeds.create(SecureRandomMock.PRNG_RANDOM)) {
 			Assertions.assertEquals(seeds.initialSeedId(), seeds.latestSeedId());
 			Assertions.assertEquals(1, seeds.seedIds().size());
@@ -132,7 +132,7 @@ public class UvfSeedsTest {
 
 	@Test
 	@DisplayName("destroy")
-	public void testDestroy() {
+	void testDestroy() {
 		UvfSeeds seeds = testSeeds();
 		seeds.destroy();
 		Assertions.assertTrue(seeds.isDestroyed());
@@ -147,7 +147,7 @@ public class UvfSeedsTest {
 			"{\"fileFormat\":\"AES-256-GCM-32k\",\"nameFormat\":\"AES-SIV-512-B64URL\",\"kdf\":\"HKDF-SHA512\",\"kdfSalt\":\"NIlr89R7FhochyP4yuXZmDqCnQ0dBB3UZ2D-6oiIjr8\",\"initialSeed\":\"HDm38i\",\"latestSeed\":\"QBsJFo\",\"seeds\":{\"HDm38i\":\"ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs\"}}", //
 			"{\"fileFormat\":\"AES-256-GCM-32k\",\"nameFormat\":\"AES-SIV-512-B64URL\",\"kdf\":\"HKDF-SHA512\",\"kdfSalt\":\"short\",\"initialSeed\":\"HDm38i\",\"latestSeed\":\"HDm38i\",\"seeds\":{\"HDm38i\":\"ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs\"}}" //
 	})
-	public void testMalformedPayload(String json) {
+	void testMalformedPayload(String json) {
 		Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfSeeds.fromDecryptedPayload(json));
 	}
 

@@ -11,14 +11,14 @@ import java.util.Random;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class WordEncoderTest {
+class WordEncoderTest {
 
 	private static final Random PRNG = new Random(42L);
 	private final WordEncoder encoder = WordEncoder.ENGLISH;
 
 	@Test
 	@DisplayName("dictionary has 4096 distinct words")
-	public void testDictionary() {
+	void testDictionary() {
 		Assertions.assertEquals(4096, encoder.words().size());
 		Assertions.assertEquals(4096, new HashSet<>(encoder.words()).size());
 		Assertions.assertEquals("ad", encoder.words().get(0));
@@ -28,13 +28,13 @@ public class WordEncoderTest {
 	@DisplayName("decode(encode(input)) == input")
 	@ParameterizedTest(name = "{index} * 3 bytes")
 	@MethodSource("createRandomByteSequences")
-	public void encodeAndDecode(byte[] input) {
+	void encodeAndDecode(byte[] input) {
 		String encoded = encoder.encodePadded(input);
 		byte[] decoded = encoder.decode(encoded);
 		Assertions.assertArrayEquals(input, decoded);
 	}
 
-	public static Stream<byte[]> createRandomByteSequences() {
+	static Stream<byte[]> createRandomByteSequences() {
 		return IntStream.range(0, 30).mapToObj(i -> {
 			byte[] randomBytes = new byte[i * 3];
 			PRNG.nextBytes(randomBytes);
@@ -44,7 +44,7 @@ public class WordEncoderTest {
 
 	@Test
 	@DisplayName("known encodings")
-	public void testKnownEncodings() {
+	void testKnownEncodings() {
 		Assertions.assertEquals("", encoder.encodePadded(new byte[0]));
 		Assertions.assertEquals("ad ad", encoder.encodePadded(new byte[3]));
 		Assertions.assertEquals("water water", encoder.encodePadded(new byte[]{0x55, 0x55, 0x55})); // 0x555 0x555
@@ -54,14 +54,14 @@ public class WordEncoderTest {
 
 	@Test
 	@DisplayName("input not a multiple of three bytes")
-	public void testEncodeUnpadded() {
+	void testEncodeUnpadded() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> encoder.encodePadded(new byte[1]));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> encoder.encodePadded(new byte[4]));
 	}
 
 	@Test
 	@DisplayName("decoding tolerates any whitespace")
-	public void testDecodeWhitespace() {
+	void testDecodeWhitespace() {
 		Assertions.assertArrayEquals(new byte[6], encoder.decode("  ad\tad\n\n ad   ad \r\n"));
 		Assertions.assertArrayEquals(new byte[0], encoder.decode(""));
 		Assertions.assertArrayEquals(new byte[0], encoder.decode(null));
@@ -69,7 +69,7 @@ public class WordEncoderTest {
 
 	@Test
 	@DisplayName("odd word count and unknown words are rejected")
-	public void testDecodeInvalid() {
+	void testDecodeInvalid() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> encoder.decode("ad"));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> encoder.decode("ad ad ad"));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> encoder.decode("hallo bonjour"));
@@ -78,7 +78,7 @@ public class WordEncoderTest {
 
 	@Test
 	@DisplayName("missing dictionary")
-	public void testMissingDictionary() {
+	void testMissingDictionary() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> new WordEncoder("/does/not/exist.txt"));
 	}
 

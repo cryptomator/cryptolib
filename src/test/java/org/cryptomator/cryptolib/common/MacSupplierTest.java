@@ -19,17 +19,17 @@ import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
-public class MacSupplierTest {
+class MacSupplierTest {
 
 	@Test
-	public void testConstructorWithInvalidDigest() {
+	void testConstructorWithInvalidDigest() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new MacSupplier("FOO3000");
 		});
 	}
 
 	@Test
-	public void testGetMac() {
+	void testGetMac() {
 		SecretKey key = new SecretKeySpec(new byte[16], "HmacSHA256");
 		Mac mac1 = MacSupplier.HMAC_SHA256.keyed(key);
 		Mac mac2 = MacSupplier.HMAC_SHA256.keyed(key);
@@ -38,7 +38,7 @@ public class MacSupplierTest {
 	}
 
 	@Test
-	public void testGetMacWithInvalidKey() throws NoSuchAlgorithmException, ReflectiveOperationException {
+	void testGetMacWithInvalidKey() throws NoSuchAlgorithmException, ReflectiveOperationException {
 		Key key = KeyPairGenerator.getInstance("RSA").generateKeyPair().getPrivate();
 		// invoked via reflection, as we can not cast Key to SecretKey.
 		Method m = MacSupplier.class.getMethod("keyed", SecretKey.class);

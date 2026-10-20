@@ -14,7 +14,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Argon2KdfTest {
+class Argon2KdfTest {
 
 	private static final byte[] SALT = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 	private static final SecureRandom FIXED_SALT = new SecureRandomMock(bytes -> System.arraycopy(SALT, 0, bytes, 0, Math.min(SALT.length, bytes.length)));
@@ -32,7 +32,7 @@ public class Argon2KdfTest {
 
 	@Test
 	@DisplayName("new header params carry a 16 byte salt and the cost parameters")
-	public void testNewHeaderParams() {
+	void testNewHeaderParams() {
 		Map<String, Object> params = Argon2Kdf.newHeaderParams(new Argon2Params(1024, 2, 3), FIXED_SALT);
 		Assertions.assertEquals("AAECAwQFBgcICQoLDA0ODw", params.get("org.cryptomator.password.argon2.salt"));
 		Assertions.assertEquals(1024, params.get("org.cryptomator.password.argon2.memoryKiB"));
@@ -44,7 +44,7 @@ public class Argon2KdfTest {
 
 	@Test
 	@DisplayName("pinned vector: Argon2id v1.3, password \"password\", salt 00..0f, m=64 KiB, t=1, p=1")
-	public void testPinnedVector() {
+	void testPinnedVector() {
 		byte[] key = Argon2Kdf.deriveKey("password", validHeader());
 		Assertions.assertEquals(32, key.length);
 		Assertions.assertEquals("nEkwIodzSOA0cZvOEQyZMB5dTRasrMaoKQAP8gRLGww", Base64.getUrlEncoder().withoutPadding().encodeToString(key));
@@ -55,7 +55,7 @@ public class Argon2KdfTest {
 	@ParameterizedTest(name = "{0}")
 	@ValueSource(strings = {"org.cryptomator.password.argon2.salt", "org.cryptomator.password.argon2.memoryKiB", "org.cryptomator.password.argon2.iterations", "org.cryptomator.password.argon2.parallelism"})
 	@DisplayName("missing header parameters are rejected")
-	public void testMissingParam(String param) {
+	void testMissingParam(String param) {
 		Map<String, Object> header = validHeader();
 		header.remove(param);
 		Assertions.assertThrows(VaultConfigLoadException.class, () -> Argon2Kdf.deriveKey("password", header));
@@ -63,7 +63,7 @@ public class Argon2KdfTest {
 
 	@Test
 	@DisplayName("invalid header parameters are rejected")
-	public void testInvalidParams() {
+	void testInvalidParams() {
 		Map<String, Object> header = validHeader();
 		header.put("org.cryptomator.password.argon2.salt", "AAECAwQ"); // 5 bytes
 		Assertions.assertThrows(VaultConfigLoadException.class, () -> Argon2Kdf.deriveKey("password", header));

@@ -21,13 +21,13 @@ import java.security.SecureRandom;
  * Smoke test of the public API through the packaged jar, run by the failsafe plugin after packaging: the JVM applies the multi-release layer with the sealed {@code LockedVault}/{@code UnlockedVault}
  * only to jars, so sealed-hierarchy mistakes surface here and not in the regular test run. Lives in its own package because the jar is sealed.
  */
-public class PackagedJarIT {
+class PackagedJarIT {
 
 	private static final SecureRandom CSPRNG = new SecureRandom();
 
 	@Test
 	@DisplayName("create, serialize, parse and unlock a CVF8 vault")
-	public void testCvf8() {
+	void testCvf8() {
 		byte[] config;
 		byte[] ciphertext;
 		VaultDirectory root;
@@ -46,7 +46,7 @@ public class PackagedJarIT {
 
 	@Test
 	@DisplayName("create, serialize, parse and unlock a UVF vault")
-	public void testUvf() {
+	void testUvf() {
 		KeyPair recoveryKey = UvfUnlockedVault.generateRecoveryKey(CSPRNG);
 		byte[] config;
 		byte[] ciphertext;

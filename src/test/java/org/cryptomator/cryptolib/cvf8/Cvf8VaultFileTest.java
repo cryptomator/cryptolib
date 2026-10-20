@@ -22,7 +22,7 @@ import java.util.Random;
 /**
  * Range access ({@link VaultFile#read}, {@link VaultFile#write}, {@link VaultFile#truncate}) against an in-memory ciphertext, for both CVF8 cipher combos.
  */
-public class Cvf8VaultFileTest {
+class Cvf8VaultFileTest {
 
 	private static final SecureRandom CSPRNG = SecureRandomMock.PRNG_RANDOM;
 	private static final int CHUNK = 32768;
@@ -36,7 +36,7 @@ public class Cvf8VaultFileTest {
 	@ParameterizedTest(name = "{0}: write sequentially, read back in odd-sized pieces")
 	@EnumSource(CipherCombo.class)
 	@DisplayName("write then read")
-	public void testWriteThenRead(CipherCombo combo) throws IOException {
+	void testWriteThenRead(CipherCombo combo) throws IOException {
 		byte[] cleartext = randomBytes(3 * CHUNK + 1234, 1);
 		InMemoryCiphertext ciphertext = new InMemoryCiphertext();
 		try (Cvf8Vault vault = vault(combo); VaultFile file = vault.createFile()) {
@@ -80,7 +80,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: read across chunk boundary")
 	@EnumSource(CipherCombo.class)
-	public void testReadAcrossChunkBoundary(CipherCombo combo) throws IOException {
+	void testReadAcrossChunkBoundary(CipherCombo combo) throws IOException {
 		byte[] cleartext = randomBytes(2 * CHUNK, 2);
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(cleartext));
@@ -98,7 +98,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: overwrite inside a chunk and append")
 	@EnumSource(CipherCombo.class)
-	public void testOverwriteAndAppend(CipherCombo combo) throws IOException {
+	void testOverwriteAndAppend(CipherCombo combo) throws IOException {
 		byte[] cleartext = randomBytes(CHUNK + 500, 3);
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(cleartext));
@@ -121,7 +121,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: writing beyond EOF zero-fills the gap")
 	@EnumSource(CipherCombo.class)
-	public void testWriteBeyondEof(CipherCombo combo) throws IOException {
+	void testWriteBeyondEof(CipherCombo combo) throws IOException {
 		InMemoryCiphertext ciphertext = new InMemoryCiphertext();
 		try (Cvf8Vault vault = vault(combo)) {
 			try (VaultFile file = vault.createFile()) {
@@ -139,7 +139,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: writing zero bytes creates the header")
 	@EnumSource(CipherCombo.class)
-	public void testWriteNothing(CipherCombo combo) throws IOException {
+	void testWriteNothing(CipherCombo combo) throws IOException {
 		InMemoryCiphertext ciphertext = new InMemoryCiphertext();
 		try (Cvf8Vault vault = vault(combo)) {
 			try (VaultFile file = vault.createFile()) {
@@ -153,7 +153,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: truncate")
 	@EnumSource(CipherCombo.class)
-	public void testTruncate(CipherCombo combo) throws IOException {
+	void testTruncate(CipherCombo combo) throws IOException {
 		byte[] cleartext = randomBytes(2 * CHUNK + 500, 4);
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(cleartext));
@@ -187,7 +187,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: tampered chunk fails on read and on partial overwrite")
 	@EnumSource(CipherCombo.class)
-	public void testTamperedChunk(CipherCombo combo) throws IOException {
+	void testTamperedChunk(CipherCombo combo) throws IOException {
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(randomBytes(1000, 5)));
 			ciphertext.flipBit(vault.headerSize() + 30);
@@ -205,7 +205,7 @@ public class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: externally truncated ciphertext")
 	@EnumSource(CipherCombo.class)
-	public void testExternallyTruncatedCiphertext(CipherCombo combo) throws IOException {
+	void testExternallyTruncatedCiphertext(CipherCombo combo) throws IOException {
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(randomBytes(1000, 6)));
 			try (VaultFile file = vault.openFile(ByteBuffer.wrap(ciphertext.toByteArray(), 0, vault.headerSize()), ciphertext.size())) {

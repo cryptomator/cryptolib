@@ -79,18 +79,18 @@ class UvfVaultTest {
 
 	@Nested
 	@DisplayName("spec example vault")
-	public class SpecVault {
+	class SpecVault {
 
 		private UvfVault vault;
 
 		@BeforeEach
-		public void setup() {
+		void setup() {
 			vault = specVault();
 		}
 
 		@Test
 		@DisplayName("root dir id and hash are deterministic")
-		public void testRootDir() {
+		void testRootDir() {
 			VaultDirectory root = vault.rootDirectory();
 			Assertions.assertEquals("5WEGzwKkAHPwVSjT2Brr3P3zLz7oMiNpMn/qBvht7eM=", Base64.getEncoder().encodeToString(root.dirId()));
 			Assertions.assertEquals("RZK7ZH7KBXULNEKBMGX3CU42PGUIAIX4", root.dirHash());
@@ -101,7 +101,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("dir.uvf of the root directory uses the initial seed")
-		public void testRootDirUvf() {
+		void testRootDirUvf() {
 			VaultDirectory root = vault.rootDirectory();
 			byte[] dirUvf = root.encryptedMetadata();
 			Assertions.assertEquals(128, dirUvf.length);
@@ -114,7 +114,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("new directories use the latest seed")
-		public void testNewDir() {
+		void testNewDir() {
 			VaultDirectory dir = vault.newDirectory();
 			Assertions.assertEquals(32, dir.dirId().length);
 			Assertions.assertEquals(1075513622, ((UvfDirectory) dir).seedId());
@@ -125,7 +125,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("files use the latest seed")
-		public void testFileHeaderSeed() {
+		void testFileHeaderSeed() {
 			byte[] ciphertext = vault.encryptFile("Hello, World!".getBytes(UTF_8));
 			Assertions.assertArrayEquals(UVF_MAGIC, Arrays.copyOf(ciphertext, 4));
 			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("QBsJFo"), Arrays.copyOfRange(ciphertext, 4, 8));
@@ -139,7 +139,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("invalid dir.uvf contents")
-		public void testInvalidDirUvf() {
+		void testInvalidDirUvf() {
 			Assertions.assertThrows(IllegalArgumentException.class, () -> vault.directory(new byte[127]));
 			byte[] tampered = vault.rootDirectory().encryptedMetadata();
 			tampered[100] ^= 0x01;
@@ -148,7 +148,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("names round trip and are bound to the directory")
-		public void testNames() throws IOException {
+		void testNames() throws IOException {
 			VaultDirectory root = vault.rootDirectory();
 			VaultNode node = root.encryptName("foo.txt");
 			Assertions.assertTrue(node.name().endsWith(".uvf"));
@@ -170,7 +170,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("create and resolve subdirectory and symlink via callbacks")
-		public void testCreateNodes() throws IOException {
+		void testCreateNodes() throws IOException {
 			Map<String, byte[]> files = new HashMap<>();
 			VaultWriter writer = files::put;
 			VaultReader reader = files::get;
@@ -191,7 +191,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("symlink target normalized to NFC")
-		public void testSymlinkNfc() {
+		void testSymlinkNfc() {
 			Assertions.assertEquals("über", vault.decryptSymlinkTarget(vault.encryptSymlinkTarget("über")));
 		}
 
@@ -199,18 +199,18 @@ class UvfVaultTest {
 
 	@Nested
 	@DisplayName("files")
-	public class Files {
+	class Files {
 
 		private UvfVault vault;
 
 		@BeforeEach
-		public void setup() {
+		void setup() {
 			vault = specVault();
 		}
 
 		@ParameterizedTest(name = "round trip of {0} bytes incl. EOF chunk rule")
 		@ValueSource(ints = {0, 1, 32739, 32740, 32741, 65480, 100000})
-		public void testRoundTrip(int size) throws IOException {
+		void testRoundTrip(int size) throws IOException {
 			byte[] cleartext = new byte[size];
 			new Random(size).nextBytes(cleartext);
 			byte[] ciphertext = vault.encryptFile(cleartext);
@@ -242,7 +242,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("missing EOF chunk is detected")
-		public void testMissingEofChunk() {
+		void testMissingEofChunk() {
 			byte[] ciphertext = vault.encryptFile(new byte[32740]);
 			byte[] truncated = Arrays.copyOf(ciphertext, 68 + 32768);
 			Assertions.assertThrows(IllegalArgumentException.class, () -> vault.decryptFile(truncated));
@@ -256,7 +256,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("range access maintains the EOF chunk")
-		public void testRangeAccessEofChunk() throws IOException {
+		void testRangeAccessEofChunk() throws IOException {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext();
 			try (VaultFile file = vault.createFile()) {
 				file.write(0, ByteBuffer.wrap(new byte[32740]), ciphertext, ciphertext);
@@ -285,13 +285,13 @@ class UvfVaultTest {
 
 	@Nested
 	@DisplayName("vault.uvf")
-	public class Config {
+	class Config {
 
 		private final Argon2Params CHEAP = new Argon2Params(64, 1, 1);
 
 		@Test
 		@DisplayName("spec example protected header is accepted")
-		public void testSpecProtectedHeader() throws Exception {
+		void testSpecProtectedHeader() throws Exception {
 			JWEHeader header = JWEHeader.parse(new Base64URL(SPEC_PROTECTED_HEADER));
 			Assertions.assertEquals(1, UvfMetadataCodec.specVersion(header));
 			Assertions.assertEquals(JsonParser.parseString(header.toString()), JsonParser.parseString(UvfMetadataCodec.newProtectedHeader().toString()));
@@ -299,7 +299,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("create a password vault, serialize, unlock with password and recovery key")
-		public void testPasswordVault() {
+		void testPasswordVault() {
 			KeyPair recoveryKey = ecKeyPair();
 			byte[] config;
 			VaultDirectory root;
@@ -343,7 +343,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("create a member key vault, serialize, unlock with member key")
-		public void testMemberKeyVault() {
+		void testMemberKeyVault() {
 			SecretKeySpec memberKey = new SecretKeySpec(new byte[32], "AES");
 			byte[] config;
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
@@ -363,7 +363,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("key rotation and re-encryption survive serialization")
-		public void testRotation() {
+		void testRotation() {
 			KeyPair recoveryKey = ecKeyPair();
 			byte[] config;
 			VaultDirectory rootBefore;
@@ -399,7 +399,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("password change and recovery flow")
-		public void testPasswordChangeAndRecovery() {
+		void testPasswordChangeAndRecovery() {
 			KeyPair recoveryKey = ecKeyPair();
 			KeyPair newRecoveryKey = ecKeyPair();
 			byte[] config;
@@ -435,7 +435,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("recovery key as words: create, serialize, recover, re-encode")
-		public void testRecoveryKeyWords() throws Exception {
+		void testRecoveryKeyWords() throws Exception {
 			KeyPair recoveryKey = UvfUnlockedVault.generateRecoveryKey(CSPRNG);
 			Assertions.assertEquals("secp384r1", ((ECPublicKey) recoveryKey.getPublic()).getParams().toString().substring(0, 9));
 			byte[] config;
@@ -489,7 +489,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("recovery key words are compatible with Cryptomator Hub")
-		public void testHubRecoveryKey() throws Exception {
+		void testHubRecoveryKey() throws Exception {
 			ECKey hub = RecoveryKeyPkcs8Test.hubKeyPair();
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
 				created.setRecoveryKey(new KeyPair(hub.toECPublicKey(), hub.toECPrivateKey()));
@@ -500,7 +500,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("custom fields are preserved")
-		public void testCustomFields() {
+		void testCustomFields() {
 			byte[] config;
 			try (UvfVault vault = specVault()) {
 				vault.setPassword("secret", CHEAP);
@@ -518,7 +518,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("serialized config has the structure required by the spec and is readable by nimbus")
-		public void testSerializedStructure() throws Exception {
+		void testSerializedStructure() throws Exception {
 			KeyPair recoveryKey = ecKeyPair();
 			byte[] config;
 			try (UvfVault vault = specVault()) {
@@ -561,7 +561,7 @@ class UvfVaultTest {
 				"{\"enc\":\"A256GCM\",\"zip\":\"DEF\",\"cty\":\"json\",\"crit\":[\"uvf.spec.version\"],\"uvf.spec.version\":1}", //
 				"{\"alg\":\"A256KW\",\"enc\":\"A256GCM\",\"cty\":\"json\",\"crit\":[\"uvf.spec.version\"],\"uvf.spec.version\":1}" //
 		})
-		public void testRejectedProtectedHeaders(String protectedHeaderJson) {
+		void testRejectedProtectedHeaders(String protectedHeaderJson) {
 			String json = "{\"protected\":\"" + Base64URL.encode(protectedHeaderJson) + "\",\"iv\":\"AAAAAAAAAAAAAAAA\",\"ciphertext\":\"AAAA\",\"tag\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"recipients\":[{\"header\":{\"alg\":\"A256KW\",\"kid\":\"x\"},\"encrypted_key\":\"AAAA\"}]}";
 			Class<? extends org.cryptomator.cryptolib.api.CryptoException> expected = protectedHeaderJson.contains("\"uvf.spec.version\":2") ? UnsupportedVaultFormatException.class : VaultConfigLoadException.class;
 			Assertions.assertThrows(expected, () -> LockedVault.parse(json.getBytes(UTF_8)));
@@ -569,7 +569,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("garbage, empty recipients and unknown recipients are rejected")
-		public void testGarbage() {
+		void testGarbage() {
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse("{\"foo\":1}".getBytes(UTF_8)));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse("{".getBytes(UTF_8)));
 			String json = "{\"protected\":\"" + SPEC_PROTECTED_HEADER + "\",\"iv\":\"AAAAAAAAAAAAAAAA\",\"ciphertext\":\"AAAA\",\"tag\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"recipients\":[{\"header\":{\"alg\":\"PBES2-HS512+A256KW\",\"kid\":\"org.cryptomator.password\",\"p2s\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"p2c\":1000},\"encrypted_key\":\"AAAA\"}]}";
@@ -583,7 +583,7 @@ class UvfVaultTest {
 
 		@Test
 		@DisplayName("tampered recipient headers are rejected")
-		public void testTamperedHeaders() {
+		void testTamperedHeaders() {
 			KeyPair recoveryKey = ecKeyPair();
 			byte[] config;
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {

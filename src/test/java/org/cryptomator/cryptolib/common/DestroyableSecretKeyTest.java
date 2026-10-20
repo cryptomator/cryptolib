@@ -14,12 +14,12 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
-public class DestroyableSecretKeyTest {
+class DestroyableSecretKeyTest {
 
 	@DisplayName("generate(...)")
 	@ParameterizedTest(name = "keylen = {0}")
 	@ValueSource(ints = {0, 16, 24, 32, 64, 777})
-	public void testGenerateNew(int keylen) {
+	void testGenerateNew(int keylen) {
 		byte[] keySrc = new byte[keylen];
 		new Random(42).nextBytes(keySrc);
 		SecureRandom csprng = Mockito.mock(SecureRandom.class);
@@ -38,35 +38,35 @@ public class DestroyableSecretKeyTest {
 	}
 
 	@Test
-	public void testConstructorFailsForInvalidAlgorithm() {
+	void testConstructorFailsForInvalidAlgorithm() {
 		Assertions.assertThrows(NullPointerException.class, () -> {
 			new DestroyableSecretKey(new byte[16], null);
 		});
 	}
 
 	@Test
-	public void testConstructorFailsForInvalidLength() {
+	void testConstructorFailsForInvalidLength() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new DestroyableSecretKey(new byte[16], 0, -1, "TEST");
 		});
 	}
 
 	@Test
-	public void testConstructorFailsForInvalidOffset() {
+	void testConstructorFailsForInvalidOffset() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new DestroyableSecretKey(new byte[16], -1, 16, "TEST");
 		});
 	}
 
 	@Test
-	public void testConstructorFailsForInvalidLengthAndOffset() {
+	void testConstructorFailsForInvalidLengthAndOffset() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new DestroyableSecretKey(new byte[16], 8, 16, "TEST");
 		});
 	}
 
 	@Test
-	public void testConstructorCreatesLocalCopy() {
+	void testConstructorCreatesLocalCopy() {
 		byte[] orig = "hello".getBytes();
 		DestroyableSecretKey key = new DestroyableSecretKey(orig, "TEST");
 		Arrays.fill(orig, (byte) 0x00);
@@ -74,7 +74,7 @@ public class DestroyableSecretKeyTest {
 	}
 
 	@Test
-	public void testConstructorCopiesKey() {
+	void testConstructorCopiesKey() {
 		byte[] empty = new byte[32];
 		byte[] rawKey = new byte[32];
 		new Random(42).nextBytes(rawKey);
@@ -89,13 +89,13 @@ public class DestroyableSecretKeyTest {
 
 	@Nested
 	@DisplayName("An undestroyed key...")
-	public class WithUndestroyed {
+	class WithUndestroyed {
 
 		private byte[] rawKey;
 		private DestroyableSecretKey key;
 
 		@BeforeEach
-		public void setup() {
+		void setup() {
 			this.rawKey = new byte[32];
 			new Random(42).nextBytes(rawKey);
 			this.key = new DestroyableSecretKey(rawKey, "EXAMPLE");
@@ -103,13 +103,13 @@ public class DestroyableSecretKeyTest {
 
 		@Test
 		@DisplayName("isDestroyed() returns false")
-		public void testIsDestroyed() {
+		void testIsDestroyed() {
 			Assertions.assertFalse(key.isDestroyed());
 		}
 
 		@Test
 		@DisplayName("equals(empty key) returns false")
-		public void testEquals() {
+		void testEquals() {
 			DestroyableSecretKey emptyKey = new DestroyableSecretKey(new byte[32], "EXAMPLE");
 
 			// hashcode _may_ collide, though
@@ -118,25 +118,25 @@ public class DestroyableSecretKeyTest {
 
 		@Test
 		@DisplayName("getAlgorithm() returns algorithm")
-		public void testGetAlgorithm() {
+		void testGetAlgorithm() {
 			Assertions.assertEquals("EXAMPLE", key.getAlgorithm());
 		}
 
 		@Test
 		@DisplayName("getFormat() returns 'RAW'")
-		public void testGetFormat() {
+		void testGetFormat() {
 			Assertions.assertEquals("RAW", key.getFormat());
 		}
 
 		@Test
 		@DisplayName("getEncoded() returns raw key")
-		public void testGetEncoded() {
+		void testGetEncoded() {
 			Assertions.assertArrayEquals(rawKey, key.getEncoded());
 		}
 
 		@Test
 		@DisplayName("copy() returns equal copy")
-		public void testCopy() {
+		void testCopy() {
 			DestroyableSecretKey copy = key.copy();
 
 			Assertions.assertEquals(key, copy);
@@ -145,7 +145,7 @@ public class DestroyableSecretKeyTest {
 
 		@Test
 		@DisplayName("close() destroys key")
-		public void testClose() {
+		void testClose() {
 			key.close();
 
 			Assertions.assertTrue(key.isDestroyed());
@@ -153,22 +153,22 @@ public class DestroyableSecretKeyTest {
 
 		@Nested
 		@DisplayName("After destroy()...")
-		public class WithDestroyed {
+		class WithDestroyed {
 
 			@BeforeEach
-			public void setup() {
+			void setup() {
 				key.close();
 			}
 
 			@Test
 			@DisplayName("isDestroyed() returns true")
-			public void testIsDestroyed() {
+			void testIsDestroyed() {
 				Assertions.assertTrue(key.isDestroyed());
 			}
 
 			@Test
 			@DisplayName("equals(empty key) returns true")
-			public void testEquals() {
+			void testEquals() {
 				DestroyableSecretKey emptyKey = new DestroyableSecretKey(new byte[32], "EXAMPLE");
 
 				Assertions.assertEquals(emptyKey.hashCode(), key.hashCode());
@@ -177,25 +177,25 @@ public class DestroyableSecretKeyTest {
 
 			@Test
 			@DisplayName("getAlgorithm() throws IllegalStateException")
-			public void testGetAlgorithm() {
+			void testGetAlgorithm() {
 				Assertions.assertThrows(IllegalStateException.class, key::getAlgorithm);
 			}
 
 			@Test
 			@DisplayName("getFormat() throws IllegalStateException")
-			public void testGetFormat() {
+			void testGetFormat() {
 				Assertions.assertThrows(IllegalStateException.class, key::getFormat);
 			}
 
 			@Test
 			@DisplayName("getEncoded() throws IllegalStateException")
-			public void testGetEncoded() {
+			void testGetEncoded() {
 				Assertions.assertThrows(IllegalStateException.class, key::getEncoded);
 			}
 
 			@Test
 			@DisplayName("copy() throws IllegalStateException")
-			public void testCopy() {
+			void testCopy() {
 				Assertions.assertThrows(IllegalStateException.class, key::copy);
 			}
 

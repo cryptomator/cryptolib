@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 
-public class MasterkeyFileTest {
+class MasterkeyFileTest {
 
 	@Nested
 	@DisplayName("isValid()")
@@ -23,7 +23,7 @@ public class MasterkeyFileTest {
 		private MasterkeyFile masterkeyFile;
 
 		@BeforeEach
-		public void setup() {
+		void setup() {
 			masterkeyFile = new MasterkeyFile();
 			masterkeyFile.version = 999;
 			masterkeyFile.scryptSalt = new byte[8];
@@ -36,13 +36,13 @@ public class MasterkeyFileTest {
 
 		@Test
 		@DisplayName("default parameters are valid")
-		public void testDefaultsAreValid() {
+		void testDefaultsAreValid() {
 			Assertions.assertTrue(masterkeyFile.isValid());
 		}
 
 		@Test
 		@DisplayName("scrypt parameters exceeding the memory limit are valid, as resource limits are left to MasterkeyFileValidator")
-		public void testOversizedScryptParamsAreValid() {
+		void testOversizedScryptParamsAreValid() {
 			masterkeyFile.scryptCostParam = Integer.MAX_VALUE;
 			masterkeyFile.scryptBlockSize = Integer.MAX_VALUE;
 
@@ -52,7 +52,7 @@ public class MasterkeyFileTest {
 		@ParameterizedTest(name = "scryptCostParam = {0}")
 		@DisplayName("out of range scryptCostParam is invalid")
 		@ValueSource(ints = {Integer.MIN_VALUE, -1, 0, 1})
-		public void testOutOfRangeCostParamIsInvalid(int scryptCostParam) {
+		void testOutOfRangeCostParamIsInvalid(int scryptCostParam) {
 			masterkeyFile.scryptCostParam = scryptCostParam;
 
 			Assertions.assertFalse(masterkeyFile.isValid());
@@ -61,7 +61,7 @@ public class MasterkeyFileTest {
 		@ParameterizedTest(name = "scryptBlockSize = {0}")
 		@DisplayName("out of range scryptBlockSize is invalid")
 		@ValueSource(ints = {Integer.MIN_VALUE, -1, 0})
-		public void testOutOfRangeBlockSizeIsInvalid(int scryptBlockSize) {
+		void testOutOfRangeBlockSizeIsInvalid(int scryptBlockSize) {
 			masterkeyFile.scryptBlockSize = scryptBlockSize;
 
 			Assertions.assertFalse(masterkeyFile.isValid());
@@ -70,14 +70,14 @@ public class MasterkeyFileTest {
 	}
 
 	@Test
-	public void testRead() throws IOException {
+	void testRead() throws IOException {
 		MasterkeyFile masterkeyFile = MasterkeyFile.read(new StringReader("{\"scryptSalt\": \"Zm9v\"}"));
 
 		Assertions.assertArrayEquals("foo".getBytes(), masterkeyFile.scryptSalt);
 	}
 
 	@Test
-	public void testWrite() throws IOException {
+	void testWrite() throws IOException {
 		MasterkeyFile masterkeyFile = new MasterkeyFile();
 		masterkeyFile.scryptSalt = "foo".getBytes();
 

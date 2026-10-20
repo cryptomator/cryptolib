@@ -59,11 +59,11 @@ class Cvf8VaultTest {
 
 	@Nested
 	@DisplayName("config")
-	public class Config {
+	class Config {
 
 		@Test
 		@DisplayName("create, serialize, parse and unlock")
-		public void testCreateAndUnlock() {
+		void testCreateAndUnlock() {
 			byte[] config;
 			try (Cvf8UnlockedVault created = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG)) {
 				Assertions.assertEquals(CipherCombo.SIV_GCM, created.cipherCombo());
@@ -88,7 +88,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("recovery key as words: serialize and recover")
-		public void testRecoveryKeyWords() {
+		void testRecoveryKeyWords() {
 			byte[] config;
 			String words;
 			try (Cvf8UnlockedVault created = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG)) {
@@ -118,7 +118,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("unlock via masterkey loader destroys the loaded key")
-		public void testUnlockViaLoader() {
+		void testUnlockViaLoader() {
 			byte[] config = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG).serializeConfig();
 			CvfMasterkey loadedKey = ZERO_KEY.copy();
 			MasterkeyLoader loader = Mockito.mock(MasterkeyLoader.class);
@@ -132,7 +132,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("unlock with wrong key")
-		public void testUnlockWithWrongKey() {
+		void testUnlockWithWrongKey() {
 			byte[] config = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG).serializeConfig();
 			Cvf8LockedVault locked = (Cvf8LockedVault) LockedVault.parse(config);
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> locked.unlock(CvfMasterkey.generate(CSPRNG), CSPRNG));
@@ -140,7 +140,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("unlock vault of other format version")
-		public void testUnlockOtherFormatVersion() {
+		void testUnlockOtherFormatVersion() {
 			String token = new String(Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG).serializeConfig(), US_ASCII);
 			// re-sign with format 7:
 			com.nimbusds.jwt.SignedJWT jwt = Assertions.assertDoesNotThrow(() -> com.nimbusds.jwt.SignedJWT.parse(token));
@@ -155,14 +155,14 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("parse garbage")
-		public void testParseGarbage() {
+		void testParseGarbage() {
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse("garbage".getBytes(UTF_8)));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse(new byte[0]));
 		}
 
 		@Test
 		@DisplayName("invalid shortening threshold")
-		public void testInvalidThreshold() {
+		void testInvalidThreshold() {
 			Assertions.assertThrows(IllegalArgumentException.class, () -> Cvf8UnlockedVault.create(ZERO_KEY, 0, CSPRNG));
 		}
 
@@ -170,11 +170,11 @@ class Cvf8VaultTest {
 
 	@Nested
 	@DisplayName("files")
-	public class Files {
+	class Files {
 
 		@Test
 		@DisplayName("SIV_CTRMAC: encrypt file 'hello world' with all-zero nonces")
-		public void testEncryptFileCtrMac() {
+		void testEncryptFileCtrMac() {
 			byte[] expected = Base64.getDecoder().decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfM" //
 					+ "dzvHF3f9EE0LSnRLSsu6ps3IRcJgAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_CTRMAC, SecureRandomMock.NULL_RANDOM)) {
@@ -184,7 +184,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("SIV_CTRMAC: decrypt file 'hello world'")
-		public void testDecryptFileCtrMac() {
+		void testDecryptFileCtrMac() {
 			byte[] ciphertext = Base64.getDecoder().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
 					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_CTRMAC, SecureRandomMock.NULL_RANDOM)) {
@@ -194,7 +194,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("SIV_GCM: encrypt file 'hello world' with nonces 0x55, content key 0x77")
-		public void testEncryptFileGcm() {
+		void testEncryptFileGcm() {
 			SecureRandom random = Mockito.mock(SecureRandom.class);
 			Mockito.doAnswer(invocation -> {
 				Arrays.fill((byte[]) invocation.getArgument(0), (byte) 0x55);
@@ -214,7 +214,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("SIV_GCM: decrypt file 'hello world'")
-		public void testDecryptFileGcm() {
+		void testDecryptFileGcm() {
 			byte[] ciphertext = Base64.getDecoder().decode("VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_GCM, SecureRandomMock.NULL_RANDOM)) {
 				Assertions.assertArrayEquals("hello world".getBytes(US_ASCII), vault.decryptFile(ciphertext));
@@ -223,7 +223,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: empty file is header only")
 		@EnumSource(CipherCombo.class)
-		public void testEmptyFile(CipherCombo combo) {
+		void testEmptyFile(CipherCombo combo) {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] ciphertext = vault.encryptFile(new byte[0]);
 				Assertions.assertEquals(vault.headerSize(), ciphertext.length);
@@ -233,7 +233,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: round trip of {1} bytes via encryptFile/decryptFile, channels and streams")
 		@org.junit.jupiter.params.provider.CsvSource({"SIV_CTRMAC,1", "SIV_CTRMAC,32768", "SIV_CTRMAC,32769", "SIV_CTRMAC,100000", "SIV_GCM,1", "SIV_GCM,32768", "SIV_GCM,32769", "SIV_GCM,100000"})
-		public void testRoundTrip(CipherCombo combo, int size) throws IOException {
+		void testRoundTrip(CipherCombo combo, int size) throws IOException {
 			byte[] cleartext = new byte[size];
 			new Random(size).nextBytes(cleartext);
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
@@ -286,7 +286,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: manipulated chunk is detected")
 		@EnumSource(CipherCombo.class)
-		public void testManipulatedChunk(CipherCombo combo) {
+		void testManipulatedChunk(CipherCombo combo) {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] ciphertext = vault.encryptFile(new byte[50000]);
 				ciphertext[vault.headerSize() + 20] ^= 0x01;
@@ -302,7 +302,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: manipulated header is detected")
 		@EnumSource(CipherCombo.class)
-		public void testManipulatedHeader(CipherCombo combo) {
+		void testManipulatedHeader(CipherCombo combo) {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] ciphertext = vault.encryptFile(new byte[100]);
 				ciphertext[vault.headerSize() - 1] ^= 0x01;
@@ -313,7 +313,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: truncated file is detected")
 		@EnumSource(CipherCombo.class)
-		public void testTruncatedFile(CipherCombo combo) {
+		void testTruncatedFile(CipherCombo combo) {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] ciphertext = vault.encryptFile(new byte[100]);
 				byte[] truncated = Arrays.copyOf(ciphertext, vault.headerSize() + 10);
@@ -324,7 +324,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: openFile derives size and header is stable")
 		@EnumSource(CipherCombo.class)
-		public void testOpenFile(CipherCombo combo) {
+		void testOpenFile(CipherCombo combo) {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] ciphertext = vault.encryptFile(new byte[40000]);
 				try (VaultFile file = vault.openFile(ByteBuffer.wrap(ciphertext, 0, vault.headerSize()), ciphertext.length)) {
@@ -341,7 +341,7 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: symlink target round trip")
 		@EnumSource(CipherCombo.class)
-		public void testSymlink(CipherCombo combo) {
+		void testSymlink(CipherCombo combo) {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] encrypted = vault.encryptSymlinkTarget("../tärget/file.txt");
 				Assertions.assertEquals("../tärget/file.txt", vault.decryptSymlinkTarget(encrypted));
@@ -352,7 +352,7 @@ class Cvf8VaultTest {
 
 	@Nested
 	@DisplayName("directories and nodes")
-	public class Directories {
+	class Directories {
 
 		private final Map<String, byte[]> files = new HashMap<>();
 		private final VaultWriter writer = files::put;
@@ -366,13 +366,13 @@ class Cvf8VaultTest {
 		private Cvf8Vault vault;
 
 		@BeforeEach
-		public void setup() {
+		void setup() {
 			vault = vault(CipherCombo.SIV_GCM, CSPRNG);
 		}
 
 		@Test
 		@DisplayName("root directory")
-		public void testRootDirectory() {
+		void testRootDirectory() {
 			VaultDirectory root = vault.rootDirectory();
 			Assertions.assertArrayEquals(new byte[0], root.dirId());
 			Assertions.assertEquals(32, root.dirHash().length());
@@ -384,7 +384,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("dir.c9r contains the plaintext id, dirid.c9r the encrypted id")
-		public void testDirectoryMetadata() throws IOException {
+		void testDirectoryMetadata() throws IOException {
 			VaultDirectory dir = vault.newDirectory();
 			Assertions.assertEquals(36, dir.dirId().length);
 			Assertions.assertArrayEquals(dir.dirId(), dir.encryptedMetadata());
@@ -398,14 +398,14 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("invalid dir.c9r contents")
-		public void testInvalidDirectoryMetadata() {
+		void testInvalidDirectoryMetadata() {
 			Assertions.assertThrows(IllegalArgumentException.class, () -> vault.directory(new byte[0]));
 			Assertions.assertThrows(IllegalArgumentException.class, () -> vault.directory(new byte[1001]));
 		}
 
 		@Test
 		@DisplayName("name encryption is deterministic and bound to the directory")
-		public void testNames() throws IOException {
+		void testNames() throws IOException {
 			VaultDirectory dir = vault.newDirectory();
 			VaultNode node = dir.encryptName("Documents");
 			Assertions.assertEquals(node.name(), dir.encryptName("Documents").name());
@@ -427,7 +427,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("name shortening at threshold")
-		public void testShortening() throws IOException {
+		void testShortening() throws IOException {
 			VaultDirectory dir = vault.rootDirectory();
 			// 146 cleartext chars -> 146 + 16 = 162 bytes -> 216 base64 chars + 4 = 220 chars: not shortened
 			VaultNode atThreshold = dir.encryptName(repeat('a', 146));
@@ -454,14 +454,14 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("shortened name is base64url(sha1(inflated)) + .c9s")
-		public void testShortenName() {
+		void testShortenName() {
 			// printf 'foo.c9r' | openssl dgst -sha1 -binary | base64 | tr '+/' '-_'
 			Assertions.assertEquals("XzXY10UamRa7Fdaj94oXgEWr_tM=.c9s", vault.shortenName("foo.c9r"));
 		}
 
 		@Test
 		@DisplayName("create and resolve subdirectory via callbacks")
-		public void testCreateDirectory() throws IOException {
+		void testCreateDirectory() throws IOException {
 			VaultDirectory parent = vault.rootDirectory();
 			VaultDirectory child = vault.newDirectory();
 			VaultNode node = parent.encryptName("sub");
@@ -477,7 +477,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("create shortened subdirectory writes name.c9s")
-		public void testCreateShortenedDirectory() throws IOException {
+		void testCreateShortenedDirectory() throws IOException {
 			VaultDirectory parent = vault.rootDirectory();
 			VaultNode node = parent.encryptName(repeat('b', 200));
 			node.createDirectory(vault.newDirectory(), writer);
@@ -488,7 +488,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("create and resolve symlink via callbacks")
-		public void testCreateSymlink() throws IOException {
+		void testCreateSymlink() throws IOException {
 			VaultDirectory parent = vault.rootDirectory();
 			VaultNode node = parent.encryptName("link");
 			node.createSymlink("/etc/passwd", writer);
@@ -499,7 +499,7 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("directory hashes match cryptolib 2.x")
-		public void testDirHashVectors() {
+		void testDirHashVectors() {
 			// produced by cryptolib 2.x FileNameCryptor.hashDirectoryId with an all-zero masterkey
 			Assertions.assertEquals("KG6TFDGKXGZEGWRZOGTDFDF4YEGAZO6Q", vault.rootDirectory().dirHash());
 			Assertions.assertEquals("d/KG/6TFDGKXGZEGWRZOGTDFDF4YEGAZO6Q", vault.rootDirectory().dirPath());

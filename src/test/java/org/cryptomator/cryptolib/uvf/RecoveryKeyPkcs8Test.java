@@ -19,7 +19,7 @@ import java.util.Base64;
 /**
  * Vectors from Cryptomator Hub's {@code universalVaultFormat.spec.ts}: the recovery key of the Hub test user "alice".
  */
-public class RecoveryKeyPkcs8Test {
+class RecoveryKeyPkcs8Test {
 
 	static final String HUB_WORDS = "cult hold all away buck do law relaxed other stimulus all bank fit indulge dad any ear grey cult golf all baby dig war linear tour sleep humanity threat question " //
 			+ "neglect stance radar bank coup misery painter tragedy buddy compare winter national approval budget deep screen outdoor audience tear stream cure type ugly chamber " //
@@ -39,7 +39,7 @@ public class RecoveryKeyPkcs8Test {
 
 	@Test
 	@DisplayName("Hub words decode to Hub's PKCS#8")
-	public void testDecodeHubWords() throws Exception {
+	void testDecodeHubWords() throws Exception {
 		byte[] pkcs8 = RecoveryKeys.decode(HUB_WORDS, true);
 		Assertions.assertArrayEquals(HUB_PKCS8, pkcs8);
 		Assertions.assertEquals(RecoveryKeyPkcs8.LEN, pkcs8.length);
@@ -50,7 +50,7 @@ public class RecoveryKeyPkcs8Test {
 
 	@Test
 	@DisplayName("re-encoding Hub's key is byte-identical")
-	public void testEncodeHubKey() throws Exception {
+	void testEncodeHubKey() throws Exception {
 		byte[] pkcs8 = RecoveryKeyPkcs8.encode(hubKeyPair());
 		Assertions.assertArrayEquals(HUB_PKCS8, pkcs8);
 		Assertions.assertEquals(HUB_WORDS, RecoveryKeys.encode(pkcs8, true));
@@ -58,7 +58,7 @@ public class RecoveryKeyPkcs8Test {
 
 	@Test
 	@DisplayName("JDK's PKCS#8 layout (without public key) decodes too")
-	public void testDecodeJdkLayout() throws Exception {
+	void testDecodeJdkLayout() throws Exception {
 		KeyPair keyPair = generate("secp384r1");
 		byte[] jdkPkcs8 = keyPair.getPrivate().getEncoded();
 		Assertions.assertNotEquals(RecoveryKeyPkcs8.LEN, jdkPkcs8.length);
@@ -74,7 +74,7 @@ public class RecoveryKeyPkcs8Test {
 
 	@Test
 	@DisplayName("other curves and garbage are rejected")
-	public void testInvalid() throws Exception {
+	void testInvalid() throws Exception {
 		KeyPair p256 = generate("secp256r1");
 		Assertions.assertThrows(IllegalArgumentException.class, () -> RecoveryKeyPkcs8.decode(p256.getPrivate().getEncoded()));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> RecoveryKeyPkcs8.decode(new byte[185]));

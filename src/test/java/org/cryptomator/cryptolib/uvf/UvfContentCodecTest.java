@@ -17,25 +17,25 @@ import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
-public class UvfContentCodecTest {
+class UvfContentCodecTest {
 
 	private static final String HEADER_VECTOR = "dXZmAKQ0W7cAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/TCwvp3StG0JTkKGj3hwERhnFmZek61Xtc=";
 
 	private UvfSeeds seeds;
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		seeds = UvfSeedsTest.testSeeds();
 	}
 
 	@AfterEach
-	public void tearDown() {
+	void tearDown() {
 		seeds.destroy();
 	}
 
 	@Test
 	@DisplayName("layout is 68 byte header, 32740 byte payload, 32768 byte chunks, with EOF chunk")
-	public void testLayout() {
+	void testLayout() {
 		Assertions.assertEquals(68, UvfContentCodec.LAYOUT.headerSize());
 		Assertions.assertEquals(32740, UvfContentCodec.LAYOUT.cleartextChunkSize());
 		Assertions.assertEquals(32768, UvfContentCodec.LAYOUT.ciphertextChunkSize());
@@ -44,7 +44,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("create header with all-zero nonce and key")
-	public void testCreateHeader() {
+	void testCreateHeader() {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
 		FileHeaderParts header = codec.createHeader(UvfSeedsTest.TEST_SEED_ID);
 		Assertions.assertArrayEquals(Base64.getDecoder().decode(HEADER_VECTOR), header.encrypted().array());
@@ -55,7 +55,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("decrypt header")
-	public void testDecryptHeader() throws AuthenticationFailedException {
+	void testDecryptHeader() throws AuthenticationFailedException {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR));
 		FileHeaderParts header = codec.decryptHeader(ciphertext);
@@ -67,7 +67,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("decrypt header with invalid tag / tampered ciphertext / wrong magic / unknown seed / too short")
-	public void testDecryptInvalidHeaders() {
+	void testDecryptInvalidHeaders() {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(Base64.getDecoder().decode("dXZmAKQ0W7cAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/TCwvp3StG0JTkKGj3hwERhnFmZek61XtX="))));
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(Base64.getDecoder().decode("dXZmAKQ0W7cAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/XCwvp3StG0JTkKGj3hwERhnFmZek61Xtc="))));
@@ -82,7 +82,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("chunk round trip, AAD binds index and header nonce")
-	public void testChunkRoundTrip() throws AuthenticationFailedException {
+	void testChunkRoundTrip() throws AuthenticationFailedException {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.PRNG_RANDOM);
 		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[32], "AES");
 		byte[] headerNonce = new byte[12];
@@ -104,7 +104,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("empty chunk (EOF chunk) is 28 bytes")
-	public void testEmptyChunk() throws AuthenticationFailedException {
+	void testEmptyChunk() throws AuthenticationFailedException {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.PRNG_RANDOM);
 		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[32], "AES");
 		ByteBuffer ciphertext = ByteBuffer.allocate(28);
@@ -118,7 +118,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("chunk index is a 32 bit unsigned integer")
-	public void testChunkIndexRange() {
+	void testChunkIndexRange() {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.PRNG_RANDOM);
 		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[32], "AES");
 		Assertions.assertDoesNotThrow(() -> codec.encryptChunk(new byte[12], fileKey, ByteBuffer.allocate(1), ByteBuffer.allocate(100), 0xFFFFFFFFL));
@@ -128,7 +128,7 @@ public class UvfContentCodecTest {
 
 	@Test
 	@DisplayName("chunk index is encoded as 4 byte big endian AAD")
-	public void testChunkIndexAad() throws Exception {
+	void testChunkIndexAad() throws Exception {
 		// encrypt with the codec, then decrypt manually with a hand-built AAD to pin the on-disk format
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.cycle((byte) 0x33));
 		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[32], "AES");

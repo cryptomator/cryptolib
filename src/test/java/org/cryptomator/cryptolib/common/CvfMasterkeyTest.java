@@ -10,13 +10,13 @@ import javax.crypto.SecretKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-public class CvfMasterkeyTest {
+class CvfMasterkeyTest {
 
 	private byte[] raw;
 	private CvfMasterkey masterkey;
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		raw = new byte[64];
 		for (byte b=0; b<raw.length; b++) {
 			raw[b] = b;
@@ -25,7 +25,7 @@ public class CvfMasterkeyTest {
 	}
 
 	@Test
-	public void testGenerate() {
+	void testGenerate() {
 		SecureRandom csprng = Mockito.mock(SecureRandom.class);
 
 		CvfMasterkey masterkey = CvfMasterkey.generate(csprng);
@@ -35,7 +35,7 @@ public class CvfMasterkeyTest {
 	}
 
 	@Test
-	public void testFrom() {
+	void testFrom() {
 		byte[] encKeyBytes = new byte[32];
 		byte[] macKeyBytes = new byte[32];
 		Arrays.fill(encKeyBytes, (byte) 0x55);
@@ -53,21 +53,21 @@ public class CvfMasterkeyTest {
 	}
 
 	@Test
-	public void testGetEncKey() {
+	void testGetEncKey() {
 		SecretKey encKey = masterkey.getEncKey();
 
 		Assertions.assertArrayEquals(Arrays.copyOfRange(raw, 0,32), encKey.getEncoded());
 	}
 
 	@Test
-	public void testGetMacKey() {
+	void testGetMacKey() {
 		SecretKey encKey = masterkey.getMacKey();
 
 		Assertions.assertArrayEquals(Arrays.copyOfRange(raw, 32, 64), encKey.getEncoded());
 	}
 
 	@Test
-	public void testCopy() {
+	void testCopy() {
 		byte[] raw = new byte[64];
 		Arrays.fill(raw, (byte) 0x55);
 		CvfMasterkey original = new CvfMasterkey(raw);
