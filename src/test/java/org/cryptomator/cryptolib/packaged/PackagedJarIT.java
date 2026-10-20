@@ -6,7 +6,9 @@ import org.cryptomator.cryptolib.api.Cvf8UnlockedVault;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.api.LockedVault;
 import org.cryptomator.cryptolib.api.UnlockedVault;
+import org.cryptomator.cryptolib.api.UvfKeyEncryptionKey;
 import org.cryptomator.cryptolib.api.UvfLockedVault;
+import org.cryptomator.cryptolib.api.UvfRecoveryKey;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.junit.jupiter.api.Assertions;
@@ -14,7 +16,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.security.KeyPair;
 import java.security.SecureRandom;
 import java.util.Map;
 
@@ -48,14 +49,12 @@ class PackagedJarIT {
 	@Test
 	@DisplayName("create, serialize, parse and unlock a UVF vault")
 	void testUvf() {
-		KeyPair recoveryKey = UvfUnlockedVault.generateRecoveryKey(CSPRNG);
+		UvfRecoveryKey recoveryKey = UvfRecoveryKey.generate(CSPRNG);
 		byte[] config;
 		byte[] ciphertext;
 		String recoveryWords;
 		VaultDirectory root;
-		try (UvfUnlockedVault vault = UvfUnlockedVault.create(CSPRNG)) {
-			vault.setPassword("secret", new Argon2Params(64, 1, 1));
-			vault.setRecoveryKey(recoveryKey);
+		try (UvfUnlockedVault vault = UvfUnlockedVault.create(CSPRNG, UvfKeyEncryptionKey.password("secret", new Argon2Params(64, 1, 1)), recoveryKey)) {
 			config = vault.serializeConfig();
 			recoveryWords = vault.serializedRecoveryKey();
 			ciphertext = vault.encryptFile("hello".getBytes(StandardCharsets.UTF_8));

@@ -69,9 +69,9 @@ public interface UvfLockedVault extends LockedVault {
 	UvfUnlockedVault unlock(SecretKey memberKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException;
 
 	/**
-	 * Unlocks a vault with its recovery key, e.g. to set a new password with {@link UvfUnlockedVault#setPassword(CharSequence)}.
+	 * Unlocks a vault with its recovery key, e.g. to set a new password with {@link UvfUnlockedVault#setKeyEncryptionKey(UvfKeyEncryptionKey)}.
 	 * <p>
-	 * The result has no key encryption key: {@link UvfUnlockedVault#setPassword(CharSequence)} or {@link UvfUnlockedVault#setMemberKey(SecretKey)} must be called before it can be serialized.
+	 * The result has no key encryption key: {@link UvfUnlockedVault#setKeyEncryptionKey(UvfKeyEncryptionKey)} and {@link UvfUnlockedVault#addSeed()} must be called before it can be serialized.
 	 * It retains the recovery key pair, so {@link UvfUnlockedVault#serializedRecoveryKey()} is available.
 	 *
 	 * @param recoveryKey The private key matching the {@link #RECOVERY_KEY_KID recovery key entry}

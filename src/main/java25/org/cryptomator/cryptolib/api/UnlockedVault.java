@@ -38,8 +38,8 @@ public sealed interface UnlockedVault extends Destroyable, AutoCloseable permits
 	 * dictionary) is shared with Cryptomator and Cryptomator Hub.
 	 *
 	 * @return The recovery key as space-separated words
-	 * @throws IllegalStateException If this UVF vault only knows the public part of its recovery key, i.e. it was neither created with {@link UvfUnlockedVault#setRecoveryKey(java.security.KeyPair)}
-	 * nor unlocked with the recovery key
+	 * @throws IllegalStateException If this UVF vault only knows the public part of its recovery key, i.e. it was neither created or {@link UvfUnlockedVault#setRecoveryKey(UvfRecoveryKey) configured} with a
+	 * {@link UvfRecoveryKey} holding the private key nor unlocked with the recovery key
 	 */
 	String serializedRecoveryKey();
 

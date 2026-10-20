@@ -5,9 +5,10 @@ import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
-import org.cryptomator.cryptolib.api.Argon2Params;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.UvfKeyEncryptionKey;
 import org.cryptomator.cryptolib.api.UvfLockedVault;
+import org.cryptomator.cryptolib.api.UvfRecoveryKey;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
@@ -20,14 +21,7 @@ import org.jspecify.annotations.Nullable;
 import javax.crypto.SecretKey;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECGenParameterSpec;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,8 +32,8 @@ import java.util.Set;
  * An unlocked Unified Vault Format vault.
  *
  * @implNote Recipient algorithms, the password recipient's Argon2 parameters and the recovery key's public JWK live in the payload's {@code recipientDetails} ({@link UvfSeeds}); this class
- * only holds the key material. Two flags drive {@link #serializeConfig()}: the cached serialization is returned while nothing changed, and {@code rotationRequired} blocks serialization
- * after a key was replaced without adding a seed afterwards.
+ * only holds the key material. {@link #serializeConfig()} returns the cached serialization while nothing changed; {@code rotationRequired} is set by every setter and cleared by
+ * {@link #addSeed()}, the recipients given at creation need no rotation because the initial seed is fresh.
  */
 public final class UvfVault extends AbstractUnlockedVault implements UvfUnlockedVault {
 
@@ -52,8 +46,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	private @Nullable OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
 	private @Nullable ECKey recoveryKey; // public key, plus the private part if set as key pair or recovered with it
 	private byte @Nullable [] serialized; // the last serialization (or the file the vault was unlocked from) while nothing changed, else null
-	private boolean seedAddedSinceSerialization; // a fresh seed makes replacing keys safe
-	private boolean rotationRequired = false;
+	private boolean rotationRequired = false; // a recipient was replaced and no seed added since
 
 	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, byte @Nullable [] serialized, @Nullable OctetSequenceKey keyEncryptionKey, @Nullable ECKey recoveryKey, SecureRandom csprng) {
 		this(seeds, protectedHeader, serialized, keyEncryptionKey, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
@@ -73,7 +66,6 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		this.seeds = seeds;
 		this.protectedHeader = protectedHeader;
 		this.serialized = serialized == null ? null : serialized.clone();
-		this.seedAddedSinceSerialization = serialized == null;
 		this.keyEncryptionKey = keyEncryptionKey;
 		this.recoveryKey = recoveryKey;
 		this.csprng = csprng;
@@ -83,29 +75,23 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	/**
-	 * Creates a new vault, see {@link UvfUnlockedVault#create(SecureRandom)}.
+	 * Creates a new vault, see {@link UvfUnlockedVault#create(SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey)}.
 	 *
 	 * @param csprng A cryptographically secure random number generator
-	 * @return The new, unlocked vault without recipients
+	 * @param keyEncryptionKey The password or member key
+	 * @param recoveryKey The recovery key
+	 * @return The new, unlocked vault
 	 */
-	public static UvfVault create(SecureRandom csprng) {
-		return new UvfVault(UvfSeeds.create(csprng), UvfMetadataCodec.newProtectedHeader(), null, null, null, csprng);
+	public static UvfVault create(SecureRandom csprng, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey) {
+		return create(UvfSeeds.create(csprng), keyEncryptionKey, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
 	}
 
-	/**
-	 * Generates a P-384 key pair, see {@link UvfUnlockedVault#generateRecoveryKey(SecureRandom)}.
-	 *
-	 * @param csprng A cryptographically secure random number generator
-	 * @return The key pair
-	 */
-	public static KeyPair generateRecoveryKey(SecureRandom csprng) {
-		try {
-			KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
-			generator.initialize(new ECGenParameterSpec(Curve.P_384.getStdName()), csprng);
-			return generator.generateKeyPair();
-		} catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-			throw new IllegalStateException("P-384 not supported by this JVM", e);
-		}
+	// visible for testing: a new vault around given seeds; its initial seed is fresh, so the initial recipients need no rotation
+	static UvfVault create(UvfSeeds seeds, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey, SecureRandom csprng, SecureRandom random) {
+		UvfVault vault = new UvfVault(seeds, UvfMetadataCodec.newProtectedHeader(), null, null, null, csprng, random);
+		vault.applyKeyEncryptionKey(keyEncryptionKey);
+		vault.applyRecoveryKey(recoveryKey);
+		return vault;
 	}
 
 	// CONFIG
@@ -133,7 +119,6 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		byte[] payload = seeds.toDecryptedPayload().getBytes(StandardCharsets.UTF_8);
 		try {
 			serialized = UvfMetadataCodec.serialize(protectedHeader, payload, seeds.recipientDetails(), keyEncryptionKey).getBytes(StandardCharsets.UTF_8);
-			seedAddedSinceSerialization = false;
 			return serialized.clone();
 		} finally {
 			Arrays.fill(payload, (byte) 0x00);
@@ -142,13 +127,6 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 
 	private void markDirty() {
 		serialized = null;
-	}
-
-	private void markKeyReplaced() {
-		markDirty();
-		if (!seedAddedSinceSerialization) {
-			rotationRequired = true;
-		}
 	}
 
 	@Override
@@ -196,7 +174,6 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		assertNotDestroyed();
 		int seedId = seeds.addSeed(csprng);
 		markDirty();
-		seedAddedSinceSerialization = true;
 		rotationRequired = false;
 		return seedId;
 	}
@@ -207,75 +184,60 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	@Override
-	public void setPassword(CharSequence password) {
-		setPassword(password, Argon2Params.DEFAULT);
+	public void setKeyEncryptionKey(UvfKeyEncryptionKey keyEncryptionKey) {
+		assertNotDestroyed();
+		applyKeyEncryptionKey(keyEncryptionKey);
+		markDirty();
+		rotationRequired = true;
 	}
 
 	@Override
-	public void setPassword(CharSequence password, Argon2Params params) {
+	public void setRecoveryKey(UvfRecoveryKey recoveryKey) {
 		assertNotDestroyed();
-		Map<String, Object> argon2Params = Argon2Kdf.newHeaderParams(params, csprng);
-		byte[] kek = Argon2Kdf.deriveKey(password, argon2Params);
-		try {
-			setKeyEncryptionKey(new OctetSequenceKey.Builder(kek).keyID(UvfLockedVault.PASSWORD_KID).algorithm(JWEAlgorithm.A256KW).build(), argon2Params);
-		} finally {
-			Arrays.fill(kek, (byte) 0x00);
-		}
+		applyRecoveryKey(recoveryKey);
+		markDirty();
+		rotationRequired = true;
 	}
 
-	@Override
-	public void setMemberKey(SecretKey memberKey) {
-		assertNotDestroyed();
-		byte[] encoded = memberKey.getEncoded();
-		if (encoded == null || encoded.length != Argon2Kdf.KEY_LEN) {
-			throw new IllegalArgumentException("Member key must be a 256 bit AES key");
+	// derives or copies the key and replaces the recipient entry; the key encryption key is either the password-derived or the member key, so setting one removes the other
+	private void applyKeyEncryptionKey(UvfKeyEncryptionKey keyEncryptionKey) {
+		OctetSequenceKey key;
+		Map<String, Object> vendorFields;
+		SecretKey memberKey = keyEncryptionKey.memberKey();
+		CharSequence password = keyEncryptionKey.password();
+		if (memberKey != null) {
+			key = new OctetSequenceKey.Builder(memberKey).keyID(keyEncryptionKey.kid()).algorithm(JWEAlgorithm.A256KW).build();
+			vendorFields = Collections.emptyMap();
+		} else if (password != null && keyEncryptionKey.argon2Params() != null) {
+			vendorFields = Argon2Kdf.newHeaderParams(keyEncryptionKey.argon2Params(), csprng);
+			byte[] kek = Argon2Kdf.deriveKey(password, vendorFields);
+			try {
+				key = new OctetSequenceKey.Builder(kek).keyID(keyEncryptionKey.kid()).algorithm(JWEAlgorithm.A256KW).build();
+			} finally {
+				Arrays.fill(kek, (byte) 0x00);
+			}
+		} else {
+			throw new IllegalArgumentException("Key encryption key has neither password nor member key");
 		}
-		setKeyEncryptionKey(new OctetSequenceKey.Builder(encoded).keyID(UvfLockedVault.MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build(), Collections.<String, Object>emptyMap());
-	}
-
-	// the key encryption key is either the password-derived or the member key, so setting one removes the other's recipient entry
-	private void setKeyEncryptionKey(OctetSequenceKey key, Map<String, Object> vendorFields) {
 		seeds.removeRecipient(UvfLockedVault.PASSWORD_KID);
 		seeds.removeRecipient(UvfLockedVault.MEMBER_KEY_KID);
 		seeds.putRecipient(key.getKeyID(), new UvfSeeds.RecipientDetails(JWEAlgorithm.A256KW.getName(), null, vendorFields));
 		this.keyEncryptionKey = key;
-		markKeyReplaced();
 	}
 
-	@Override
-	public void setRecoveryKey(KeyPair recoveryKey) {
-		assertNotDestroyed();
-		if (!(recoveryKey.getPublic() instanceof ECPublicKey && recoveryKey.getPrivate() instanceof ECPrivateKey)) {
-			throw new IllegalArgumentException("Not an EC key pair");
-		}
-		ECPublicKey publicKey = (ECPublicKey) recoveryKey.getPublic();
-		if (!Curve.P_384.equals(Curve.forECParameterSpec(publicKey.getParams()))) {
-			throw new IllegalArgumentException("Not a P-384 key pair");
-		}
-		setRecoveryKey(publicKey, (ECPrivateKey) recoveryKey.getPrivate());
-	}
-
-	@Override
-	public void setRecoveryKey(ECPublicKey recoveryKey) {
-		assertNotDestroyed();
-		Curve curve = Curve.forECParameterSpec(recoveryKey.getParams());
+	private void applyRecoveryKey(UvfRecoveryKey recoveryKey) {
+		Curve curve = Curve.forECParameterSpec(recoveryKey.publicKey().getParams());
 		if (curve == null) {
 			throw new IllegalArgumentException("Unsupported EC curve");
 		}
-		setRecoveryKey(recoveryKey, null);
-	}
-
-	private void setRecoveryKey(ECPublicKey publicKey, @Nullable ECPrivateKey privateKey) {
-		Curve curve = Curve.forECParameterSpec(publicKey.getParams());
 		ECKey key;
 		try {
-			key = new ECKey.Builder(curve, publicKey).privateKey(privateKey).keyID(UvfLockedVault.RECOVERY_KEY_KID).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
+			key = new ECKey.Builder(curve, recoveryKey.publicKey()).privateKey(recoveryKey.privateKey()).keyID(UvfLockedVault.RECOVERY_KEY_KID).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
 		} catch (IllegalStateException e) {
 			throw new IllegalArgumentException("Invalid recovery key", e);
 		}
 		seeds.putRecipient(UvfLockedVault.RECOVERY_KEY_KID, new UvfSeeds.RecipientDetails(JWEAlgorithm.ECDH_ES_A256KW.getName(), key.toPublicJWK().toJSONObject(), Collections.<String, Object>emptyMap()));
 		this.recoveryKey = key;
-		markKeyReplaced();
 	}
 
 	// DIRECTORIES

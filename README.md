@@ -25,7 +25,7 @@ cryptolib does "all but I/O": it understands the vault layout (config file, dire
 | `VaultFile` | One open file: its (encrypted-once) header, file key and cleartext size. Positional `read`/`write`/`truncate` via `CiphertextReader`/`CiphertextWriter` callbacks, plus the raw chunk layer with its index/offset arithmetic. |
 | `CiphertextReader`, `CiphertextWriter` | Functional interfaces shaped like `FileChannel.read(ByteBuffer, long)` / `write(ByteBuffer, long)`; the only way cryptolib touches a file's bytes. |
 | `CvfMasterkey` | The 512-bit key of all Cryptomator Vault Format versions. `MasterkeyLoader` resolves a CVF8 config's `kid` to one; `MasterkeyFileAccess` (package `common`) reads/writes `masterkey.cryptomator`. UVF has no standalone key type: seeds live inside `vault.uvf` and are managed by `UvfUnlockedVault`. |
-| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.recoverykey`). Algorithms, the Argon2 parameters and the recovery key's public key are committed in the encrypted payload (`recipientDetails`) and verified against the headers on unlock. `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)` or `recover(words)`, optionally after `requireSeeds(pinnedDigests)`; `setPassword`/`setMemberKey`/`setRecoveryKey` replace them and require `addSeed()` before serializing. |
+| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.recoverykey`). Algorithms, the Argon2 parameters and the recovery key's public key are committed in the encrypted payload (`recipientDetails`) and verified against the headers on unlock. `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)` or `recover(words)`, optionally after `requireSeeds(pinnedDigests)`. Recipients are value objects (`UvfKeyEncryptionKey.password/memberKey`, `UvfRecoveryKey.generate/of`) passed to `create` or to `setKeyEncryptionKey`/`setRecoveryKey`, which require `addSeed()` before serializing. |
 
 `LockedVault` and `UnlockedVault` are declared `sealed` in a Java 25 variant of their class files (multi-release jar), so consumers on Java 21+ can `switch` over them exhaustively; on Java 8 they are plain interfaces and `instanceof` does the job.
 
@@ -76,12 +76,12 @@ try (CvfMasterkey masterkey = CvfMasterkey.generate(csprng)) {
 }
 
 // UVF
-try (UvfUnlockedVault vault = UvfUnlockedVault.create(csprng)) { // fresh KDF salt and initial seed
-	vault.setPassword(passphrase);                                       // Argon2id → A256KW; or vault.setMemberKey(aesKey) for Hub vaults
-	vault.setRecoveryKey(UvfUnlockedVault.generateRecoveryKey(csprng)); // ECDH-ES+A256KW; or setRecoveryKey(ecPublicKey) if only the public key is known
-	String recoveryKey = vault.serializedRecoveryKey();                  // 126 words for the user to write down
-	writer.write(vault.configFileName(), vault.serializeConfig());       // vault.uvf
-	vault.rootDirectory().writeMetadataBackup(writer);                    // d/XX/YYY…/dir.uvf
+UvfKeyEncryptionKey kek = UvfKeyEncryptionKey.password(passphrase); // Argon2id → A256KW; or UvfKeyEncryptionKey.memberKey(aesKey) for Hub vaults
+UvfRecoveryKey recoveryKey = UvfRecoveryKey.generate(csprng);       // ECDH-ES+A256KW; or UvfRecoveryKey.of(ecPublicKey) if only the public key is known
+try (UvfUnlockedVault vault = UvfUnlockedVault.create(csprng, kek, recoveryKey)) { // fresh KDF salt and initial seed
+	String recoveryWords = vault.serializedRecoveryKey();           // 126 words for the user to write down
+	writer.write(vault.configFileName(), vault.serializeConfig()); // vault.uvf
+	vault.rootDirectory().writeMetadataBackup(writer);              // d/XX/YYY…/dir.uvf
 }
 ```
 
@@ -228,14 +228,14 @@ String target = node.symlinkTarget(reader);       // reads it back
 
 ```java
 try (UvfUnlockedVault vault = uvfLocked.unlock(passphrase, csprng)) {
-	vault.setPassword(newPassphrase); // or setMemberKey / setRecoveryKey
-	vault.addSeed();                  // required after replacing a secret: the old one's holder knows all existing seeds, new files and directories use the new seed
+	vault.setKeyEncryptionKey(UvfKeyEncryptionKey.password(newPassphrase)); // or a member key; setRecoveryKey(UvfRecoveryKey) likewise
+	vault.addSeed();                                                        // required after replacing a secret: the old one's holder knows all existing seeds, new files and directories use the new seed
 	Files.write(vaultDir.resolve("vault.uvf"), vault.serializeConfig(), TRUNCATE_EXISTING);
 }
 
 // forgotten password: unlock with the recovery key and set a new one
 try (UvfUnlockedVault vault = uvfLocked.recover(recoveryKeyWords, csprng)) { // or recover(ecPrivateKey, csprng)
-	vault.setPassword(newPassphrase);
+	vault.setKeyEncryptionKey(UvfKeyEncryptionKey.password(newPassphrase));
 	vault.addSeed();
 	Files.write(vaultDir.resolve("vault.uvf"), vault.serializeConfig(), TRUNCATE_EXISTING);
 }

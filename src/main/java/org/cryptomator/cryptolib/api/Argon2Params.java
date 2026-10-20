@@ -1,7 +1,7 @@
 package org.cryptomator.cryptolib.api;
 
 /**
- * Cost parameters of Argon2id, which derives the key encryption key of a password-protected UVF vault, see {@link UvfUnlockedVault#setPassword(CharSequence, Argon2Params)}.
+ * Cost parameters of Argon2id, which derives the key encryption key of a password-protected UVF vault, see {@link UvfKeyEncryptionKey#password(CharSequence, Argon2Params)}.
  */
 public final class Argon2Params {
 

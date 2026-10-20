@@ -3,33 +3,31 @@ package org.cryptomator.cryptolib.api;
 import org.cryptomator.cryptolib.uvf.UvfVault;
 import org.jspecify.annotations.Nullable;
 
-import javax.crypto.SecretKey;
-import java.security.KeyPair;
 import java.security.SecureRandom;
-import java.security.interfaces.ECPublicKey;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * An unlocked Unified Vault Format vault.
  * <p>
- * Besides the operations common to all vaults, it manages the vault's seeds (key rotation) and its two recipients, see {@link UvfLockedVault}. Changes become effective once
- * {@link #serializeConfig()} is written back. Replacing a password, member key or recovery key requires {@link #addSeed() a new seed} before the configuration can be serialized: the
- * previous secret's holder knows all existing seeds.
+ * Besides the operations common to all vaults, it manages the vault's seeds (key rotation) and its two recipients ({@link UvfKeyEncryptionKey}, {@link UvfRecoveryKey}), see
+ * {@link UvfLockedVault}. Changes become effective once {@link #serializeConfig()} is written back. Replacing a recipient requires {@link #addSeed() a new seed} before the
+ * configuration can be serialized: the previous secret's holder knows all existing seeds.
  */
 public interface UvfUnlockedVault extends UnlockedVault {
 
 	/**
-	 * Creates a new vault with a fresh KDF salt and initial seed.
+	 * Creates a new vault with a fresh KDF salt and initial seed for the given recipients.
 	 * <p>
-	 * Set a password or member key and a recovery key before persisting the result with {@link #serializeConfig()}, then create the root directory with
-	 * {@link VaultDirectory#writeMetadataBackup(VaultWriter)}.
+	 * Persist the result with {@link #serializeConfig()}, then create the root directory with {@link VaultDirectory#writeMetadataBackup(VaultWriter)}.
 	 *
 	 * @param csprng A cryptographically secure random number generator used for seeds, nonces, keys and directory ids
+	 * @param keyEncryptionKey The password or member key; a password is turned into the key encryption key immediately and not retained
+	 * @param recoveryKey The recovery key; its private part, if present, is retained for {@link #serializedRecoveryKey()}
 	 * @return The new, unlocked vault
 	 */
-	static UvfUnlockedVault create(SecureRandom csprng) {
-		return UvfVault.create(csprng);
+	static UvfUnlockedVault create(SecureRandom csprng, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey) {
+		return UvfVault.create(csprng, keyEncryptionKey, recoveryKey);
 	}
 
 	/**
@@ -81,64 +79,26 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	int addSeed();
 
 	/**
-	 * @return {@link UvfLockedVault#PASSWORD_KID}, {@link UvfLockedVault#MEMBER_KEY_KID}, or {@code null} after {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom)} until a new one is set
+	 * @return {@link UvfLockedVault#PASSWORD_KID}, {@link UvfLockedVault#MEMBER_KEY_KID}, or {@code null} after {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom)} until {@link #setKeyEncryptionKey(UvfKeyEncryptionKey)} is called
 	 */
 	@Nullable String keyEncryptionKid();
 
 	/**
-	 * Protects the vault with a password using {@link Argon2Params#DEFAULT}, replacing a previous password or member key.
+	 * Replaces the password or member key. A password is turned into the key encryption key immediately, with a fresh salt, and not retained.
 	 * <p>
-	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Call {@link #addSeed()} before serializing when replacing a secret.
+	 * The previous secret's holder knows all existing seeds, so {@link #addSeed()} must be called before the vault can be serialized again.
 	 *
-	 * @param password The password
+	 * @param keyEncryptionKey The new password or member key
 	 */
-	void setPassword(CharSequence password);
+	void setKeyEncryptionKey(UvfKeyEncryptionKey keyEncryptionKey);
 
 	/**
-	 * Protects the vault with a password, replacing a previous password or member key.
+	 * Replaces the recovery key. The private part, if present, is retained for {@link #serializedRecoveryKey()}; as a JCA object it is dropped on {@link #destroy()} but cannot be zeroed.
 	 * <p>
-	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Call {@link #addSeed()} before serializing when replacing a secret.
+	 * The previous key's holder knows all existing seeds, so {@link #addSeed()} must be called before the vault can be serialized again.
 	 *
-	 * @param password The password
-	 * @param params Argon2id cost parameters
+	 * @param recoveryKey The new recovery key
 	 */
-	void setPassword(CharSequence password, Argon2Params params);
-
-	/**
-	 * Protects the vault with a member key, replacing a previous password or member key. Call {@link #addSeed()} before serializing when replacing a secret.
-	 *
-	 * @param memberKey A 256 bit AES key; the caller remains responsible for destroying it
-	 */
-	void setMemberKey(SecretKey memberKey);
-
-	/**
-	 * Generates a key pair suitable for {@link #setRecoveryKey(KeyPair)}.
-	 *
-	 * @param csprng A cryptographically secure random number generator
-	 * @return A fresh P-384 key pair
-	 */
-	static KeyPair generateRecoveryKey(SecureRandom csprng) {
-		return UvfVault.generateRecoveryKey(csprng);
-	}
-
-	/**
-	 * Sets the recovery key, replacing a previous one. Call {@link #addSeed()} before serializing when replacing a key.
-	 * <p>
-	 * The vault retains the key pair, so that {@link #serializedRecoveryKey()} can encode it for the user. The private key is dropped on {@link #destroy()}, but as a JCA object it cannot be
-	 * zeroed.
-	 *
-	 * @param recoveryKey A P-384 key pair, see {@link #generateRecoveryKey(SecureRandom)}
-	 * @throws IllegalArgumentException If the pair is not a P-384 EC key pair
-	 */
-	void setRecoveryKey(KeyPair recoveryKey);
-
-	/**
-	 * Sets the recovery key by its public part only, replacing a previous one. Call {@link #addSeed()} before serializing when replacing a key.
-	 * <p>
-	 * {@link #serializedRecoveryKey()} is unavailable afterwards, as the vault does not know the private key.
-	 *
-	 * @param recoveryKey The public key (P-256, P-384 or P-521) whose private counterpart {@link UvfLockedVault#recover(java.security.interfaces.ECPrivateKey, SecureRandom) recovers} the vault
-	 */
-	void setRecoveryKey(ECPublicKey recoveryKey);
+	void setRecoveryKey(UvfRecoveryKey recoveryKey);
 
 }
