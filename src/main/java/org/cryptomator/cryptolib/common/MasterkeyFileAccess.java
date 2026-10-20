@@ -43,7 +43,7 @@ public class MasterkeyFileAccess {
 	private static final int DEFAULT_MASTERKEY_FILE_VERSION = 999; // legacy field. dropped with vault format 8
 	private static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
 	private static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
-	private static final int MIN_CUSTOM_SCRYPT_COST_PARAM = 1 << 17; // 2^17, OWASP minimum for r=8, p=1
+	private static final int MIN_CUSTOM_SCRYPT_COST_PARAM = 1 << 15; // 2^15, match the existing default
 	private static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
 	private final byte[] pepper;
 	private final SecureRandom csprng;
@@ -216,8 +216,8 @@ public class MasterkeyFileAccess {
 
 	/**
 	 * Persists a masterkey using the specified scrypt cost parameter and the default block size of 8.
-	 * The cost must be a power of two between 2^17 and {@link MasterkeyFileValidator#DEFAULT_MAX_SCRYPT_COST_PARAM}.
-	 * This lower bound is intended for newly created password-protected vaults, not for loading existing vaults or changing their passphrases.
+	 * The cost must be a power of two between 2^15 (the existing default) and {@link MasterkeyFileValidator#DEFAULT_MAX_SCRYPT_COST_PARAM}.
+	 * This lower bound applies only to this custom-persistence method; loading existing vaults and changing their passphrases are unchanged.
 	 * Devices unlocking this file must have enough memory to derive a key with this cost.
 	 *
 	 * @param masterkey The key to protect

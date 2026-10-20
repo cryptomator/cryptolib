@@ -350,8 +350,21 @@ public class MasterkeyFileAccessTest {
 		}
 	}
 
+	@Test
+	@DisplayName("persist with the minimum custom cost and load")
+	public void testPersistWithMinimumCustomCostAndLoad(@TempDir Path tmpDir) throws IOException {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+		masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", 1 << 15);
+
+		try (Reader reader = Files.newBufferedReader(masterkeyFile, UTF_8);
+			 Masterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd")) {
+			Assertions.assertEquals(1 << 15, MasterkeyFile.read(reader).scryptCostParam);
+			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+		}
+	}
+
 	@ParameterizedTest
-	@CsvSource({"0", "1", "3", "65535", "32768", "65536", "2097152"})
+	@CsvSource({"0", "1", "3", "16384", "32767", "65535", "2097152"})
 	@DisplayName("persist rejects invalid custom cost without writing a file")
 	public void testPersistRejectsInvalidCost(int cost, @TempDir Path tmpDir) {
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
