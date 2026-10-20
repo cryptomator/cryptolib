@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Base64;
 import java.util.UUID;
@@ -75,6 +76,28 @@ class UvfNamesTest {
 		String encrypted = names.encryptName("test", ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
 		String tampered = (encrypted.charAt(0) == 'A' ? 'B' : 'A') + encrypted.substring(1);
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> names.decryptName(tampered, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
+	}
+
+	@Test
+	@DisplayName("non-canonical base64url is rejected")
+	void testNonCanonicalCiphertext() throws AuthenticationFailedException {
+		String encrypted = names.encryptName("test", ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
+		Assertions.assertEquals("test", names.decryptName(encrypted, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
+		// the last character of a 20-byte ciphertext encodes 4 payload bits followed by 2 trailing bits; a different last character with the same payload bits decodes to the same bytes
+		char last = encrypted.charAt(encrypted.length() - 1);
+		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+		char nonCanonical = alphabet.charAt(alphabet.indexOf(last) ^ 0x01);
+		String tampered = encrypted.substring(0, encrypted.length() - 1) + nonCanonical;
+		Assertions.assertArrayEquals(Base64.getUrlDecoder().decode(encrypted), Base64.getUrlDecoder().decode(tampered), "same bytes, different encoding");
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> names.decryptName(tampered, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> names.decryptName(encrypted + "=", ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID), "padding");
+	}
+
+	@ParameterizedTest(name = "decrypted name {0} is rejected")
+	@ValueSource(strings = {"", ".", "..", "a/b", "/", "a\u0000b"})
+	void testInvalidCleartextNames(String name) {
+		String encrypted = names.encryptName(name, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> names.decryptName(encrypted, ROOT_DIR_ID, UvfSeedsTest.TEST_SEED_ID));
 	}
 
 	@Test

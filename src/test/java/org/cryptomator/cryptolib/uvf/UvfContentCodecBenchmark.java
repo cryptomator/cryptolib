@@ -46,7 +46,7 @@ public class UvfContentCodecBenchmark {
 		codec = new UvfContentCodec(seeds, RANDOM_MOCK);
 		codec.encryptChunk(headerNonce, FILE_KEY, cleartextChunk, ciphertextChunk, 0L);
 		ciphertextChunk.flip();
-		encryptedHeader = codec.createHeader(seeds.latestSeedId()).encrypted();
+		encryptedHeader = codec.createHeader(seeds.latestSeedId(), Constants.KDF_CONTEXT_FILE_HEADER).encrypted();
 	}
 
 	@Setup(Level.Invocation)
@@ -69,13 +69,13 @@ public class UvfContentCodecBenchmark {
 
 	@Benchmark
 	public FileHeaderParts benchmarkHeaderCreation() {
-		return codec.createHeader(seeds.latestSeedId());
+		return codec.createHeader(seeds.latestSeedId(), Constants.KDF_CONTEXT_FILE_HEADER);
 	}
 
 	@Benchmark
 	public FileHeaderParts benchmarkHeaderDecryption() throws AuthenticationFailedException {
 		encryptedHeader.rewind();
-		return codec.decryptHeader(encryptedHeader);
+		return codec.decryptHeader(encryptedHeader, Constants.KDF_CONTEXT_FILE_HEADER);
 	}
 
 }

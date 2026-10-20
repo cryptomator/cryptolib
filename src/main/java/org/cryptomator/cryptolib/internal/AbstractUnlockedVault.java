@@ -43,6 +43,15 @@ public abstract class AbstractUnlockedVault {
 		return layout;
 	}
 
+	/**
+	 * Parses an encrypted header into a file, see {@link #parseHeader(ByteBuffer, long)}.
+	 */
+	protected interface HeaderParser {
+
+		VaultFileImpl parse(ByteBuffer encryptedHeader, long cleartextSize) throws AuthenticationFailedException;
+
+	}
+
 	public VaultFile createFile() {
 		return newFile();
 	}
@@ -53,7 +62,18 @@ public abstract class AbstractUnlockedVault {
 	}
 
 	public byte[] encryptFile(byte[] cleartext) {
-		try (VaultFileImpl file = newFile()) {
+		return encryptWith(newFile(), cleartext);
+	}
+
+	/**
+	 * Encrypts a complete file with the given, not yet written file (e.g. one created with a node-type specific header).
+	 *
+	 * @param file The file whose header to use; closed afterwards
+	 * @param cleartext The cleartext
+	 * @return The complete ciphertext including the header
+	 */
+	protected final byte[] encryptWith(VaultFileImpl file, byte[] cleartext) {
+		try (VaultFileImpl closeable = file) {
 			ByteBuffer result = ByteBuffer.allocate((int) layout.ciphertextSize(cleartext.length));
 			result.put(file.encryptedHeader());
 			long chunkCount = layout.chunkCount(cleartext.length);
@@ -68,12 +88,24 @@ public abstract class AbstractUnlockedVault {
 	}
 
 	public byte[] decryptFile(byte[] ciphertext) throws AuthenticationFailedException {
+		return decryptWith(this::parseHeader, ciphertext);
+	}
+
+	/**
+	 * Decrypts a complete file, parsing its header with the given parser (e.g. one expecting a node-type specific header).
+	 *
+	 * @param parser Parses the header
+	 * @param ciphertext The complete ciphertext including the header
+	 * @return The cleartext
+	 * @throws AuthenticationFailedException If the header or any chunk is unauthentic
+	 */
+	protected final byte[] decryptWith(HeaderParser parser, byte[] ciphertext) throws AuthenticationFailedException {
 		if (ciphertext.length < layout.headerSize()) {
 			throw new IllegalArgumentException("ciphertext shorter than header");
 		}
 		long cleartextSize = layout.cleartextSize(ciphertext.length);
 		ByteBuffer header = ByteBuffer.wrap(ciphertext, 0, layout.headerSize());
-		try (VaultFileImpl file = parseHeader(header, cleartextSize)) {
+		try (VaultFileImpl file = parser.parse(header, cleartextSize)) {
 			ByteBuffer result = ByteBuffer.allocate((int) cleartextSize);
 			long chunkCount = layout.chunkCount(cleartextSize);
 			for (long chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++) {

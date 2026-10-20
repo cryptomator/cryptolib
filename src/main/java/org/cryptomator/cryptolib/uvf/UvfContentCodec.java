@@ -52,14 +52,15 @@ final class UvfContentCodec implements ChunkCodec {
 
 	/**
 	 * @param seedId The seed to derive the header key from; becomes part of the general header
+	 * @param headerContext The KDF context of the node type ({@link Constants#KDF_CONTEXT_FILE_HEADER}, {@link Constants#KDF_CONTEXT_DIR_HEADER} or {@link Constants#KDF_CONTEXT_SYMLINK_HEADER})
 	 * @return A fresh, already encrypted header with a random nonce and content key
 	 */
-	FileHeaderParts createHeader(int seedId) {
+	FileHeaderParts createHeader(int seedId, byte[] headerContext) {
 		byte[] nonce = new byte[GCM_NONCE_SIZE];
 		random.nextBytes(nonce);
 		byte[] contentKey = new byte[HEADER_CONTENT_KEY_LEN];
 		random.nextBytes(contentKey);
-		try (DestroyableSecretKey headerKey = seeds.subKey(seedId, 32, Constants.KDF_CONTEXT_FILE_HEADER, CONTENT_ENC_ALG)) {
+		try (DestroyableSecretKey headerKey = seeds.subKey(seedId, 32, headerContext, CONTENT_ENC_ALG)) {
 			ByteBuffer result = ByteBuffer.allocate(HEADER_SIZE);
 			result.put(MAGIC_BYTES);
 			result.order(ByteOrder.BIG_ENDIAN).putInt(seedId);
@@ -83,11 +84,12 @@ final class UvfContentCodec implements ChunkCodec {
 
 	/**
 	 * @param encryptedHeader The encrypted header, position to limit
+	 * @param headerContext The KDF context of the node type the header is expected to belong to; a header of another node type fails authentication
 	 * @return The decrypted header
 	 * @throws AuthenticationFailedException If the header is unauthentic
 	 * @throws IllegalArgumentException If the header is malformed or refers to an unknown seed
 	 */
-	FileHeaderParts decryptHeader(ByteBuffer encryptedHeader) throws AuthenticationFailedException {
+	FileHeaderParts decryptHeader(ByteBuffer encryptedHeader, byte[] headerContext) throws AuthenticationFailedException {
 		if (encryptedHeader.remaining() < HEADER_SIZE) {
 			throw new IllegalArgumentException("Malformed ciphertext header");
 		}
@@ -110,7 +112,7 @@ final class UvfContentCodec implements ChunkCodec {
 
 		// HEADER_CONTENT_KEY_LEN + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888 and #24
 		ByteBuffer contentKeyBuf = ByteBuffer.allocate(HEADER_CONTENT_KEY_LEN + GCM_TAG_SIZE);
-		try (DestroyableSecretKey headerKey = seeds.subKey(seedId, 32, Constants.KDF_CONTEXT_FILE_HEADER, CONTENT_ENC_ALG)) {
+		try (DestroyableSecretKey headerKey = seeds.subKey(seedId, 32, headerContext, CONTENT_ENC_ALG)) {
 			Cipher cipher = CipherSupplier.AES_GCM.decryptionCipher(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce));
 			cipher.updateAAD(generalHeader);
 			int decrypted = cipher.doFinal(ByteBuffer.wrap(ciphertextAndTag), contentKeyBuf);

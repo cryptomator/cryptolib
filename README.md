@@ -25,7 +25,7 @@ cryptolib does "all but I/O": it understands the vault layout (config file, dire
 | `VaultFile` | One open file: its (encrypted-once) header, file key and cleartext size. Positional `read`/`write`/`truncate` via `CiphertextReader`/`CiphertextWriter` callbacks, plus the raw chunk layer with its index/offset arithmetic. |
 | `CiphertextReader`, `CiphertextWriter` | Functional interfaces shaped like `FileChannel.read(ByteBuffer, long)` / `write(ByteBuffer, long)`; the only way cryptolib touches a file's bytes. |
 | `CvfMasterkey` | The 512-bit key of all Cryptomator Vault Format versions. `MasterkeyLoader` resolves a CVF8 config's `kid` to one; `MasterkeyFileAccess` (package `common`) reads/writes `masterkey.cryptomator`. UVF has no standalone key type: seeds live inside `vault.uvf` and are managed by `UvfUnlockedVault`. |
-| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.hub.recoverykey.{jwk-thumbprint}`, whose public key is embedded in its entry). `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)` or `recover(words)`; `setPassword`/`setMemberKey`/`setRecoveryKey` replace them. |
+| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.recoverykey`). Algorithms, the Argon2 parameters and the recovery key's public key are committed in the encrypted payload (`recipientDetails`) and verified against the headers on unlock. `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)` or `recover(words)`, optionally after `requireSeeds(pinnedDigests)`; `setPassword`/`setMemberKey`/`setRecoveryKey` replace them and require `addSeed()` before serializing. |
 
 `LockedVault` and `UnlockedVault` are declared `sealed` in a Java 25 variant of their class files (multi-release jar), so consumers on Java 21+ can `switch` over them exhaustively; on Java 8 they are plain interfaces and `instanceof` does the job.
 
@@ -229,7 +229,7 @@ String target = node.symlinkTarget(reader);       // reads it back
 ```java
 try (UvfUnlockedVault vault = uvfLocked.unlock(passphrase, csprng)) {
 	vault.setPassword(newPassphrase); // or setMemberKey / setRecoveryKey
-	vault.addSeed();                  // new files and directories use the new seed; do this whenever a secret is replaced, the old one's holder knows all existing seeds
+	vault.addSeed();                  // required after replacing a secret: the old one's holder knows all existing seeds, new files and directories use the new seed
 	Files.write(vaultDir.resolve("vault.uvf"), vault.serializeConfig(), TRUNCATE_EXISTING);
 }
 
@@ -241,7 +241,19 @@ try (UvfUnlockedVault vault = uvfLocked.recover(recoveryKeyWords, csprng)) { // 
 }
 ```
 
-Every `serializeConfig()` encrypts the metadata with a fresh content key for both recipients. The unlocked vault keeps what it needs for that: the key encryption key (the Argon2id output with its salt and cost parameters, or the member key) and the recovery key's public key from the file. Passwords are never retained. The private recovery key is retained only if the vault was created with a key pair or unlocked with the recovery key; only then is `serializedRecoveryKey()` available.
+`serializeConfig()` encrypts the metadata with a fresh content key for both recipients whenever something changed, and returns the previous serialization otherwise, so it is cheap to call and write unconditionally. It refuses to serialize after a password, member key or recovery key was replaced until `addSeed()` was called. The unlocked vault keeps what it needs for re-encryption: the key encryption key (the Argon2id output; its salt and cost parameters are committed in the payload) or the member key, and the recovery key's public key from the payload. Passwords are never retained. The private recovery key is retained only if the vault was created with a key pair or unlocked with the recovery key; only then is `serializedRecoveryKey()` available.
+
+### UVF: seed pinning
+
+`vault.uvf` carries no version counter, so a former member with write access could restore an older file or forge one for the recovery key it once knew. The specification therefore requires clients to remember the seeds they have seen (their 32-byte digests reveal nothing about the seeds) outside the vault, integrity-protected, and to reject a `vault.uvf` lacking any of them:
+
+```java
+try (UvfUnlockedVault vault = uvfLocked.requireSeeds(pinnedDigests).unlock(passphrase, csprng)) { // VaultRollbackException if a pinned seed is missing
+	pinnedDigests.addAll(vault.seedDigests().values()); // persist, e.g. in the application's settings
+}
+```
+
+When recovering a directory from the `dir.uvf` copy inside the directory (`directoryFromBackup`), compare the resulting `dirPath()` with the location the copy was found at.
 
 ### Recovery keys
 

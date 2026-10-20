@@ -5,6 +5,7 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
+import org.cryptomator.cryptolib.internal.CleartextNames;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
@@ -58,13 +59,13 @@ final class Cvf8Names {
 	 * @param ciphertextName The base64url-encoded AES-SIV ciphertext, without any extension
 	 * @param dirId The id of the directory containing the file
 	 * @return The cleartext file name
-	 * @throws AuthenticationFailedException If the ciphertext is unauthentic or malformed
+	 * @throws AuthenticationFailedException If the ciphertext is unauthentic or malformed, or the decrypted name is not a valid file name
 	 */
 	String decryptName(String ciphertextName, String dirId) throws AuthenticationFailedException {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] encrypted = BASE64URL_DECODER.decode(ciphertextName);
 			byte[] cleartext = AES_SIV.decrypt(ek, mk, encrypted, dirId.getBytes(UTF_8));
-			return new String(cleartext, UTF_8);
+			return CleartextNames.validate(new String(cleartext, UTF_8));
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}

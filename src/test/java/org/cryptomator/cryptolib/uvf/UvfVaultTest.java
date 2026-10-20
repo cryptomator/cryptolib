@@ -1,14 +1,17 @@
 package org.cryptomator.cryptolib.uvf;
 
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObjectJSON;
 import com.nimbusds.jose.UnprotectedHeader;
 import com.nimbusds.jose.crypto.MultiDecrypter;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.util.Base64URL;
 import org.cryptomator.cryptolib.api.Argon2Params;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.LockedVault;
 import org.cryptomator.cryptolib.api.UnlockedVault;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
@@ -20,6 +23,7 @@ import org.cryptomator.cryptolib.api.VaultFile;
 import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
 import org.cryptomator.cryptolib.api.VaultNode;
 import org.cryptomator.cryptolib.api.VaultReader;
+import org.cryptomator.cryptolib.api.VaultRollbackException;
 import org.cryptomator.cryptolib.api.VaultWriter;
 import org.cryptomator.cryptolib.common.InMemoryCiphertext;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
@@ -40,6 +44,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
@@ -50,15 +55,17 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Consumer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 class UvfVaultTest {
 
 	private static final SecureRandom CSPRNG = SecureRandomMock.PRNG_RANDOM;
-	private static final byte[] UVF_MAGIC = {0x75, 0x76, 0x66, 0x00};
+	private static final byte[] UVF_MAGIC = {0x75, 0x76, 0x66, 0x01};
 	private static final String SPEC_PROTECTED_HEADER = "eyJlbmMiOiJBMjU2R0NNIiwiY3R5IjoianNvbiIsImNyaXQiOlsidXZmLnNwZWMudmVyc2lvbiJdLCJ1dmYuc3BlYy52ZXJzaW9uIjoxfQ";
 
 	private static KeyPair ecKeyPair() {
@@ -66,15 +73,17 @@ class UvfVaultTest {
 			KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
 			generator.initialize(new ECGenParameterSpec("secp384r1"));
 			return generator.generateKeyPair();
-		} catch (java.security.GeneralSecurityException e) {
+		} catch (GeneralSecurityException e) {
 			throw new IllegalStateException(e);
 		}
 	}
 
-	// a vault backed by the spec's example payload (seeds HDm38i, gBryKw, QBsJFo)
+	// a vault backed by the spec's example payload (seeds DU3kfQ, YuRlmw, q8ZMqw) without the example's foreign recipients, which cryptolib does not support
 	private static UvfVault specVault() {
 		UvfSeeds seeds = UvfSeeds.fromDecryptedPayload(UvfSeedsTest.SPEC_PAYLOAD);
-		return new UvfVault(seeds, UvfMetadataCodec.newProtectedHeader(), null, Collections.<String, Object>emptyMap(), null, CSPRNG, CSPRNG);
+		seeds.removeRecipient("com.example.vaultpassword");
+		seeds.removeRecipient("com.example.userkey.42");
+		return new UvfVault(seeds, UvfMetadataCodec.newProtectedHeader(), null, null, null, CSPRNG, CSPRNG);
 	}
 
 	@Nested
@@ -96,7 +105,7 @@ class UvfVaultTest {
 			Assertions.assertEquals("RZK7ZH7KBXULNEKBMGX3CU42PGUIAIX4", root.dirHash());
 			Assertions.assertEquals("d/RZ/K7ZH7KBXULNEKBMGX3CU42PGUIAIX4", root.dirPath());
 			Assertions.assertEquals("d/RZ/K7ZH7KBXULNEKBMGX3CU42PGUIAIX4/dir.uvf", root.backupFilePath());
-			Assertions.assertEquals(473544690, ((UvfDirectory) root).seedId());
+			Assertions.assertEquals(UvfSeedsTest.SPEC_INITIAL_SEED_ID, ((UvfDirectory) root).seedId());
 		}
 
 		@Test
@@ -106,7 +115,7 @@ class UvfVaultTest {
 			byte[] dirUvf = root.encryptedMetadata();
 			Assertions.assertEquals(128, dirUvf.length);
 			Assertions.assertArrayEquals(UVF_MAGIC, Arrays.copyOf(dirUvf, 4));
-			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("HDm38i"), Arrays.copyOfRange(dirUvf, 4, 8));
+			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("DU3kfQ"), Arrays.copyOfRange(dirUvf, 4, 8));
 			Assertions.assertFalse(Arrays.equals(dirUvf, root.encryptedMetadata()), "each copy is encrypted independently");
 			Assertions.assertEquals(root, vault.directory(dirUvf));
 			Assertions.assertEquals(root, vault.directoryFromBackup(root.encryptedMetadataBackup()));
@@ -117,8 +126,8 @@ class UvfVaultTest {
 		void testNewDir() {
 			VaultDirectory dir = vault.newDirectory();
 			Assertions.assertEquals(32, dir.dirId().length);
-			Assertions.assertEquals(1075513622, ((UvfDirectory) dir).seedId());
-			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("QBsJFo"), Arrays.copyOfRange(dir.encryptedMetadata(), 4, 8));
+			Assertions.assertEquals(UvfSeedsTest.SPEC_LATEST_SEED_ID, ((UvfDirectory) dir).seedId());
+			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("q8ZMqw"), Arrays.copyOfRange(dir.encryptedMetadata(), 4, 8));
 			Assertions.assertEquals(dir, vault.directory(dir.encryptedMetadata()));
 			Assertions.assertNotEquals(dir, vault.newDirectory());
 		}
@@ -128,11 +137,11 @@ class UvfVaultTest {
 		void testFileHeaderSeed() {
 			byte[] ciphertext = vault.encryptFile("Hello, World!".getBytes(UTF_8));
 			Assertions.assertArrayEquals(UVF_MAGIC, Arrays.copyOf(ciphertext, 4));
-			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("QBsJFo"), Arrays.copyOfRange(ciphertext, 4, 8));
+			Assertions.assertArrayEquals(Base64.getUrlDecoder().decode("q8ZMqw"), Arrays.copyOfRange(ciphertext, 4, 8));
 			Assertions.assertEquals(68 + 12 + 13 + 16, ciphertext.length);
 			Assertions.assertArrayEquals("Hello, World!".getBytes(UTF_8), vault.decryptFile(ciphertext));
 			try (VaultFile file = vault.openFile(ByteBuffer.wrap(ciphertext, 0, 68), ciphertext.length)) {
-				Assertions.assertEquals(1075513622, file.seedId());
+				Assertions.assertEquals(UvfSeedsTest.SPEC_LATEST_SEED_ID, file.seedId());
 				Assertions.assertEquals(13, file.size());
 			}
 		}
@@ -306,13 +315,11 @@ class UvfVaultTest {
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
 				Assertions.assertEquals("vault.uvf", created.configFileName());
 				Assertions.assertNull(created.keyEncryptionKid());
-				Assertions.assertNull(created.recoveryKid());
 				Assertions.assertThrows(IllegalStateException.class, created::serializeConfig);
 				created.setPassword("correct horse battery staple", CHEAP);
 				Assertions.assertThrows(IllegalStateException.class, created::serializeConfig, "recovery key missing");
 				created.setRecoveryKey((ECPublicKey) recoveryKey.getPublic());
 				Assertions.assertEquals("org.cryptomator.password.argon2", created.keyEncryptionKid());
-				Assertions.assertTrue(created.recoveryKid().startsWith("org.cryptomator.hub.recoverykey."));
 				config = created.serializeConfig();
 				root = created.rootDirectory();
 			}
@@ -322,19 +329,16 @@ class UvfVaultTest {
 			Assertions.assertEquals(1, uvf.allegedSpecVersion());
 			Assertions.assertArrayEquals(config, uvf.encoded());
 			Assertions.assertEquals("org.cryptomator.password.argon2", uvf.keyEncryptionKid());
-			Assertions.assertTrue(uvf.recoveryKid().startsWith("org.cryptomator.hub.recoverykey."));
 
 			try (UvfUnlockedVault unlocked = uvf.unlock("correct horse battery staple", CSPRNG)) {
 				Assertions.assertEquals(root, unlocked.rootDirectory());
 				Assertions.assertEquals(1, unlocked.seedIds().size());
 				Assertions.assertEquals(unlocked.initialSeedId(), unlocked.latestSeedId());
 				Assertions.assertEquals("org.cryptomator.password.argon2", unlocked.keyEncryptionKid());
-				Assertions.assertEquals(uvf.recoveryKid(), unlocked.recoveryKid());
 			}
 			try (UvfUnlockedVault recovered = uvf.recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG)) {
 				Assertions.assertEquals(root, recovered.rootDirectory());
 				Assertions.assertNull(recovered.keyEncryptionKid());
-				Assertions.assertEquals(uvf.recoveryKid(), recovered.recoveryKid());
 			}
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.unlock("wrong", CSPRNG));
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> uvf.recover((ECPrivateKey) ecKeyPair().getPrivate(), CSPRNG));
@@ -388,7 +392,6 @@ class UvfVaultTest {
 			}
 			Assertions.assertFalse(Arrays.equals(config, rotated));
 			UvfLockedVault relocked = (UvfLockedVault) LockedVault.parse(rotated);
-			Assertions.assertEquals(locked.recoveryKid(), relocked.recoveryKid());
 			for (UvfUnlockedVault unlocked : new UvfUnlockedVault[]{relocked.unlock("secret", CSPRNG), relocked.recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG)}) {
 				Assertions.assertEquals(newSeed, unlocked.latestSeedId());
 				Assertions.assertEquals(rootBefore, unlocked.rootDirectory());
@@ -411,6 +414,8 @@ class UvfVaultTest {
 			// password change
 			try (UvfUnlockedVault unlocked = ((UvfLockedVault) LockedVault.parse(config)).unlock("old", CSPRNG)) {
 				unlocked.setPassword("new", CHEAP);
+				Assertions.assertThrows(IllegalStateException.class, unlocked::serializeConfig, "replacing a key requires a new seed");
+				unlocked.addSeed();
 				config = unlocked.serializeConfig();
 			}
 			UvfLockedVault changed = (UvfLockedVault) LockedVault.parse(config);
@@ -422,7 +427,8 @@ class UvfVaultTest {
 				Assertions.assertThrows(IllegalStateException.class, recovered::serializeConfig, "no key encryption key after recovery");
 				recovered.setMemberKey(memberKey);
 				recovered.setRecoveryKey((ECPublicKey) newRecoveryKey.getPublic());
-				Assertions.assertNotEquals(changed.recoveryKid(), recovered.recoveryKid());
+				Assertions.assertThrows(IllegalStateException.class, recovered::serializeConfig, "replacing keys requires a new seed");
+				recovered.addSeed();
 				config = recovered.serializeConfig();
 			}
 			UvfLockedVault recovered = (UvfLockedVault) LockedVault.parse(config);
@@ -458,7 +464,6 @@ class UvfVaultTest {
 				Assertions.assertThrows(IllegalStateException.class, unlocked::serializedRecoveryKey, "password unlock knows the public key only");
 			}
 			try (UvfUnlockedVault recovered = locked.recover(words, CSPRNG)) {
-				Assertions.assertEquals(locked.recoveryKid(), recovered.recoveryKid());
 				Assertions.assertNull(recovered.keyEncryptionKid());
 				Assertions.assertEquals(words, recovered.serializedRecoveryKey(), "recovery retains the key pair");
 				recovered.setRecoveryKey((ECPublicKey) recoveryKey.getPublic());
@@ -493,7 +498,6 @@ class UvfVaultTest {
 			ECKey hub = RecoveryKeyPkcs8Test.hubKeyPair();
 			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
 				created.setRecoveryKey(new KeyPair(hub.toECPublicKey(), hub.toECPrivateKey()));
-				Assertions.assertEquals("org.cryptomator.hub.recoverykey." + RecoveryKeyPkcs8Test.HUB_THUMBPRINT, created.recoveryKid());
 				Assertions.assertEquals(RecoveryKeyPkcs8Test.HUB_WORDS, created.serializedRecoveryKey());
 			}
 		}
@@ -511,8 +515,8 @@ class UvfVaultTest {
 			UvfLockedVault locked = (UvfLockedVault) LockedVault.parse(config);
 			try (UvfUnlockedVault unlocked = locked.unlock("secret", CSPRNG)) {
 				Assertions.assertEquals(42L, unlocked.customFields().get("org.example.customfield"));
-				Assertions.assertEquals(473544690, unlocked.initialSeedId());
-				Assertions.assertEquals(1075513622, unlocked.latestSeedId());
+				Assertions.assertEquals(UvfSeedsTest.SPEC_INITIAL_SEED_ID, unlocked.initialSeedId());
+				Assertions.assertEquals(UvfSeedsTest.SPEC_LATEST_SEED_ID, unlocked.latestSeedId());
 			}
 		}
 
@@ -541,15 +545,137 @@ class UvfVaultTest {
 			Assertions.assertEquals(1L, password.getParam("org.cryptomator.password.argon2.iterations"));
 			Assertions.assertEquals(1L, password.getParam("org.cryptomator.password.argon2.parallelism"));
 			Assertions.assertEquals("ECDH-ES+A256KW", recovery.getParam("alg"));
-			ECKey embedded = ECKey.parse((Map<String, Object>) recovery.getParam("jwk"));
-			Assertions.assertEquals("org.cryptomator.hub.recoverykey." + embedded.computeThumbprint(), recovery.getKeyID());
-			Assertions.assertEquals((ECPublicKey) recoveryKey.getPublic(), embedded.toECPublicKey());
-			Assertions.assertFalse(embedded.isPrivate());
+			Assertions.assertEquals("org.cryptomator.recoverykey", recovery.getKeyID());
+			Assertions.assertNull(recovery.getParam("jwk"), "public keys are confidential and belong into the payload");
 			Assertions.assertNotNull(recovery.getParam("epk"));
+			Assertions.assertFalse(new String(config, UTF_8).contains("\"d\""), "no private key material anywhere");
 			// nimbus' own multi-recipient decrypter reads it:
-			ECKey privateJwk = new ECKey.Builder(embedded).privateKey((ECPrivateKey) recoveryKey.getPrivate()).keyID(recovery.getKeyID()).build();
+			ECKey privateJwk = new ECKey.Builder(Curve.P_384, (ECPublicKey) recoveryKey.getPublic()).privateKey((ECPrivateKey) recoveryKey.getPrivate()).keyID(recovery.getKeyID()).build();
 			jwe.decrypt(new MultiDecrypter(privateJwk, Collections.singleton("uvf.spec.version")));
-			Assertions.assertEquals(JsonParser.parseString(UvfSeedsTest.SPEC_PAYLOAD.replace("HDm38i", "HDm38g").replace("QBsJFo", "QBsJFg")), JsonParser.parseString(jwe.getPayload().toString()), "seed ids are serialized canonically");
+			JsonObject payload = JsonParser.parseString(jwe.getPayload().toString()).getAsJsonObject();
+			JsonObject details = payload.getAsJsonObject("recipientDetails");
+			Assertions.assertEquals(new HashSet<>(Arrays.asList("org.cryptomator.password.argon2", "org.cryptomator.recoverykey")), details.keySet());
+			Assertions.assertEquals("A256KW", details.getAsJsonObject("org.cryptomator.password.argon2").get("alg").getAsString());
+			for (String param : Arrays.asList("salt", "memoryKiB", "iterations", "parallelism")) {
+				Assertions.assertEquals(password.getParam("org.cryptomator.password.argon2." + param).toString(), details.getAsJsonObject("org.cryptomator.password.argon2").get("org.cryptomator.password.argon2." + param).getAsString(), "Argon2 parameters are committed");
+			}
+			JsonObject embedded = details.getAsJsonObject("org.cryptomator.recoverykey").getAsJsonObject("jwk");
+			Assertions.assertEquals("ECDH-ES+A256KW", details.getAsJsonObject("org.cryptomator.recoverykey").get("alg").getAsString());
+			Assertions.assertEquals((ECPublicKey) recoveryKey.getPublic(), ECKey.parse(embedded.toString()).toECPublicKey());
+			Assertions.assertFalse(embedded.has("d"));
+			payload.remove("recipientDetails");
+			JsonObject expected = JsonParser.parseString(UvfSeedsTest.SPEC_PAYLOAD).getAsJsonObject();
+			expected.remove("recipientDetails");
+			Assertions.assertEquals(expected, payload, "seeds and custom fields are preserved");
+		}
+
+		@Test
+		@DisplayName("header parameters are validated against the committed recipient details")
+		void testCommittedRecipientDetails() throws Exception {
+			KeyPair recoveryKey = ecKeyPair();
+			byte[] config;
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				created.setPassword("secret", CHEAP);
+				created.setRecoveryKey((ECPublicKey) recoveryKey.getPublic());
+				config = created.serializeConfig();
+			}
+			JWEObjectJSON jwe = JWEObjectJSON.parse(new String(config, UTF_8));
+			UnprotectedHeader password = jwe.getRecipients().get(0).getUnprotectedHeader();
+			Map<String, Object> argon2 = new HashMap<>();
+			for (String param : Arrays.asList("salt", "memoryKiB", "iterations", "parallelism")) {
+				argon2.put("org.cryptomator.password.argon2." + param, password.getParam("org.cryptomator.password.argon2." + param));
+			}
+			Map<String, Object> publicJwk = new ECKey.Builder(Curve.P_384, (ECPublicKey) recoveryKey.getPublic()).build().toJSONObject();
+			Map<String, UvfSeeds.RecipientDetails> details = new HashMap<>();
+			details.put("org.cryptomator.password.argon2", new UvfSeeds.RecipientDetails("A256KW", null, argon2));
+			details.put("org.cryptomator.recoverykey", new UvfSeeds.RecipientDetails("ECDH-ES+A256KW", publicJwk, Collections.<String, Object>emptyMap()));
+			UvfMetadataCodec.validateRecipients(jwe, details);
+
+			Map<String, Object> otherSalt = new HashMap<>(argon2);
+			otherSalt.put("org.cryptomator.password.argon2.salt", "AAAAAAAAAAAAAAAAAAAAAA");
+			details.put("org.cryptomator.password.argon2", new UvfSeeds.RecipientDetails("A256KW", null, otherSalt));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfMetadataCodec.validateRecipients(jwe, details), "committed Argon2 parameters differ from the header");
+			details.put("org.cryptomator.password.argon2", new UvfSeeds.RecipientDetails("A128KW", null, argon2));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfMetadataCodec.validateRecipients(jwe, details), "alg differs from the header");
+			details.put("org.cryptomator.password.argon2", new UvfSeeds.RecipientDetails("A256KW", publicJwk, argon2));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfMetadataCodec.validateRecipients(jwe, details), "jwk for a symmetric recipient");
+			details.put("org.cryptomator.password.argon2", new UvfSeeds.RecipientDetails("A256KW", null, argon2));
+			details.put("org.cryptomator.recoverykey", new UvfSeeds.RecipientDetails("ECDH-ES+A256KW", null, Collections.<String, Object>emptyMap()));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfMetadataCodec.validateRecipients(jwe, details), "no jwk for a public key recipient");
+			details.put("org.cryptomator.recoverykey", new UvfSeeds.RecipientDetails("ECDH-ES+A256KW", publicJwk, Collections.<String, Object>emptyMap()));
+			details.put("com.example.other", new UvfSeeds.RecipientDetails("A256KW", null, Collections.<String, Object>emptyMap()));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfMetadataCodec.validateRecipients(jwe, details), "recipient without entry in the recipients array");
+		}
+
+		@Test
+		@DisplayName("serialization is cached while unchanged and requires a new seed after a key change")
+		void testDirtyAndRotationFlags() {
+			KeyPair recoveryKey = ecKeyPair();
+			byte[] config;
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				created.setPassword("secret", CHEAP);
+				created.setRecoveryKey((ECPublicKey) recoveryKey.getPublic());
+				config = created.serializeConfig();
+				Assertions.assertArrayEquals(config, created.serializeConfig(), "nothing changed: same bytes");
+				created.addSeed();
+				byte[] rotated = created.serializeConfig();
+				Assertions.assertFalse(Arrays.equals(config, rotated));
+				Assertions.assertArrayEquals(rotated, created.serializeConfig());
+				created.setPassword("secret", CHEAP);
+				Assertions.assertThrows(IllegalStateException.class, created::serializeConfig, "key replaced after the last serialization");
+				created.addSeed();
+				config = created.serializeConfig();
+			}
+			UvfLockedVault locked = (UvfLockedVault) LockedVault.parse(config);
+			try (UvfUnlockedVault unlocked = locked.unlock("secret", CSPRNG)) {
+				Assertions.assertArrayEquals(config, unlocked.serializeConfig(), "unchanged vault serializes to the file it was unlocked from");
+				unlocked.addSeed();
+				unlocked.setRecoveryKey((ECPublicKey) ecKeyPair().getPublic());
+				Assertions.assertFalse(Arrays.equals(config, unlocked.serializeConfig()), "seed added before the key change: no further rotation needed");
+			}
+			try (UvfUnlockedVault unlocked = locked.unlock("secret", CSPRNG)) {
+				unlocked.setMemberKey(new SecretKeySpec(new byte[32], "AES"));
+				Assertions.assertThrows(IllegalStateException.class, unlocked::serializeConfig);
+			}
+		}
+
+		@Test
+		@DisplayName("seed pinning rejects outdated files")
+		void testSeedPinning() {
+			KeyPair recoveryKey = ecKeyPair();
+			byte[] before;
+			byte[] after;
+			Map<Integer, byte[]> digestsBefore;
+			Map<Integer, byte[]> digestsAfter;
+			try (UvfUnlockedVault created = UvfUnlockedVault.create(CSPRNG)) {
+				created.setPassword("secret", CHEAP);
+				created.setRecoveryKey((ECPublicKey) recoveryKey.getPublic());
+				before = created.serializeConfig();
+				digestsBefore = created.seedDigests();
+				created.addSeed();
+				after = created.serializeConfig();
+				digestsAfter = created.seedDigests();
+			}
+			Assertions.assertEquals(1, digestsBefore.size());
+			Assertions.assertEquals(2, digestsAfter.size());
+			Assertions.assertEquals(32, digestsAfter.values().iterator().next().length);
+			UvfLockedVault lockedBefore = (UvfLockedVault) LockedVault.parse(before);
+			UvfLockedVault lockedAfter = (UvfLockedVault) LockedVault.parse(after);
+			lockedAfter.requireSeeds(digestsAfter.values()).unlock("secret", CSPRNG).close();
+			lockedAfter.requireSeeds(digestsBefore.values()).unlock("secret", CSPRNG).close();
+			lockedBefore.requireSeeds(digestsBefore.values()).unlock("secret", CSPRNG).close();
+			UvfLockedVault pinned = lockedBefore.requireSeeds(digestsAfter.values());
+			Assertions.assertThrows(VaultRollbackException.class, () -> pinned.unlock("secret", CSPRNG));
+			Assertions.assertThrows(VaultRollbackException.class, () -> pinned.recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG));
+			Assertions.assertThrows(VaultKeyInvalidException.class, () -> pinned.unlock("wrong", CSPRNG), "wrong key is detected first");
+			lockedBefore.unlock("secret", CSPRNG).close(); // the original instance is unaffected
+			Assertions.assertThrows(IllegalArgumentException.class, () -> lockedBefore.requireSeeds(Collections.singletonList(new byte[31])));
+			try (UvfUnlockedVault unlocked = lockedAfter.requireSeeds(digestsAfter.values()).unlock("secret", CSPRNG)) {
+				Assertions.assertEquals(digestsAfter.keySet(), unlocked.seedDigests().keySet());
+				for (Map.Entry<Integer, byte[]> entry : digestsAfter.entrySet()) {
+					Assertions.assertArrayEquals(entry.getValue(), unlocked.seedDigests().get(entry.getKey()));
+				}
+			}
 		}
 
 		@ParameterizedTest(name = "rejected protected header: {0}")
@@ -563,7 +689,7 @@ class UvfVaultTest {
 		})
 		void testRejectedProtectedHeaders(String protectedHeaderJson) {
 			String json = "{\"protected\":\"" + Base64URL.encode(protectedHeaderJson) + "\",\"iv\":\"AAAAAAAAAAAAAAAA\",\"ciphertext\":\"AAAA\",\"tag\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"recipients\":[{\"header\":{\"alg\":\"A256KW\",\"kid\":\"x\"},\"encrypted_key\":\"AAAA\"}]}";
-			Class<? extends org.cryptomator.cryptolib.api.CryptoException> expected = protectedHeaderJson.contains("\"uvf.spec.version\":2") ? UnsupportedVaultFormatException.class : VaultConfigLoadException.class;
+			Class<? extends CryptoException> expected = protectedHeaderJson.contains("\"uvf.spec.version\":2") ? UnsupportedVaultFormatException.class : VaultConfigLoadException.class;
 			Assertions.assertThrows(expected, () -> LockedVault.parse(json.getBytes(UTF_8)));
 		}
 
@@ -575,7 +701,6 @@ class UvfVaultTest {
 			String json = "{\"protected\":\"" + SPEC_PROTECTED_HEADER + "\",\"iv\":\"AAAAAAAAAAAAAAAA\",\"ciphertext\":\"AAAA\",\"tag\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"recipients\":[{\"header\":{\"alg\":\"PBES2-HS512+A256KW\",\"kid\":\"org.cryptomator.password\",\"p2s\":\"AAAAAAAAAAAAAAAAAAAAAA\",\"p2c\":1000},\"encrypted_key\":\"AAAA\"}]}";
 			UvfLockedVault unknown = (UvfLockedVault) LockedVault.parse(json.getBytes(UTF_8));
 			Assertions.assertNull(unknown.keyEncryptionKid());
-			Assertions.assertNull(unknown.recoveryKid());
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> unknown.unlock("secret", CSPRNG));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> unknown.unlock(new SecretKeySpec(new byte[32], "AES"), CSPRNG));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> unknown.recover((ECPrivateKey) ecKeyPair().getPrivate(), CSPRNG));
@@ -595,15 +720,37 @@ class UvfVaultTest {
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 0, h -> h.addProperty("org.cryptomator.password.argon2.memoryKiB", Argon2Params.MAX_MEMORY_KIB + 1L)).unlock("secret", CSPRNG));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 0, h -> h.addProperty("org.cryptomator.password.argon2.parallelism", "1")).unlock("secret", CSPRNG));
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> tampered(config, 0, h -> h.addProperty("org.cryptomator.password.argon2.iterations", 2)).unlock("secret", CSPRNG), "different cost: different key");
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.remove("jwk")).recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG));
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.remove("jwk")).unlock("secret", CSPRNG), "the password unlock needs the recovery key to re-encrypt");
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.addProperty("jwk", "garbage")).recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG));
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> tampered(config, 1, h -> h.remove("epk")).recover((ECPrivateKey) recoveryKey.getPrivate(), CSPRNG));
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.addProperty("kid", "com.example.other")).unlock("secret", CSPRNG), "recipient kid differs from recipientDetails");
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.addProperty("alg", "ECDH-ES+A128KW")).unlock("secret", CSPRNG), "alg downgrade of another recipient");
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> tampered(config, 1, h -> h.addProperty("kid", "org.cryptomator.password.argon2")).unlock("secret", CSPRNG), "duplicate kid");
+			JsonObject withExtraRecipient = JsonParser.parseString(new String(config, UTF_8)).getAsJsonObject();
+			withExtraRecipient.getAsJsonArray("recipients").add(withExtraRecipient.getAsJsonArray("recipients").get(0).deepCopy());
+			withExtraRecipient.getAsJsonArray("recipients").get(2).getAsJsonObject().getAsJsonObject("header").addProperty("kid", "com.example.extra");
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> ((UvfLockedVault) LockedVault.parse(withExtraRecipient.toString().getBytes(UTF_8))).unlock("secret", CSPRNG), "added recipient");
+		}
+
+		@Test
+		@DisplayName("directory and symlink metadata are bound to their node type")
+		void testNodeTypeBinding() {
+			try (UvfVault vault = specVault()) {
+				VaultDirectory dir = vault.newDirectory();
+				byte[] dirUvf = dir.encryptedMetadata();
+				byte[] symlinkUvf = vault.encryptSymlinkTarget(new String(new byte[32], UTF_8));
+				byte[] file = vault.encryptFile(dir.dirId());
+				Assertions.assertEquals(dirUvf.length, symlinkUvf.length);
+				Assertions.assertEquals(dirUvf.length, file.length);
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.directory(symlinkUvf), "symlink.uvf presented as dir.uvf");
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.directory(file), "file presented as dir.uvf");
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.decryptSymlinkTarget(dirUvf), "dir.uvf presented as symlink.uvf");
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.decryptFile(dirUvf), "dir.uvf presented as file");
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.openFile(ByteBuffer.wrap(symlinkUvf, 0, 68), symlinkUvf.length), "symlink.uvf opened as file");
+			}
 		}
 
 		// modifies the (unprotected, thus unauthenticated) header of one recipient entry
-		private UvfLockedVault tampered(byte[] config, int recipient, java.util.function.Consumer<com.google.gson.JsonObject> modification) {
-			com.google.gson.JsonObject jwe = JsonParser.parseString(new String(config, UTF_8)).getAsJsonObject();
+		private UvfLockedVault tampered(byte[] config, int recipient, Consumer<JsonObject> modification) {
+			JsonObject jwe = JsonParser.parseString(new String(config, UTF_8)).getAsJsonObject();
 			modification.accept(jwe.getAsJsonArray("recipients").get(recipient).getAsJsonObject().getAsJsonObject("header"));
 			return (UvfLockedVault) LockedVault.parse(jwe.toString().getBytes(UTF_8));
 		}

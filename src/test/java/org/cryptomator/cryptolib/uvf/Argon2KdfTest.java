@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +50,7 @@ class Argon2KdfTest {
 		Assertions.assertEquals(32, key.length);
 		Assertions.assertEquals("nEkwIodzSOA0cZvOEQyZMB5dTRasrMaoKQAP8gRLGww", Base64.getUrlEncoder().withoutPadding().encodeToString(key));
 		Assertions.assertArrayEquals(key, Argon2Kdf.deriveKey("password", validHeader()), "deterministic");
-		Assertions.assertFalse(java.util.Arrays.equals(key, Argon2Kdf.deriveKey("Password", validHeader())));
+		Assertions.assertFalse(Arrays.equals(key, Argon2Kdf.deriveKey("Password", validHeader())));
 	}
 
 	@ParameterizedTest(name = "{0}")

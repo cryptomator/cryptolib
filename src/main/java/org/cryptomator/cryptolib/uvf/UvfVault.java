@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.jwk.Curve;
@@ -37,6 +36,10 @@ import java.util.Set;
 
 /**
  * An unlocked Unified Vault Format vault.
+ *
+ * @implNote Recipient algorithms, the password recipient's Argon2 parameters and the recovery key's public JWK live in the payload's {@code recipientDetails} ({@link UvfSeeds}); this class
+ * only holds the key material. Two flags drive {@link #serializeConfig()}: the cached serialization is returned while nothing changed, and {@code rotationRequired} blocks serialization
+ * after a key was replaced without adding a seed afterwards.
  */
 public final class UvfVault extends AbstractUnlockedVault implements UvfUnlockedVault {
 
@@ -47,20 +50,31 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	private final UvfContentCodec codec;
 	private final UvfNames names;
 	private @Nullable OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
-	private Map<String, Object> keyEncryptionKeyParams; // Argon2 parameters of a password-derived key, else empty
 	private @Nullable ECKey recoveryKey; // public key, plus the private part if set as key pair or recovered with it
+	private byte @Nullable [] serialized; // the last serialization (or the file the vault was unlocked from) while nothing changed, else null
+	private boolean seedAddedSinceSerialization; // a fresh seed makes replacing keys safe
+	private boolean rotationRequired = false;
 
-	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, @Nullable OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, @Nullable ECKey recoveryKey, SecureRandom csprng) {
-		this(seeds, protectedHeader, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
+	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, byte @Nullable [] serialized, @Nullable OctetSequenceKey keyEncryptionKey, @Nullable ECKey recoveryKey, SecureRandom csprng) {
+		this(seeds, protectedHeader, serialized, keyEncryptionKey, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
 	}
 
-	// visible for testing
-	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, @Nullable OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, @Nullable ECKey recoveryKey, SecureRandom csprng, SecureRandom random) {
+	/**
+	 * @param seeds The decrypted payload
+	 * @param protectedHeader The protected header to serialize with
+	 * @param serialized The file this vault was unlocked from, or {@code null} for a new vault (whose initial seed counts as freshly added)
+	 * @param keyEncryptionKey The key encryption key, {@code null} after recovery
+	 * @param recoveryKey The recovery key (public, optionally with private part), {@code null} for a new vault
+	 * @param csprng A cryptographically secure random number generator
+	 * @param random The random number generator for nonces and directory ids (visible for testing)
+	 */
+	UvfVault(UvfSeeds seeds, JWEHeader protectedHeader, byte @Nullable [] serialized, @Nullable OctetSequenceKey keyEncryptionKey, @Nullable ECKey recoveryKey, SecureRandom csprng, SecureRandom random) {
 		super(UvfContentCodec.LAYOUT);
 		this.seeds = seeds;
 		this.protectedHeader = protectedHeader;
+		this.serialized = serialized == null ? null : serialized.clone();
+		this.seedAddedSinceSerialization = serialized == null;
 		this.keyEncryptionKey = keyEncryptionKey;
-		this.keyEncryptionKeyParams = keyEncryptionKeyParams;
 		this.recoveryKey = recoveryKey;
 		this.csprng = csprng;
 		this.random = random;
@@ -75,7 +89,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	 * @return The new, unlocked vault without recipients
 	 */
 	public static UvfVault create(SecureRandom csprng) {
-		return new UvfVault(UvfSeeds.create(csprng), UvfMetadataCodec.newProtectedHeader(), null, Collections.<String, Object>emptyMap(), null, csprng);
+		return new UvfVault(UvfSeeds.create(csprng), UvfMetadataCodec.newProtectedHeader(), null, null, null, csprng);
 	}
 
 	/**
@@ -110,11 +124,30 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		if (recoveryKey == null) {
 			throw new IllegalStateException("No recovery key set");
 		}
+		if (rotationRequired) {
+			throw new IllegalStateException("A key was replaced, call addSeed() before serializing");
+		}
+		if (serialized != null) {
+			return serialized.clone();
+		}
 		byte[] payload = seeds.toDecryptedPayload().getBytes(StandardCharsets.UTF_8);
 		try {
-			return UvfMetadataCodec.serialize(protectedHeader, payload, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey).getBytes(StandardCharsets.UTF_8);
+			serialized = UvfMetadataCodec.serialize(protectedHeader, payload, seeds.recipientDetails(), keyEncryptionKey).getBytes(StandardCharsets.UTF_8);
+			seedAddedSinceSerialization = false;
+			return serialized.clone();
 		} finally {
 			Arrays.fill(payload, (byte) 0x00);
+		}
+	}
+
+	private void markDirty() {
+		serialized = null;
+	}
+
+	private void markKeyReplaced() {
+		markDirty();
+		if (!seedAddedSinceSerialization) {
+			rotationRequired = true;
 		}
 	}
 
@@ -153,19 +186,24 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	@Override
+	public Map<Integer, byte[]> seedDigests() {
+		assertNotDestroyed();
+		return Collections.unmodifiableMap(seeds.seedDigests());
+	}
+
+	@Override
 	public int addSeed() {
 		assertNotDestroyed();
-		return seeds.addSeed(csprng);
+		int seedId = seeds.addSeed(csprng);
+		markDirty();
+		seedAddedSinceSerialization = true;
+		rotationRequired = false;
+		return seedId;
 	}
 
 	@Override
 	public @Nullable String keyEncryptionKid() {
 		return keyEncryptionKey == null ? null : keyEncryptionKey.getKeyID();
-	}
-
-	@Override
-	public @Nullable String recoveryKid() {
-		return recoveryKey == null ? null : recoveryKey.getKeyID();
 	}
 
 	@Override
@@ -176,11 +214,10 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public void setPassword(CharSequence password, Argon2Params params) {
 		assertNotDestroyed();
-		Map<String, Object> headerParams = Argon2Kdf.newHeaderParams(params, csprng);
-		byte[] kek = Argon2Kdf.deriveKey(password, headerParams);
+		Map<String, Object> argon2Params = Argon2Kdf.newHeaderParams(params, csprng);
+		byte[] kek = Argon2Kdf.deriveKey(password, argon2Params);
 		try {
-			this.keyEncryptionKey = new OctetSequenceKey.Builder(kek).keyID(UvfLockedVault.PASSWORD_KID).algorithm(JWEAlgorithm.A256KW).build();
-			this.keyEncryptionKeyParams = headerParams;
+			setKeyEncryptionKey(new OctetSequenceKey.Builder(kek).keyID(UvfLockedVault.PASSWORD_KID).algorithm(JWEAlgorithm.A256KW).build(), argon2Params);
 		} finally {
 			Arrays.fill(kek, (byte) 0x00);
 		}
@@ -193,8 +230,16 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		if (encoded == null || encoded.length != Argon2Kdf.KEY_LEN) {
 			throw new IllegalArgumentException("Member key must be a 256 bit AES key");
 		}
-		this.keyEncryptionKey = new OctetSequenceKey.Builder(encoded).keyID(UvfLockedVault.MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build();
-		this.keyEncryptionKeyParams = Collections.emptyMap();
+		setKeyEncryptionKey(new OctetSequenceKey.Builder(encoded).keyID(UvfLockedVault.MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build(), Collections.<String, Object>emptyMap());
+	}
+
+	// the key encryption key is either the password-derived or the member key, so setting one removes the other's recipient entry
+	private void setKeyEncryptionKey(OctetSequenceKey key, Map<String, Object> vendorFields) {
+		seeds.removeRecipient(UvfLockedVault.PASSWORD_KID);
+		seeds.removeRecipient(UvfLockedVault.MEMBER_KEY_KID);
+		seeds.putRecipient(key.getKeyID(), new UvfSeeds.RecipientDetails(JWEAlgorithm.A256KW.getName(), null, vendorFields));
+		this.keyEncryptionKey = key;
+		markKeyReplaced();
 	}
 
 	@Override
@@ -222,12 +267,15 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 
 	private void setRecoveryKey(ECPublicKey publicKey, @Nullable ECPrivateKey privateKey) {
 		Curve curve = Curve.forECParameterSpec(publicKey.getParams());
+		ECKey key;
 		try {
-			ECKey key = new ECKey.Builder(curve, publicKey).privateKey(privateKey).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
-			this.recoveryKey = new ECKey.Builder(key).keyID(UvfLockedVault.RECOVERY_KEY_KID_PREFIX + key.computeThumbprint()).build(); // the thumbprint covers the public part only
-		} catch (JOSEException e) {
+			key = new ECKey.Builder(curve, publicKey).privateKey(privateKey).keyID(UvfLockedVault.RECOVERY_KEY_KID).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
+		} catch (IllegalStateException e) {
 			throw new IllegalArgumentException("Invalid recovery key", e);
 		}
+		seeds.putRecipient(UvfLockedVault.RECOVERY_KEY_KID, new UvfSeeds.RecipientDetails(JWEAlgorithm.ECDH_ES_A256KW.getName(), key.toPublicJWK().toJSONObject(), Collections.<String, Object>emptyMap()));
+		this.recoveryKey = key;
+		markKeyReplaced();
 	}
 
 	// DIRECTORIES
@@ -257,7 +305,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 			throw new IllegalArgumentException(String.format("Invalid dir.uvf length: %s", dirFileContents.length));
 		}
 		ByteBuffer header = ByteBuffer.wrap(dirFileContents, 0, layout().headerSize());
-		try (VaultFileImpl file = parseHeader(header, Constants.DIR_ID_LEN)) {
+		try (VaultFileImpl file = parseHeader(header, Constants.DIR_ID_LEN, Constants.KDF_CONTEXT_DIR_HEADER)) {
 			ByteBuffer dirId = ByteBuffer.allocate(Constants.DIR_ID_LEN);
 			int offset = (int) layout().ciphertextChunkOffset(0);
 			file.decryptChunk(ByteBuffer.wrap(dirFileContents, offset, dirFileContents.length - offset), dirId, 0);
@@ -272,7 +320,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	}
 
 	/**
-	 * Encrypts a directory's id into {@code dir.uvf} contents, using a header bound to the directory's seed.
+	 * Encrypts a directory's id into {@code dir.uvf} contents, using a directory metadata header bound to the directory's seed.
 	 *
 	 * @param seedId The directory's seed
 	 * @param dirId The directory's id
@@ -280,13 +328,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	 */
 	byte[] encryptDirectoryMetadata(int seedId, byte[] dirId) {
 		assertNotDestroyed();
-		try (VaultFileImpl file = new VaultFileImpl(layout(), codec, codec.createHeader(seedId), 0, false)) {
-			ByteBuffer result = ByteBuffer.allocate((int) layout().ciphertextSize(dirId.length));
-			result.put(file.encryptedHeader());
-			file.encryptChunk(ByteBuffer.wrap(dirId), result, 0);
-			assert !result.hasRemaining();
-			return result.array();
-		}
+		return encryptWith(newFile(seedId, Constants.KDF_CONTEXT_DIR_HEADER), dirId);
 	}
 
 	// NAMES
@@ -302,13 +344,21 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	protected VaultFileImpl newFile() {
 		assertNotDestroyed();
-		return new VaultFileImpl(layout(), codec, codec.createHeader(seeds.latestSeedId()), 0, false);
+		return newFile(seeds.latestSeedId(), Constants.KDF_CONTEXT_FILE_HEADER);
+	}
+
+	private VaultFileImpl newFile(int seedId, byte[] headerContext) {
+		return new VaultFileImpl(layout(), codec, codec.createHeader(seedId, headerContext), 0, false);
 	}
 
 	@Override
 	protected VaultFileImpl parseHeader(ByteBuffer encryptedHeader, long cleartextSize) throws AuthenticationFailedException {
+		return parseHeader(encryptedHeader, cleartextSize, Constants.KDF_CONTEXT_FILE_HEADER);
+	}
+
+	private VaultFileImpl parseHeader(ByteBuffer encryptedHeader, long cleartextSize, byte[] headerContext) throws AuthenticationFailedException {
 		assertNotDestroyed();
-		FileHeaderParts header = codec.decryptHeader(encryptedHeader);
+		FileHeaderParts header = codec.decryptHeader(encryptedHeader, headerContext);
 		return new VaultFileImpl(layout(), codec, header, cleartextSize, true);
 	}
 
@@ -316,12 +366,16 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 
 	@Override
 	public byte[] encryptSymlinkTarget(String target) {
-		return encryptFile(Normalizer.normalize(target, Normalizer.Form.NFC).getBytes(StandardCharsets.UTF_8));
+		assertNotDestroyed();
+		byte[] cleartext = Normalizer.normalize(target, Normalizer.Form.NFC).getBytes(StandardCharsets.UTF_8);
+		return encryptWith(newFile(seeds.latestSeedId(), Constants.KDF_CONTEXT_SYMLINK_HEADER), cleartext);
 	}
 
 	@Override
 	public String decryptSymlinkTarget(byte[] symlinkFileContents) throws AuthenticationFailedException {
-		return new String(decryptFile(symlinkFileContents), StandardCharsets.UTF_8);
+		assertNotDestroyed();
+		byte[] cleartext = decryptWith((header, size) -> parseHeader(header, size, Constants.KDF_CONTEXT_SYMLINK_HEADER), symlinkFileContents);
+		return new String(cleartext, StandardCharsets.UTF_8);
 	}
 
 	// LIFECYCLE
@@ -337,6 +391,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		seeds.destroy();
 		recoveryKey = null; // JCA EC keys cannot be zeroed, at least drop the reference
 		keyEncryptionKey = null;
+		serialized = null;
 	}
 
 	private void assertNotDestroyed() {

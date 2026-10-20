@@ -2,6 +2,7 @@ package org.cryptomator.cryptolib.uvf;
 
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObjectJSON;
 import com.nimbusds.jose.Payload;
@@ -13,6 +14,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
+import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
 import org.jspecify.annotations.Nullable;
@@ -21,21 +23,25 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Reads and writes {@code vault.uvf}: a JWE in general JSON serialization with two recipients, encrypted and decrypted with nimbus' multi-recipient API.
+ * <p>
+ * The unprotected per-recipient headers only carry {@code kid}, {@code alg} and the password recipient's Argon2 parameters; algorithms and public keys are taken from the payload's
+ * {@code recipientDetails} and verified against the headers on unlock.
  *
  * @see <a href="https://github.com/encryption-alliance/unified-vault-format/tree/develop/vault%20metadata">UVF vault metadata</a>
  */
 final class UvfMetadataCodec {
 
-	/** Header parameter carrying the recovery key's public JWK in its recipient entry, so that the vault can be re-encrypted for it. */
-	static final String JWK_PARAM = "jwk";
 	private static final Set<String> DEFERRED_CRITICAL_HEADERS = Collections.singleton(Constants.SPEC_VERSION_HEADER);
+	private static final Set<String> KEY_ENCRYPTION_KIDS = new HashSet<>(Arrays.asList(UvfLockedVault.PASSWORD_KID, UvfLockedVault.MEMBER_KEY_KID));
 
 	private UvfMetadataCodec() {
 	}
@@ -115,21 +121,6 @@ final class UvfMetadataCodec {
 	}
 
 	/**
-	 * @param jwe The parsed JWE
-	 * @param prefix A key id prefix
-	 * @return The key id of the first entry whose kid starts with the prefix, or {@code null} if there is none
-	 */
-	static @Nullable String findKid(JWEObjectJSON jwe, String prefix) {
-		for (JWEObjectJSON.Recipient recipient : jwe.getRecipients()) {
-			UnprotectedHeader header = recipient.getUnprotectedHeader();
-			if (header != null && header.getKeyID() != null && header.getKeyID().startsWith(prefix)) {
-				return header.getKeyID();
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * Decrypts the metadata as the recipient whose kid matches the key's.
 	 *
 	 * @param jwe The parsed JWE, which must be in encrypted state (parse it freshly for each attempt)
@@ -147,27 +138,96 @@ final class UvfMetadataCodec {
 	}
 
 	/**
+	 * Validates the (unauthenticated) recipient headers against the decrypted {@code recipientDetails}, as required by the specification, and checks that the vault follows cryptolib's
+	 * two-recipient model: one key encryption key ({@link UvfLockedVault#PASSWORD_KID} or {@link UvfLockedVault#MEMBER_KEY_KID}, {@code A256KW}) and one recovery key
+	 * ({@link UvfLockedVault#RECOVERY_KEY_KID}, {@code ECDH-ES+A256KW}).
+	 *
+	 * @param jwe The parsed JWE
+	 * @param recipientDetails The decrypted payload's recipient details
+	 * @throws VaultConfigLoadException If headers and details disagree or the recipients are not the expected two
+	 */
+	static void validateRecipients(JWEObjectJSON jwe, Map<String, UvfSeeds.RecipientDetails> recipientDetails) throws VaultConfigLoadException {
+		Set<String> kids = new HashSet<>();
+		for (JWEObjectJSON.Recipient recipient : jwe.getRecipients()) {
+			UnprotectedHeader header = recipient.getUnprotectedHeader();
+			String kid = header == null ? null : header.getKeyID();
+			if (kid == null || !kids.add(kid)) {
+				throw new VaultConfigLoadException("Recipient without kid or duplicate kid: " + kid);
+			}
+			UvfSeeds.RecipientDetails details = recipientDetails.get(kid);
+			if (details == null) {
+				throw new VaultConfigLoadException("Recipient " + kid + " has no recipientDetails entry");
+			}
+			if (!details.alg.equals(header.getParam("alg"))) {
+				throw new VaultConfigLoadException("Recipient " + kid + ": alg differs from recipientDetails");
+			}
+		}
+		if (!kids.equals(recipientDetails.keySet())) {
+			throw new VaultConfigLoadException("recipients and recipientDetails disagree: " + kids + " vs. " + recipientDetails.keySet());
+		}
+		for (Map.Entry<String, UvfSeeds.RecipientDetails> entry : recipientDetails.entrySet()) {
+			String kid = entry.getKey();
+			UvfSeeds.RecipientDetails details = entry.getValue();
+			JWEAlgorithm alg = JWEAlgorithm.parse(details.alg);
+			boolean publicKeyAlg = JWEAlgorithm.Family.ASYMMETRIC.contains(alg);
+			if (publicKeyAlg != (details.jwk != null)) {
+				throw new VaultConfigLoadException("Recipient " + kid + ": jwk must be present exactly for public key algorithms");
+			}
+			if (details.jwk != null && details.jwk.containsKey("alg") && !details.alg.equals(details.jwk.get("alg"))) {
+				throw new VaultConfigLoadException("Recipient " + kid + ": jwk alg differs from recipientDetails alg");
+			}
+			if (KEY_ENCRYPTION_KIDS.contains(kid)) {
+				if (!JWEAlgorithm.A256KW.equals(alg)) {
+					throw new VaultConfigLoadException("Recipient " + kid + ": unsupported alg " + alg);
+				}
+			} else if (UvfLockedVault.RECOVERY_KEY_KID.equals(kid)) {
+				if (!JWEAlgorithm.ECDH_ES_A256KW.equals(alg)) {
+					throw new VaultConfigLoadException("Recipient " + kid + ": unsupported alg " + alg);
+				}
+			} else {
+				throw new VaultConfigLoadException("Unsupported recipient " + kid);
+			}
+		}
+		if (kids.size() != 2 || !kids.contains(UvfLockedVault.RECOVERY_KEY_KID)) {
+			throw new VaultConfigLoadException("Expected one key encryption key and one recovery key recipient, got " + kids);
+		}
+		UvfSeeds.RecipientDetails password = recipientDetails.get(UvfLockedVault.PASSWORD_KID);
+		if (password != null) {
+			Map<String, Object> header = Objects.requireNonNull(recipientHeader(jwe, UvfLockedVault.PASSWORD_KID));
+			for (String param : Argon2Kdf.PARAMS) {
+				if (!String.valueOf(header.get(param)).equals(String.valueOf(password.vendorFields.get(param)))) {
+					throw new VaultConfigLoadException("Argon2 parameters in the header differ from the committed ones");
+				}
+			}
+		}
+	}
+
+	/**
 	 * Encrypts the metadata with a fresh content key for both recipients.
 	 *
 	 * @param protectedHeader The protected header
-	 * @param payload The payload to encrypt
+	 * @param payload The payload to encrypt, whose {@code recipientDetails} define the recipients
+	 * @param recipientDetails The payload's recipient details: algorithms, the password recipient's Argon2 parameters, the recovery key's public JWK
 	 * @param keyEncryptionKey The {@code A256KW} recipient's key with its {@code kid} set
-	 * @param keyEncryptionKeyParams Additional per-recipient header parameters for that entry, e.g. the Argon2 parameters
-	 * @param recoveryKey The recovery key recipient's key with its {@code kid} set; only its public part is used, which is also embedded in the entry as {@value #JWK_PARAM}
 	 * @return The general JSON serialization
 	 */
-	static String serialize(JWEHeader protectedHeader, byte[] payload, OctetSequenceKey keyEncryptionKey, Map<String, Object> keyEncryptionKeyParams, ECKey recoveryKey) {
+	static String serialize(JWEHeader protectedHeader, byte[] payload, Map<String, UvfSeeds.RecipientDetails> recipientDetails, OctetSequenceKey keyEncryptionKey) {
 		try {
+			UvfSeeds.RecipientDetails kekDetails = recipientDetails.get(keyEncryptionKey.getKeyID());
+			UvfSeeds.RecipientDetails recoveryDetails = recipientDetails.get(UvfLockedVault.RECOVERY_KEY_KID);
+			if (kekDetails == null || recoveryDetails == null || recoveryDetails.jwk == null) {
+				throw new IllegalStateException("Incomplete recipient details");
+			}
+			OctetSequenceKey kek = new OctetSequenceKey.Builder(keyEncryptionKey).algorithm(JWEAlgorithm.parse(kekDetails.alg)).build();
+			ECKey recoveryKey = new ECKey.Builder(ECKey.parse(recoveryDetails.jwk).toPublicJWK()).keyID(UvfLockedVault.RECOVERY_KEY_KID).algorithm(JWEAlgorithm.parse(recoveryDetails.alg)).build();
 			JWEObjectJSON jwe = new JWEObjectJSON(protectedHeader, new Payload(payload));
-			jwe.encrypt(new MultiEncrypter(new JWKSet(Arrays.<JWK>asList(keyEncryptionKey, recoveryKey.toPublicJWK()))));
-			// nimbus only carries kid, alg and x5* into the per-recipient headers; the rest is added afterwards (the recipient headers are unprotected)
+			jwe.encrypt(new MultiEncrypter(new JWKSet(Arrays.<JWK>asList(kek, recoveryKey))));
+			// nimbus only carries kid, alg and x5* into the per-recipient headers; the password recipient's KDF parameters are added afterwards (the recipient headers are unprotected)
 			List<JWEObjectJSON.Recipient> recipients = new ArrayList<>();
 			for (JWEObjectJSON.Recipient recipient : jwe.getRecipients()) {
 				Map<String, Object> header = new LinkedHashMap<>(recipient.getUnprotectedHeader().toJSONObject());
 				if (keyEncryptionKey.getKeyID().equals(recipient.getUnprotectedHeader().getKeyID())) {
-					header.putAll(keyEncryptionKeyParams);
-				} else {
-					header.put(JWK_PARAM, recoveryKey.toPublicJWK().toJSONObject());
+					header.putAll(kekDetails.vendorFields);
 				}
 				recipients.add(new JWEObjectJSON.Recipient(UnprotectedHeader.parse(header), recipient.getEncryptedKey()));
 			}

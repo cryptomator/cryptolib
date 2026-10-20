@@ -24,19 +24,24 @@ final class Constants {
 	static final int SEED_LEN = 32;
 	static final int KDF_SALT_LEN = 32;
 	static final int DIR_ID_LEN = 32;
+	static final int SEED_DIGEST_LEN = 32;
+	static final String RECIPIENT_DETAILS_FIELD = "recipientDetails";
 
 	static final String DATA_DIR_NAME = "d";
 	static final String FILE_EXT = ".uvf";
 	static final String DIR_FILE_NAME = "dir.uvf";
 	static final String SYMLINK_FILE_NAME = "symlink.uvf";
 
+	static final byte[] KDF_CONTEXT_SEED_DIGEST = "seedDigest".getBytes(StandardCharsets.US_ASCII);
 	static final byte[] KDF_CONTEXT_FILE_HEADER = "fileHeader".getBytes(StandardCharsets.US_ASCII);
+	static final byte[] KDF_CONTEXT_DIR_HEADER = "dirHeader".getBytes(StandardCharsets.US_ASCII);
+	static final byte[] KDF_CONTEXT_SYMLINK_HEADER = "symlinkHeader".getBytes(StandardCharsets.US_ASCII);
 	static final byte[] KDF_CONTEXT_SIV = "siv".getBytes(StandardCharsets.US_ASCII);
 	static final byte[] KDF_CONTEXT_HMAC = "hmac".getBytes(StandardCharsets.US_ASCII);
 	static final byte[] KDF_CONTEXT_ROOT_DIR_ID = "rootDirId".getBytes(StandardCharsets.US_ASCII);
 
 	static final String CONTENT_ENC_ALG = "AES";
-	static final byte[] MAGIC_BYTES = {'u', 'v', 'f', 0x00}; // 3 byte signature + 1 byte spec version
+	static final byte[] MAGIC_BYTES = {'u', 'v', 'f', (byte) SPEC_VERSION}; // 3 byte signature + 1 byte spec version
 	static final int GENERAL_HEADER_LEN = MAGIC_BYTES.length + SEED_ID_LEN; // 8
 	static final int GCM_NONCE_SIZE = 12;
 	static final int GCM_TAG_SIZE = 16;

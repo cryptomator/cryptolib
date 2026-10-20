@@ -4,6 +4,7 @@ import org.bouncycastle.util.encoders.Base32;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
+import org.cryptomator.cryptolib.internal.CleartextNames;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
 
@@ -84,13 +85,16 @@ final class UvfNames {
 	 * @param dirId The id of the directory containing the file (associated data)
 	 * @param seedId The directory's seed
 	 * @return The cleartext file name
-	 * @throws AuthenticationFailedException If the ciphertext is unauthentic or malformed
+	 * @throws AuthenticationFailedException If the ciphertext is unauthentic, malformed or not canonically encoded, or the decrypted name is not a valid file name
 	 */
 	String decryptName(String ciphertextName, byte[] dirId, int seedId) throws AuthenticationFailedException {
 		try (DestroyableSecretKey key = keys(seedId).sivKey.copy()) {
 			byte[] encrypted = BASE64URL_DECODER.decode(ciphertextName);
+			if (!BASE64URL.encodeToString(encrypted).equals(ciphertextName)) {
+				throw new IllegalArgumentException("Non-canonical base64url"); // e.g. non-zero trailing bits: the file system's name uniqueness must apply to the ciphertext
+			}
 			byte[] cleartext = AES_SIV.decrypt(key, encrypted, dirId);
-			return new String(cleartext, UTF_8);
+			return CleartextNames.validate(new String(cleartext, UTF_8));
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}

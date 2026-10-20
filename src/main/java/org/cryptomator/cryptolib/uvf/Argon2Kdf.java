@@ -12,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,6 +27,7 @@ final class Argon2Kdf {
 	static final String MEMORY_PARAM = UvfLockedVault.PASSWORD_KID + ".memoryKiB";
 	static final String ITERATIONS_PARAM = UvfLockedVault.PASSWORD_KID + ".iterations";
 	static final String PARALLELISM_PARAM = UvfLockedVault.PASSWORD_KID + ".parallelism";
+	static final List<String> PARAMS = Collections.unmodifiableList(Arrays.asList(SALT_PARAM, MEMORY_PARAM, ITERATIONS_PARAM, PARALLELISM_PARAM));
 	static final int SALT_LEN = 16;
 	static final int KEY_LEN = 32;
 	private static final int MIN_SALT_LEN = 8;
@@ -90,7 +93,7 @@ final class Argon2Kdf {
 	 */
 	static Map<String, Object> headerParams(Map<String, Object> header) {
 		Map<String, Object> result = new LinkedHashMap<>();
-		for (String param : Arrays.asList(SALT_PARAM, MEMORY_PARAM, ITERATIONS_PARAM, PARALLELISM_PARAM)) {
+		for (String param : PARAMS) {
 			result.put(param, header.get(param));
 		}
 		return result;

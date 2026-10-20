@@ -14,7 +14,8 @@ import java.util.Set;
  * An unlocked Unified Vault Format vault.
  * <p>
  * Besides the operations common to all vaults, it manages the vault's seeds (key rotation) and its two recipients, see {@link UvfLockedVault}. Changes become effective once
- * {@link #serializeConfig()} is written back; every serialization encrypts the metadata with a fresh content key for both recipients.
+ * {@link #serializeConfig()} is written back. Replacing a password, member key or recovery key requires {@link #addSeed() a new seed} before the configuration can be serialized: the
+ * previous secret's holder knows all existing seeds.
  */
 public interface UvfUnlockedVault extends UnlockedVault {
 
@@ -30,6 +31,17 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	static UvfUnlockedVault create(SecureRandom csprng) {
 		return UvfVault.create(csprng);
 	}
+
+	/**
+	 * Serializes the configuration, encrypting the metadata with a fresh content key for both recipients.
+	 * <p>
+	 * If nothing changed since the vault was unlocked or last serialized, the previous serialization is returned, so writing it back is unnecessary.
+	 *
+	 * @return The contents of {@code vault.uvf}
+	 * @throws IllegalStateException If no password or member key or no recovery key is set, or if a key was replaced without {@link #addSeed() adding a seed} afterwards
+	 */
+	@Override
+	byte[] serializeConfig();
 
 	/**
 	 * @return Fields of the decrypted vault metadata that cryptolib does not interpret (e.g. vendor-specific fields); preserved by {@link #serializeConfig()} (unmodifiable)
@@ -52,9 +64,17 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	Set<Integer> seedIds();
 
 	/**
+	 * Computes the digest of every seed, from which its id is derived, for seed pinning: persist them outside the vault and pass them to {@link UvfLockedVault#requireSeeds(java.util.Collection)}
+	 * on the next unlock.
+	 *
+	 * @return The 32 byte digest of each seed by seed id (unmodifiable)
+	 */
+	Map<Integer, byte[]> seedDigests();
+
+	/**
 	 * Rotates the key: adds a fresh random seed and makes it the latest one, so that new files and directories use keys derived from it.
 	 * <p>
-	 * Call this after replacing a password, member key or recovery key: the previous secret's holder knows all existing seeds, and the UVF specification requires a new seed whenever a recipient is removed.
+	 * Required after replacing a password, member key or recovery key, since the previous secret's holder knows all existing seeds; {@link #serializeConfig()} refuses to serialize otherwise.
 	 *
 	 * @return The id of the new seed
 	 */
@@ -66,14 +86,9 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	@Nullable String keyEncryptionKid();
 
 	/**
-	 * @return The key id of the recovery key entry, or {@code null} if none is set yet
-	 */
-	@Nullable String recoveryKid();
-
-	/**
 	 * Protects the vault with a password using {@link Argon2Params#DEFAULT}, replacing a previous password or member key.
 	 * <p>
-	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Strongly consider calling {@link #addSeed()} afterwards when replacing a secret.
+	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Call {@link #addSeed()} before serializing when replacing a secret.
 	 *
 	 * @param password The password
 	 */
@@ -82,7 +97,7 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	/**
 	 * Protects the vault with a password, replacing a previous password or member key.
 	 * <p>
-	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Strongly consider calling {@link #addSeed()} afterwards when replacing a secret.
+	 * The key encryption key is derived immediately, with a fresh salt; the password itself is not retained. Call {@link #addSeed()} before serializing when replacing a secret.
 	 *
 	 * @param password The password
 	 * @param params Argon2id cost parameters
@@ -90,7 +105,7 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	void setPassword(CharSequence password, Argon2Params params);
 
 	/**
-	 * Protects the vault with a member key, replacing a previous password or member key. Strongly consider calling {@link #addSeed()} afterwards when replacing a secret.
+	 * Protects the vault with a member key, replacing a previous password or member key. Call {@link #addSeed()} before serializing when replacing a secret.
 	 *
 	 * @param memberKey A 256 bit AES key; the caller remains responsible for destroying it
 	 */
@@ -107,7 +122,7 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	}
 
 	/**
-	 * Sets the recovery key, replacing a previous one. Strongly consider calling {@link #addSeed()} afterwards when replacing a key.
+	 * Sets the recovery key, replacing a previous one. Call {@link #addSeed()} before serializing when replacing a key.
 	 * <p>
 	 * The vault retains the key pair, so that {@link #serializedRecoveryKey()} can encode it for the user. The private key is dropped on {@link #destroy()}, but as a JCA object it cannot be
 	 * zeroed.
@@ -118,7 +133,7 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	void setRecoveryKey(KeyPair recoveryKey);
 
 	/**
-	 * Sets the recovery key by its public part only, replacing a previous one. Strongly consider calling {@link #addSeed()} afterwards when replacing a key.
+	 * Sets the recovery key by its public part only, replacing a previous one. Call {@link #addSeed()} before serializing when replacing a key.
 	 * <p>
 	 * {@link #serializedRecoveryKey()} is unavailable afterwards, as the vault does not know the private key.
 	 *

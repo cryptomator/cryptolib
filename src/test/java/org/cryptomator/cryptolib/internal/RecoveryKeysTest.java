@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -85,11 +86,11 @@ class RecoveryKeysTest {
 
 	}
 
-	private static void assertThrowsWithMessage(String message, org.junit.jupiter.api.function.Executable executable) {
+	private static void assertThrowsWithMessage(String message, Executable executable) {
 		assertThrowsWithMessage(message, executable, null);
 	}
 
-	private static void assertThrowsWithMessage(String message, org.junit.jupiter.api.function.Executable executable, String reason) {
+	private static void assertThrowsWithMessage(String message, Executable executable, String reason) {
 		IllegalArgumentException e = Assertions.assertThrows(IllegalArgumentException.class, executable, reason);
 		Assertions.assertTrue(e.getMessage().contains(message), "expected message containing '" + message + "' but was: " + e.getMessage());
 	}

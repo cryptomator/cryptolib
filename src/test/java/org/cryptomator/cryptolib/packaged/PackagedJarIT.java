@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.SecureRandom;
+import java.util.Map;
 
 /**
  * Smoke test of the public API through the packaged jar, run by the failsafe plugin after packaging: the JVM applies the multi-release layer with the sealed {@code LockedVault}/{@code UnlockedVault}
@@ -70,6 +71,11 @@ class PackagedJarIT {
 			Assertions.assertEquals(root, recovered.rootDirectory());
 			Assertions.assertEquals(recoveryWords, recovered.serializedRecoveryKey());
 		}
+		Map<Integer, byte[]> pins;
+		try (UvfUnlockedVault unlocked = uvf.unlock("secret", CSPRNG)) {
+			pins = unlocked.seedDigests();
+		}
+		uvf.requireSeeds(pins.values()).unlock("secret", CSPRNG).close();
 	}
 
 }

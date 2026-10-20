@@ -11,6 +11,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Base64;
@@ -19,7 +21,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 class UvfContentCodecTest {
 
-	private static final String HEADER_VECTOR = "dXZmAKQ0W7cAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/TCwvp3StG0JTkKGj3hwERhnFmZek61Xtc=";
+	private static final String HEADER_VECTOR = "dXZmAXLMXpMAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/TCwvp3StG0JU5E5VDk0cwt/HOJ8RAaGa0=";
 
 	private UvfSeeds seeds;
 
@@ -46,7 +48,7 @@ class UvfContentCodecTest {
 	@DisplayName("create header with all-zero nonce and key")
 	void testCreateHeader() {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
-		FileHeaderParts header = codec.createHeader(UvfSeedsTest.TEST_SEED_ID);
+		FileHeaderParts header = codec.createHeader(UvfSeedsTest.TEST_SEED_ID, Constants.KDF_CONTEXT_FILE_HEADER);
 		Assertions.assertArrayEquals(Base64.getDecoder().decode(HEADER_VECTOR), header.encrypted().array());
 		Assertions.assertEquals(UvfSeedsTest.TEST_SEED_ID, header.seedId());
 		Assertions.assertArrayEquals(new byte[12], header.nonce());
@@ -58,7 +60,7 @@ class UvfContentCodecTest {
 	void testDecryptHeader() throws AuthenticationFailedException {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR));
-		FileHeaderParts header = codec.decryptHeader(ciphertext);
+		FileHeaderParts header = codec.decryptHeader(ciphertext, Constants.KDF_CONTEXT_FILE_HEADER);
 		Assertions.assertEquals(UvfSeedsTest.TEST_SEED_ID, header.seedId());
 		Assertions.assertArrayEquals(new byte[12], header.nonce());
 		Assertions.assertArrayEquals(new byte[32], header.fileKey().getEncoded());
@@ -66,18 +68,23 @@ class UvfContentCodecTest {
 	}
 
 	@Test
-	@DisplayName("decrypt header with invalid tag / tampered ciphertext / wrong magic / unknown seed / too short")
+	@DisplayName("decrypt header with invalid tag / tampered ciphertext / wrong node type / wrong magic / unknown seed / too short")
 	void testDecryptInvalidHeaders() {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(Base64.getDecoder().decode("dXZmAKQ0W7cAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/TCwvp3StG0JTkKGj3hwERhnFmZek61XtX="))));
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(Base64.getDecoder().decode("dXZmAKQ0W7cAAAAAAAAAAAAAAAA/UGgFA8QGho7E1QTsHWyZIVFqabbGJ/XCwvp3StG0JTkKGj3hwERhnFmZek61Xtc="))));
+		byte[] invalidTag = Base64.getDecoder().decode(HEADER_VECTOR);
+		invalidTag[67] ^= 0x01;
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(invalidTag), Constants.KDF_CONTEXT_FILE_HEADER));
+		byte[] tamperedKey = Base64.getDecoder().decode(HEADER_VECTOR);
+		tamperedKey[30] ^= 0x01;
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(tamperedKey), Constants.KDF_CONTEXT_FILE_HEADER));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR)), Constants.KDF_CONTEXT_DIR_HEADER), "node type bound into the header key");
 		byte[] wrongMagic = Base64.getDecoder().decode(HEADER_VECTOR);
-		wrongMagic[3] = 1;
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.wrap(wrongMagic)));
+		wrongMagic[3] = 0;
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.wrap(wrongMagic), Constants.KDF_CONTEXT_FILE_HEADER), "unsupported spec version byte");
 		byte[] unknownSeed = Base64.getDecoder().decode(HEADER_VECTOR);
 		unknownSeed[7] ^= 0x01;
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.wrap(unknownSeed)));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.allocate(7)));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.wrap(unknownSeed), Constants.KDF_CONTEXT_FILE_HEADER));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.allocate(7), Constants.KDF_CONTEXT_FILE_HEADER));
 	}
 
 	@Test
@@ -140,7 +147,7 @@ class UvfContentCodecTest {
 		byte[] nonce = new byte[12];
 		ciphertext.get(nonce);
 		Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-		cipher.init(Cipher.DECRYPT_MODE, new javax.crypto.spec.SecretKeySpec(new byte[32], "AES"), new javax.crypto.spec.GCMParameterSpec(128, nonce));
+		cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(new byte[32], "AES"), new GCMParameterSpec(128, nonce));
 		cipher.updateAAD(new byte[]{1, 2, 3, 4});
 		cipher.updateAAD(headerNonce);
 		byte[] rest = new byte[ciphertext.remaining()];

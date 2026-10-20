@@ -1,5 +1,8 @@
 package org.cryptomator.cryptolib.cvf8;
 
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CipherCombo;
 import org.cryptomator.cryptolib.api.Cvf8LockedVault;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -37,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.file.NoSuchFileException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
@@ -143,10 +148,10 @@ class Cvf8VaultTest {
 		void testUnlockOtherFormatVersion() {
 			String token = new String(Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG).serializeConfig(), US_ASCII);
 			// re-sign with format 7:
-			com.nimbusds.jwt.SignedJWT jwt = Assertions.assertDoesNotThrow(() -> com.nimbusds.jwt.SignedJWT.parse(token));
-			com.nimbusds.jwt.JWTClaimsSet claims = Assertions.assertDoesNotThrow(() -> new com.nimbusds.jwt.JWTClaimsSet.Builder(jwt.getJWTClaimsSet()).claim("format", 7).build());
-			com.nimbusds.jwt.SignedJWT tampered = new com.nimbusds.jwt.SignedJWT(jwt.getHeader(), claims);
-			Assertions.assertDoesNotThrow(() -> tampered.sign(new com.nimbusds.jose.crypto.MACSigner(ZERO_KEY.getEncoded())));
+			SignedJWT jwt = Assertions.assertDoesNotThrow(() -> SignedJWT.parse(token));
+			JWTClaimsSet claims = Assertions.assertDoesNotThrow(() -> new JWTClaimsSet.Builder(jwt.getJWTClaimsSet()).claim("format", 7).build());
+			SignedJWT tampered = new SignedJWT(jwt.getHeader(), claims);
+			Assertions.assertDoesNotThrow(() -> tampered.sign(new MACSigner(ZERO_KEY.getEncoded())));
 			Cvf8LockedVault locked = (Cvf8LockedVault) LockedVault.parse(tampered.serialize().getBytes(US_ASCII));
 			UnsupportedVaultFormatException e = Assertions.assertThrows(UnsupportedVaultFormatException.class, () -> locked.unlock(ZERO_KEY, CSPRNG));
 			Assertions.assertEquals(7, e.getDetectedVersion());
@@ -232,7 +237,7 @@ class Cvf8VaultTest {
 		}
 
 		@ParameterizedTest(name = "{0}: round trip of {1} bytes via encryptFile/decryptFile, channels and streams")
-		@org.junit.jupiter.params.provider.CsvSource({"SIV_CTRMAC,1", "SIV_CTRMAC,32768", "SIV_CTRMAC,32769", "SIV_CTRMAC,100000", "SIV_GCM,1", "SIV_GCM,32768", "SIV_GCM,32769", "SIV_GCM,100000"})
+		@CsvSource({"SIV_CTRMAC,1", "SIV_CTRMAC,32768", "SIV_CTRMAC,32769", "SIV_CTRMAC,100000", "SIV_GCM,1", "SIV_GCM,32768", "SIV_GCM,32769", "SIV_GCM,100000"})
 		void testRoundTrip(CipherCombo combo, int size) throws IOException {
 			byte[] cleartext = new byte[size];
 			new Random(size).nextBytes(cleartext);
@@ -359,7 +364,7 @@ class Cvf8VaultTest {
 		private final VaultReader reader = path -> {
 			byte[] result = files.get(path);
 			if (result == null) {
-				throw new java.nio.file.NoSuchFileException(path);
+				throw new NoSuchFileException(path);
 			}
 			return result;
 		};
@@ -423,6 +428,14 @@ class Cvf8VaultTest {
 			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName("masterkey.cryptomator"));
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName("dirid.c9r")); // ends with .c9r but isn't a ciphertext name
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName("lol.c9r"));
+		}
+
+		@ParameterizedTest(name = "decrypted name {0} is rejected")
+		@ValueSource(strings = {"", ".", "..", "a/b", "a\u0000b"})
+		void testInvalidCleartextNames(String name) {
+			VaultDirectory dir = vault.newDirectory();
+			VaultNode node = dir.encryptName(name);
+			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName(node.name()));
 		}
 
 		@Test

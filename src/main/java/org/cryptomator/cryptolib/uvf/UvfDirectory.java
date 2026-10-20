@@ -8,6 +8,7 @@ import org.cryptomator.cryptolib.api.VaultWriter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Base64;
 
 /**
  * A UVF directory, identified by its 32 byte directory id and the seed it was created with.
@@ -121,7 +122,7 @@ final class UvfDirectory implements VaultDirectory {
 
 	@Override
 	public String toString() {
-		return "UvfDirectory[seed=" + seedId + ", dirId=" + java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(dirId) + "]";
+		return "UvfDirectory[seed=" + seedId + ", dirId=" + Base64.getUrlEncoder().withoutPadding().encodeToString(dirId) + "]";
 	}
 
 }

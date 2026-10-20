@@ -2,6 +2,7 @@ package org.cryptomator.cryptolib.uvf;
 
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEObjectJSON;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
@@ -10,16 +11,25 @@ import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.UvfUnlockedVault;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.api.VaultKeyInvalidException;
+import org.cryptomator.cryptolib.api.VaultRollbackException;
 import org.cryptomator.cryptolib.internal.RecoveryKeys;
 import org.jspecify.annotations.Nullable;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPublicKeySpec;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,11 +40,13 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 	private final byte[] encoded;
 	private final String json;
 	private final JWEObjectJSON jwe;
+	private final List<byte[]> pinnedSeedDigests;
 
-	private UvfLockedVaultImpl(byte[] encoded, String json, JWEObjectJSON jwe) {
+	private UvfLockedVaultImpl(byte[] encoded, String json, JWEObjectJSON jwe, List<byte[]> pinnedSeedDigests) {
 		this.encoded = encoded;
 		this.json = json;
 		this.jwe = jwe;
+		this.pinnedSeedDigests = pinnedSeedDigests;
 	}
 
 	/**
@@ -45,7 +57,7 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 	 * @throws UnsupportedVaultFormatException If the file is for another UVF specification version
 	 */
 	public static UvfLockedVaultImpl parse(byte[] encoded, String json) throws VaultConfigLoadException, UnsupportedVaultFormatException {
-		return new UvfLockedVaultImpl(encoded.clone(), json, UvfMetadataCodec.parse(json));
+		return new UvfLockedVaultImpl(encoded.clone(), json, UvfMetadataCodec.parse(json), Collections.<byte[]>emptyList());
 	}
 
 	@Override
@@ -75,17 +87,23 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 	}
 
 	@Override
-	public @Nullable String recoveryKid() {
-		return UvfMetadataCodec.findKid(jwe, RECOVERY_KEY_KID_PREFIX);
+	public UvfLockedVault requireSeeds(Collection<byte[]> seedDigests) {
+		List<byte[]> pins = new ArrayList<>(pinnedSeedDigests);
+		for (byte[] digest : seedDigests) {
+			if (digest.length != Constants.SEED_DIGEST_LEN) {
+				throw new IllegalArgumentException("Seed digests are " + Constants.SEED_DIGEST_LEN + " bytes long");
+			}
+			pins.add(digest.clone());
+		}
+		return new UvfLockedVaultImpl(encoded, json, jwe, Collections.unmodifiableList(pins));
 	}
 
 	@Override
 	public UvfUnlockedVault unlock(CharSequence password, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
 		Map<String, Object> header = requireRecipient(PASSWORD_KID);
-		byte[] kek = Argon2Kdf.deriveKey(password, header);
+		byte[] kek = Argon2Kdf.deriveKey(password, header); // the header's parameters are verified against the committed ones after decryption
 		try {
-			OctetSequenceKey key = new OctetSequenceKey.Builder(kek).keyID(PASSWORD_KID).algorithm(JWEAlgorithm.A256KW).build();
-			return unlock(key, Argon2Kdf.headerParams(header), csprng);
+			return unlock(new OctetSequenceKey.Builder(kek).keyID(PASSWORD_KID).algorithm(JWEAlgorithm.A256KW).build(), csprng);
 		} finally {
 			Arrays.fill(kek, (byte) 0x00);
 		}
@@ -94,19 +112,33 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 	@Override
 	public UvfUnlockedVault unlock(SecretKey memberKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
 		requireRecipient(MEMBER_KEY_KID);
-		OctetSequenceKey key = new OctetSequenceKey.Builder(memberKey).keyID(MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build();
-		return unlock(key, Collections.<String, Object>emptyMap(), csprng);
+		return unlock(new OctetSequenceKey.Builder(memberKey).keyID(MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build(), csprng);
+	}
+
+	private UvfUnlockedVault unlock(OctetSequenceKey key, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
+		UvfSeeds seeds = decryptAndValidate(key);
+		try {
+			ECKey recoveryKey = recoveryPublicKey(seeds);
+			return new UvfVault(seeds, jwe.getHeader(), encoded, key, recoveryKey, csprng);
+		} catch (RuntimeException e) {
+			seeds.destroy();
+			throw e;
+		}
 	}
 
 	@Override
 	public UvfUnlockedVault recover(ECPrivateKey recoveryKey, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
-		String kid = recoveryKid();
-		if (kid == null) {
-			throw new VaultConfigLoadException("Vault has no recovery key entry");
+		requireRecipient(RECOVERY_KEY_KID);
+		// the public key is only known after decryption, but nimbus' ECDH decrypter only needs the private part; the pair is completed from the payload afterwards
+		ECKey privateKey = new ECKey.Builder(curveOf(recoveryKey), publicKeyPlaceholder(recoveryKey)).privateKey(recoveryKey).keyID(RECOVERY_KEY_KID).build();
+		UvfSeeds seeds = decryptAndValidate(privateKey);
+		try {
+			ECKey keyPair = new ECKey.Builder(recoveryPublicKey(seeds)).privateKey(recoveryKey).build();
+			return new UvfVault(seeds, jwe.getHeader(), encoded, null, keyPair, csprng); // retains the key pair for serializedRecoveryKey()
+		} catch (RuntimeException e) {
+			seeds.destroy();
+			throw e;
 		}
-		ECKey publicKey = recoveryPublicKey(kid);
-		ECKey keyPair = new ECKey.Builder(publicKey).privateKey(recoveryKey).keyID(kid).build();
-		return new UvfVault(seeds(keyPair), jwe.getHeader(), null, Collections.<String, Object>emptyMap(), keyPair, csprng); // retains the key pair for serializedRecoveryKey()
 	}
 
 	@Override
@@ -119,18 +151,26 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 		}
 	}
 
-	private UvfUnlockedVault unlock(OctetSequenceKey key, Map<String, Object> keyParams, SecureRandom csprng) throws VaultKeyInvalidException, VaultConfigLoadException {
-		String kid = recoveryKid();
-		@Nullable ECKey recoveryKey = kid == null ? null : recoveryPublicKey(kid);
-		return new UvfVault(seeds(key), jwe.getHeader(), key, keyParams, recoveryKey, csprng);
-	}
-
-	private UvfSeeds seeds(JWK key) throws VaultKeyInvalidException, VaultConfigLoadException {
-		byte[] payload = UvfMetadataCodec.decrypt(UvfMetadataCodec.parse(json), key); // a JWE object can be decrypted only once
+	// decrypts a fresh copy of the JWE (a JWE object can be decrypted only once), then validates recipients and seed pins as required by the specification
+	private UvfSeeds decryptAndValidate(JWK key) throws VaultKeyInvalidException, VaultConfigLoadException {
+		byte[] payload = UvfMetadataCodec.decrypt(UvfMetadataCodec.parse(json), key);
+		UvfSeeds seeds;
 		try {
-			return UvfSeeds.fromDecryptedPayload(new String(payload, StandardCharsets.UTF_8));
+			seeds = UvfSeeds.fromDecryptedPayload(new String(payload, StandardCharsets.UTF_8));
 		} finally {
 			Arrays.fill(payload, (byte) 0x00);
+		}
+		try {
+			UvfMetadataCodec.validateRecipients(jwe, seeds.recipientDetails());
+			for (byte[] digest : pinnedSeedDigests) {
+				if (!seeds.hasSeedWithDigest(digest)) {
+					throw new VaultRollbackException("vault.uvf lacks a previously seen seed, it may be outdated or forged");
+				}
+			}
+			return seeds;
+		} catch (RuntimeException e) {
+			seeds.destroy();
+			throw e;
 		}
 	}
 
@@ -142,22 +182,39 @@ public final class UvfLockedVaultImpl implements UvfLockedVault {
 		return header;
 	}
 
-	// the recovery key's public key is embedded in its entry; without it the vault could not be re-encrypted
-	private ECKey recoveryPublicKey(String kid) throws VaultConfigLoadException {
-		Map<String, Object> header = requireRecipient(kid);
-		Object jwk =   header.get(UvfMetadataCodec.JWK_PARAM);
-		if (!(jwk instanceof Map)) {
-			throw new VaultConfigLoadException("Recovery key entry lacks its public key (" + UvfMetadataCodec.JWK_PARAM + ")");
+	// the recovery key's public key is committed in the payload; without it the vault could not be re-encrypted
+	private static ECKey recoveryPublicKey(UvfSeeds seeds) throws VaultConfigLoadException {
+		UvfSeeds.RecipientDetails details = seeds.recipientDetails().get(RECOVERY_KEY_KID);
+		if (details == null || details.jwk == null) {
+			throw new VaultConfigLoadException("Recovery key entry lacks its public key");
 		}
 		try {
-			@SuppressWarnings("unchecked")
-			ECKey key = ECKey.parse((Map<String, Object>) jwk);
+			ECKey key = ECKey.parse(details.jwk);
 			if (key.isPrivate()) {
 				throw new VaultConfigLoadException("Recovery key entry must not contain private key material");
 			}
-			return key;
+			return new ECKey.Builder(key).keyID(RECOVERY_KEY_KID).algorithm(JWEAlgorithm.ECDH_ES_A256KW).build();
 		} catch (ParseException e) {
 			throw new VaultConfigLoadException("Malformed recovery key", e);
+		}
+	}
+
+	private static Curve curveOf(ECPrivateKey key) throws VaultConfigLoadException {
+		Curve curve = Curve.forECParameterSpec(key.getParams());
+		if (curve == null) {
+			throw new VaultConfigLoadException("Unsupported EC curve");
+		}
+		return curve;
+	}
+
+	// nimbus insists on a public part when building an EC JWK; ECDH-ES decryption never uses it
+	private static ECPublicKey publicKeyPlaceholder(ECPrivateKey key) {
+		try {
+			ECParameterSpec params = key.getParams();
+			KeyFactory factory = KeyFactory.getInstance("EC");
+			return (ECPublicKey) factory.generatePublic(new ECPublicKeySpec(params.getGenerator(), params));
+		} catch (GeneralSecurityException e) {
+			throw new IllegalStateException("EC not supported by this JVM", e);
 		}
 	}
 
