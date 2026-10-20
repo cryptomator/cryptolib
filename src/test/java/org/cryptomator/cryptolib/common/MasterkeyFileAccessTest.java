@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringWriter;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
@@ -350,7 +351,7 @@ public class MasterkeyFileAccessTest {
 	}
 
 	@ParameterizedTest
-	@CsvSource({"0", "1", "3", "65535", "2097152"})
+	@CsvSource({"0", "1", "3", "65535", "32768", "65536", "2097152"})
 	@DisplayName("persist rejects invalid custom cost without writing a file")
 	public void testPersistRejectsInvalidCost(int cost, @TempDir Path tmpDir) {
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
@@ -358,6 +359,42 @@ public class MasterkeyFileAccessTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", cost));
 		Assertions.assertFalse(Files.exists(masterkeyFile));
 		Assertions.assertFalse(Files.exists(masterkeyFile.resolveSibling("masterkey.cryptomator.tmp")));
+	}
+
+	@Test
+	@DisplayName("legacy persist keeps the lower cost for existing consumers")
+	public void testLegacyPersistKeepsDefaultCost(@TempDir Path tmpDir) throws IOException {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+		masterkeyFileAccess.persist(key, masterkeyFile, "asd");
+
+		try (Reader reader = Files.newBufferedReader(masterkeyFile, UTF_8)) {
+			Assertions.assertEquals(1 << 15, MasterkeyFile.read(reader).scryptCostParam);
+		}
+	}
+
+	@Test
+	@DisplayName("persist with failed derivation removes the temporary file and allows retry")
+	public void testPersistWithFailedDerivationCanRetry(@TempDir Path tmpDir) throws IOException {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+		Path temporaryFile = tmpDir.resolve("masterkey.cryptomator.tmp");
+
+		Assertions.assertThrows(NullPointerException.class, () -> masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, null, 1 << 17));
+		Assertions.assertFalse(Files.exists(temporaryFile));
+		masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", 1 << 17);
+		Assertions.assertTrue(Files.exists(masterkeyFile));
+	}
+
+	@Test
+	@DisplayName("persist leaves a pre-existing temporary file intact")
+	public void testPersistWithExistingTemporaryFile(@TempDir Path tmpDir) throws IOException {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+		Path temporaryFile = tmpDir.resolve("masterkey.cryptomator.tmp");
+		byte[] existingContents = "other writer".getBytes(UTF_8);
+		Files.write(temporaryFile, existingContents);
+
+		Assertions.assertThrows(FileAlreadyExistsException.class, () -> masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", 1 << 17));
+		Assertions.assertArrayEquals(existingContents, Files.readAllBytes(temporaryFile));
+		Assertions.assertFalse(Files.exists(masterkeyFile));
 	}
 
 	@Test
