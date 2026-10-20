@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.cvf8;
 
-import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CipherCombo;
 import org.cryptomator.cryptolib.api.Cvf8UnlockedVault;
@@ -68,7 +67,9 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	 * @return The new, unlocked vault
 	 */
 	public static Cvf8Vault create(CvfMasterkey masterkey, int shorteningThreshold, SecureRandom csprng) {
-		Preconditions.checkArgument(shorteningThreshold > 0, "shortening threshold must be positive");
+		if (shorteningThreshold <= 0) {
+			throw new IllegalArgumentException("shortening threshold must be positive");
+		}
 		return new Cvf8Vault(masterkey.copy(), UUID.randomUUID().toString(), Constants.DEFAULT_KEY_ID, CipherCombo.SIV_GCM, shorteningThreshold, csprng);
 	}
 
@@ -142,8 +143,12 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	@Override
 	public VaultDirectory directory(byte[] dirFileContents) {
 		assertNotDestroyed();
-		Preconditions.checkArgument(dirFileContents.length > 0, "Directory file must not be empty");
-		Preconditions.checkArgument(dirFileContents.length <= Constants.MAX_DIR_ID_LENGTH, "Directory file exceeds %s bytes", Constants.MAX_DIR_ID_LENGTH);
+		if (dirFileContents.length <= 0) {
+			throw new IllegalArgumentException("Directory file must not be empty");
+		}
+		if (dirFileContents.length > Constants.MAX_DIR_ID_LENGTH) {
+			throw new IllegalArgumentException(String.format("Directory file exceeds %s bytes", Constants.MAX_DIR_ID_LENGTH));
+		}
 		return new Cvf8Directory(this, new String(dirFileContents, StandardCharsets.UTF_8));
 	}
 
@@ -151,7 +156,9 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	public VaultDirectory directoryFromBackup(byte[] backupFileContents) throws AuthenticationFailedException {
 		assertNotDestroyed();
 		byte[] dirId = decryptFile(backupFileContents);
-		Preconditions.checkArgument(dirId.length <= Constants.MAX_DIR_ID_LENGTH, "Directory id exceeds %s bytes", Constants.MAX_DIR_ID_LENGTH);
+		if (dirId.length > Constants.MAX_DIR_ID_LENGTH) {
+			throw new IllegalArgumentException(String.format("Directory id exceeds %s bytes", Constants.MAX_DIR_ID_LENGTH));
+		}
 		return new Cvf8Directory(this, new String(dirId, StandardCharsets.UTF_8));
 	}
 

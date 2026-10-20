@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.cvf8;
 
-import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CipherCombo;
 import org.cryptomator.cryptolib.api.Cvf8LockedVault;
@@ -40,6 +39,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -47,7 +47,7 @@ import java.util.Random;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class Cvf8VaultTest {
+class Cvf8VaultTest {
 
 	private static final SecureRandom CSPRNG = SecureRandomMock.PRNG_RANDOM;
 	private static final CvfMasterkey ZERO_KEY = new CvfMasterkey(new byte[64]);
@@ -175,7 +175,7 @@ public class Cvf8VaultTest {
 		@Test
 		@DisplayName("SIV_CTRMAC: encrypt file 'hello world' with all-zero nonces")
 		public void testEncryptFileCtrMac() {
-			byte[] expected = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfM" //
+			byte[] expected = Base64.getDecoder().decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfM" //
 					+ "dzvHF3f9EE0LSnRLSsu6ps3IRcJgAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_CTRMAC, SecureRandomMock.NULL_RANDOM)) {
 				Assertions.assertArrayEquals(expected, vault.encryptFile("hello world".getBytes(US_ASCII)));
@@ -185,7 +185,7 @@ public class Cvf8VaultTest {
 		@Test
 		@DisplayName("SIV_CTRMAC: decrypt file 'hello world'")
 		public void testDecryptFileCtrMac() {
-			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
+			byte[] ciphertext = Base64.getDecoder().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
 					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_CTRMAC, SecureRandomMock.NULL_RANDOM)) {
 				Assertions.assertArrayEquals("hello world".getBytes(US_ASCII), vault.decryptFile(ciphertext));
@@ -206,7 +206,7 @@ public class Cvf8VaultTest {
 				Arrays.fill((byte[]) invocation.getArgument(0), (byte) 0x55);
 				return null;
 			}).when(random).nextBytes(Mockito.any());
-			byte[] expected = BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=");
+			byte[] expected = Base64.getDecoder().decode("VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_GCM, random)) {
 				Assertions.assertArrayEquals(expected, vault.encryptFile("hello world".getBytes(US_ASCII)));
 			}
@@ -215,7 +215,7 @@ public class Cvf8VaultTest {
 		@Test
 		@DisplayName("SIV_GCM: decrypt file 'hello world'")
 		public void testDecryptFileGcm() {
-			byte[] ciphertext = BaseEncoding.base64().decode("VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=");
+			byte[] ciphertext = Base64.getDecoder().decode("VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=");
 			try (Cvf8Vault vault = vault(CipherCombo.SIV_GCM, SecureRandomMock.NULL_RANDOM)) {
 				Assertions.assertArrayEquals("hello world".getBytes(US_ASCII), vault.decryptFile(ciphertext));
 			}
@@ -510,7 +510,7 @@ public class Cvf8VaultTest {
 
 	@ParameterizedTest(name = "destroying the vault destroys the key ({0})")
 	@ValueSource(strings = {"SIV_CTRMAC", "SIV_GCM"})
-	public void testDestroy(String combo) {
+	void testDestroy(String combo) {
 		Cvf8Vault vault = vault(CipherCombo.valueOf(combo), CSPRNG);
 		Assertions.assertFalse(vault.isDestroyed());
 		vault.close();

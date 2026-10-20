@@ -1,6 +1,6 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.google.common.io.BaseEncoding;
+import org.bouncycastle.util.encoders.Base32;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
@@ -10,6 +10,8 @@ import org.cryptomator.siv.UnauthenticCiphertextException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,8 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 final class UvfNames {
 
-	private static final BaseEncoding BASE32 = BaseEncoding.base32();
-	private static final BaseEncoding BASE64URL = BaseEncoding.base64Url().omitPadding();
+	private static final Base64.Encoder BASE64URL = Base64.getUrlEncoder().withoutPadding();
+	private static final Base64.Decoder BASE64URL_DECODER = Base64.getUrlDecoder();
 	private static final SivMode AES_SIV = new SivMode(); // thread-safe, uses thread-local block ciphers
 	private static final int DIR_HASH_LEN = 20; // only the leftmost 160 bits of the HMAC are used
 
@@ -59,7 +61,7 @@ final class UvfNames {
 		try (DestroyableSecretKey key = keys(seedId).hmacKey.copy()) {
 			Mac hmacSha256 = MacSupplier.HMAC_SHA256.keyed(key);
 			byte[] hash = hmacSha256.doFinal(dirId);
-			return BASE32.encode(hash, 0, DIR_HASH_LEN);
+			return Base32.toBase32String(Arrays.copyOf(hash, DIR_HASH_LEN));
 		}
 	}
 
@@ -73,7 +75,7 @@ final class UvfNames {
 		try (DestroyableSecretKey key = keys(seedId).sivKey.copy()) {
 			byte[] cleartext = Normalizer.normalize(cleartextName, Normalizer.Form.NFC).getBytes(UTF_8);
 			byte[] encrypted = AES_SIV.encrypt(key, cleartext, dirId);
-			return BASE64URL.encode(encrypted);
+			return BASE64URL.encodeToString(encrypted);
 		}
 	}
 
@@ -86,7 +88,7 @@ final class UvfNames {
 	 */
 	String decryptName(String ciphertextName, byte[] dirId, int seedId) throws AuthenticationFailedException {
 		try (DestroyableSecretKey key = keys(seedId).sivKey.copy()) {
-			byte[] encrypted = BASE64URL.decode(ciphertextName);
+			byte[] encrypted = BASE64URL_DECODER.decode(ciphertextName);
 			byte[] cleartext = AES_SIV.decrypt(key, encrypted, dirId);
 			return new String(cleartext, UTF_8);
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {

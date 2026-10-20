@@ -9,11 +9,11 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @DisplayName("Benchmark UVF")
-public class BenchmarkTest {
+class BenchmarkTest {
 
 	@Disabled("only on demand")
 	@Test
-	public void runBenchmarks() throws RunnerException {
+	void runBenchmarks() throws RunnerException {
 		// Taken from http://stackoverflow.com/a/30486197/4014509:
 		Options opt = new OptionsBuilder()
 				// Specify which benchmarks to run

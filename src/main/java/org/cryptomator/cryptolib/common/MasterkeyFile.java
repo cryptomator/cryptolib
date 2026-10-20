@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
@@ -14,6 +13,7 @@ import com.google.gson.stream.JsonWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.Base64;
 
 /**
  * Representation of encrypted masterkey json file. Used by {@link MasterkeyFileAccess} to load and persist keys.
@@ -82,14 +82,15 @@ public class MasterkeyFile {
 
 	private static class ByteArrayJsonAdapter extends TypeAdapter<byte[]> {
 
-		private static final BaseEncoding BASE64 = BaseEncoding.base64();
+		private static final Base64.Encoder BASE64 = Base64.getEncoder();
+		private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
 
 		@Override
 		public void write(JsonWriter writer, byte[] value) throws IOException {
 			if (value == null) {
 				writer.nullValue();
 			} else {
-				writer.value(BASE64.encode(value));
+				writer.value(BASE64.encodeToString(value));
 			}
 		}
 
@@ -99,7 +100,7 @@ public class MasterkeyFile {
 				reader.nextNull();
 				return null;
 			} else {
-				return BASE64.decode(reader.nextString());
+				return BASE64_DECODER.decode(reader.nextString());
 			}
 		}
 	}

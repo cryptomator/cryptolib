@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.google.common.base.Preconditions;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEHeader;
@@ -105,8 +104,12 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public byte[] serializeConfig() {
 		assertNotDestroyed();
-		Preconditions.checkState(keyEncryptionKey != null, "No password or member key set");
-		Preconditions.checkState(recoveryKey != null, "No recovery key set");
+		if (keyEncryptionKey == null) {
+			throw new IllegalStateException("No password or member key set");
+		}
+		if (recoveryKey == null) {
+			throw new IllegalStateException("No recovery key set");
+		}
 		byte[] payload = seeds.toDecryptedPayload().getBytes(StandardCharsets.UTF_8);
 		try {
 			return UvfMetadataCodec.serialize(protectedHeader, payload, keyEncryptionKey, keyEncryptionKeyParams, recoveryKey).getBytes(StandardCharsets.UTF_8);
@@ -118,7 +121,9 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public String serializedRecoveryKey() {
 		assertNotDestroyed();
-		Preconditions.checkState(recoveryKey != null && recoveryKey.isPrivate(), "Private recovery key unknown");
+		if (recoveryKey == null || !recoveryKey.isPrivate()) {
+			throw new IllegalStateException("Private recovery key unknown");
+		}
 		byte[] pkcs8 = RecoveryKeyPkcs8.encode(recoveryKey);
 		try {
 			return RecoveryKeys.encode(pkcs8, true);
@@ -185,7 +190,9 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	public void setMemberKey(SecretKey memberKey) {
 		assertNotDestroyed();
 		byte[] encoded = memberKey.getEncoded();
-		Preconditions.checkArgument(encoded != null && encoded.length == Argon2Kdf.KEY_LEN, "Member key must be a 256 bit AES key");
+		if (encoded == null || encoded.length != Argon2Kdf.KEY_LEN) {
+			throw new IllegalArgumentException("Member key must be a 256 bit AES key");
+		}
 		this.keyEncryptionKey = new OctetSequenceKey.Builder(encoded).keyID(UvfLockedVault.MEMBER_KEY_KID).algorithm(JWEAlgorithm.A256KW).build();
 		this.keyEncryptionKeyParams = Collections.emptyMap();
 	}
@@ -193,9 +200,13 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public void setRecoveryKey(KeyPair recoveryKey) {
 		assertNotDestroyed();
-		Preconditions.checkArgument(recoveryKey.getPublic() instanceof ECPublicKey && recoveryKey.getPrivate() instanceof ECPrivateKey, "Not an EC key pair");
+		if (!(recoveryKey.getPublic() instanceof ECPublicKey && recoveryKey.getPrivate() instanceof ECPrivateKey)) {
+			throw new IllegalArgumentException("Not an EC key pair");
+		}
 		ECPublicKey publicKey = (ECPublicKey) recoveryKey.getPublic();
-		Preconditions.checkArgument(Curve.P_384.equals(Curve.forECParameterSpec(publicKey.getParams())), "Not a P-384 key pair");
+		if (!Curve.P_384.equals(Curve.forECParameterSpec(publicKey.getParams()))) {
+			throw new IllegalArgumentException("Not a P-384 key pair");
+		}
 		setRecoveryKey(publicKey, (ECPrivateKey) recoveryKey.getPrivate());
 	}
 
@@ -203,7 +214,9 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	public void setRecoveryKey(ECPublicKey recoveryKey) {
 		assertNotDestroyed();
 		Curve curve = Curve.forECParameterSpec(recoveryKey.getParams());
-		Preconditions.checkArgument(curve != null, "Unsupported EC curve");
+		if (curve == null) {
+			throw new IllegalArgumentException("Unsupported EC curve");
+		}
 		setRecoveryKey(recoveryKey, null);
 	}
 
@@ -240,7 +253,9 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public VaultDirectory directory(byte[] dirFileContents) throws AuthenticationFailedException {
 		assertNotDestroyed();
-		Preconditions.checkArgument(dirFileContents.length == layout().ciphertextSize(Constants.DIR_ID_LEN), "Invalid dir.uvf length: %s", dirFileContents.length);
+		if (dirFileContents.length != layout().ciphertextSize(Constants.DIR_ID_LEN)) {
+			throw new IllegalArgumentException(String.format("Invalid dir.uvf length: %s", dirFileContents.length));
+		}
 		ByteBuffer header = ByteBuffer.wrap(dirFileContents, 0, layout().headerSize());
 		try (VaultFileImpl file = parseHeader(header, Constants.DIR_ID_LEN)) {
 			ByteBuffer dirId = ByteBuffer.allocate(Constants.DIR_ID_LEN);

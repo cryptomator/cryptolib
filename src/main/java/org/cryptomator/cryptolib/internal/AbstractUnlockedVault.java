@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.internal;
 
-import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.UnlockedVault;
 import org.cryptomator.cryptolib.api.VaultFile;
@@ -69,7 +68,9 @@ public abstract class AbstractUnlockedVault {
 	}
 
 	public byte[] decryptFile(byte[] ciphertext) throws AuthenticationFailedException {
-		Preconditions.checkArgument(ciphertext.length >= layout.headerSize(), "ciphertext shorter than header");
+		if (ciphertext.length < layout.headerSize()) {
+			throw new IllegalArgumentException("ciphertext shorter than header");
+		}
 		long cleartextSize = layout.cleartextSize(ciphertext.length);
 		ByteBuffer header = ByteBuffer.wrap(ciphertext, 0, layout.headerSize());
 		try (VaultFileImpl file = parseHeader(header, cleartextSize)) {

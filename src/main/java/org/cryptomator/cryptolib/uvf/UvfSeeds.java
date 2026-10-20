@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.google.common.base.Preconditions;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -42,11 +41,19 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	private boolean destroyed = false;
 
 	UvfSeeds(Map<Integer, byte[]> seeds, byte[] kdfSalt, int initialSeedId, int latestSeedId, Map<String, JsonElement> customFields) {
-		Preconditions.checkArgument(kdfSalt.length == Constants.KDF_SALT_LEN, "kdfSalt must be %s bytes", Constants.KDF_SALT_LEN);
-		Preconditions.checkArgument(seeds.containsKey(initialSeedId), "initialSeed not among seeds");
-		Preconditions.checkArgument(seeds.containsKey(latestSeedId), "latestSeed not among seeds");
+		if (kdfSalt.length != Constants.KDF_SALT_LEN) {
+			throw new IllegalArgumentException(String.format("kdfSalt must be %s bytes", Constants.KDF_SALT_LEN));
+		}
+		if (!seeds.containsKey(initialSeedId)) {
+			throw new IllegalArgumentException("initialSeed not among seeds");
+		}
+		if (!seeds.containsKey(latestSeedId)) {
+			throw new IllegalArgumentException("latestSeed not among seeds");
+		}
 		for (Map.Entry<Integer, byte[]> entry : seeds.entrySet()) {
-			Preconditions.checkArgument(entry.getValue().length == Constants.SEED_LEN, "seed must be %s bytes", Constants.SEED_LEN);
+			if (entry.getValue().length != Constants.SEED_LEN) {
+				throw new IllegalArgumentException(String.format("seed must be %s bytes", Constants.SEED_LEN));
+			}
 			this.seeds.put(entry.getKey(), entry.getValue().clone());
 		}
 		this.kdfSalt = kdfSalt.clone();
@@ -147,7 +154,9 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 
 	static int decodeSeedId(String base64url) {
 		byte[] bytes = B64_DECODER.decode(base64url);
-		Preconditions.checkArgument(bytes.length == Constants.SEED_ID_LEN, "seed id must be %s bytes", Constants.SEED_ID_LEN);
+		if (bytes.length != Constants.SEED_ID_LEN) {
+			throw new IllegalArgumentException(String.format("seed id must be %s bytes", Constants.SEED_ID_LEN));
+		}
 		return ByteBuffer.wrap(bytes).getInt();
 	}
 

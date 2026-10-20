@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
@@ -23,6 +22,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -147,7 +147,7 @@ public class MasterkeyFileAccess {
 	 * @throws IOException                If reading the masterkey file fails or the <code>validator</code> rejects the parsed content. In the latter case the validator's exception is rethrown as is.
 	 */
 	public CvfMasterkey load(InputStream in, CharSequence passphrase, MasterkeyFileValidator validator) throws IOException {
-		Preconditions.checkNotNull(validator);
+		Objects.requireNonNull(validator);
 		try (Reader reader = new InputStreamReader(in, UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			if (!parsedFile.isValid()) {
@@ -161,9 +161,11 @@ public class MasterkeyFileAccess {
 
 	// visible for testing
 	CvfMasterkey unlock(MasterkeyFile parsedFile, CharSequence passphrase) throws InvalidPassphraseException {
-		Preconditions.checkNotNull(parsedFile);
-		Preconditions.checkArgument(parsedFile.isValid(), "Invalid masterkey file");
-		Preconditions.checkNotNull(passphrase);
+		Objects.requireNonNull(parsedFile);
+		if (!parsedFile.isValid()) {
+			throw new IllegalArgumentException("Invalid masterkey file");
+		}
+		Objects.requireNonNull(passphrase);
 
 		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize);
 			 DestroyableSecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, CvfMasterkey.ENC_ALG);
@@ -198,7 +200,9 @@ public class MasterkeyFileAccess {
 
 	// visible for testing
 	void persist(CvfMasterkey masterkey, OutputStream out, CharSequence passphrase, int scryptCostParam) throws IOException {
-		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
+		if (masterkey.isDestroyed()) {
+			throw new IllegalArgumentException("masterkey has been destroyed");
+		}
 
 		MasterkeyFile fileContent = lock(masterkey, passphrase, scryptCostParam);
 		try (Writer writer = new OutputStreamWriter(out, UTF_8)) {
@@ -208,9 +212,11 @@ public class MasterkeyFileAccess {
 
 	// visible for testing
 	MasterkeyFile lock(CvfMasterkey masterkey, CharSequence passphrase, int scryptCostParam) {
-		Preconditions.checkNotNull(masterkey);
-		Preconditions.checkNotNull(passphrase);
-		Preconditions.checkArgument(!masterkey.isDestroyed(), "masterkey has been destroyed");
+		Objects.requireNonNull(masterkey);
+		Objects.requireNonNull(passphrase);
+		if (masterkey.isDestroyed()) {
+			throw new IllegalArgumentException("masterkey has been destroyed");
+		}
 
 		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		csprng.nextBytes(salt);

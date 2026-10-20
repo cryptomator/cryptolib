@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
@@ -30,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -50,9 +50,9 @@ public class MasterkeyFileAccessTest {
 		keyFile.scryptSalt = new byte[8];
 		keyFile.scryptCostParam = 2;
 		keyFile.scryptBlockSize = 8;
-		keyFile.encMasterKey = BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
-		keyFile.macMasterKey = BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
-		keyFile.versionMac = BaseEncoding.base64().decode("iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=");
+		keyFile.encMasterKey = Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
+		keyFile.macMasterKey = Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
+		keyFile.versionMac = Base64.getDecoder().decode("iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=");
 	}
 
 	@Test
@@ -303,8 +303,8 @@ public class MasterkeyFileAccessTest {
 			Assertions.assertArrayEquals(new byte[8], keyFile.scryptSalt);
 			Assertions.assertEquals(2, keyFile.scryptCostParam);
 			Assertions.assertEquals(8, keyFile.scryptBlockSize);
-			Assertions.assertArrayEquals(BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.encMasterKey);
-			Assertions.assertArrayEquals(BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.macMasterKey);
+			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.encMasterKey);
+			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.macMasterKey);
 			Assertions.assertArrayEquals(versionMac(999), keyFile.versionMac);
 		}
 

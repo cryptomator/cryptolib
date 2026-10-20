@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.base.Preconditions;
 
 import javax.crypto.SecretKey;
 import javax.security.auth.Destroyable;
@@ -54,11 +53,17 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 	 * @param algorithm The {@link #getAlgorithm() algorithm name}
 	 */
 	public DestroyableSecretKey(byte[] key, int offset, int len, String algorithm) {
-		Preconditions.checkArgument(offset >= 0, "Invalid offset");
-		Preconditions.checkArgument(len >= 0, "Invalid length");
-		Preconditions.checkArgument(key.length >= offset + len, "Invalid offset/len");
+		if (offset < 0) {
+			throw new IllegalArgumentException("Invalid offset");
+		}
+		if (len < 0) {
+			throw new IllegalArgumentException("Invalid length");
+		}
+		if (key.length < offset + len) {
+			throw new IllegalArgumentException("Invalid offset/len");
+		}
 		this.key = new byte[len];
-		this.algorithm = Preconditions.checkNotNull(algorithm, "Algorithm must not be null");
+		this.algorithm = Objects.requireNonNull(algorithm, "Algorithm must not be null");
 		this.destroyed = false;
 		System.arraycopy(key, offset, this.key, 0, len);
 	}
@@ -97,13 +102,17 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 
 	@Override
 	public String getAlgorithm() {
-		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
+		if (destroyed) {
+			throw new IllegalStateException(KEY_DESTROYED_ERROR);
+		}
 		return algorithm;
 	}
 
 	@Override
 	public String getFormat() {
-		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
+		if (destroyed) {
+			throw new IllegalStateException(KEY_DESTROYED_ERROR);
+		}
 		return "RAW";
 	}
 
@@ -117,7 +126,9 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 	 */
 	@Override
 	public byte[] getEncoded() {
-		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
+		if (destroyed) {
+			throw new IllegalStateException(KEY_DESTROYED_ERROR);
+		}
 		return key;
 	}
 
@@ -126,7 +137,9 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 	 * @return New copy of <code>this</code>
 	 */
 	public DestroyableSecretKey copy() {
-		Preconditions.checkState(!destroyed, KEY_DESTROYED_ERROR);
+		if (destroyed) {
+			throw new IllegalStateException(KEY_DESTROYED_ERROR);
+		}
 		return new DestroyableSecretKey(key, algorithm); // key will get copied by the constructor as per contract
 	}
 

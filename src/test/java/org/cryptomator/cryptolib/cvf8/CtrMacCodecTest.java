@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.cvf8;
 
-import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -46,7 +46,7 @@ public class CtrMacCodecTest {
 		// -> I2o/h12/dnatSKIUkoQgh1MPivvHRTa5qWO08cTLc4vOp0A9TWBrbg==
 		// mac nonce + encrypted payload (openssl dgst -sha256 -mac HMAC -macopt hexkey:00..00 -binary), concat nonce + encrypted payload + mac:
 		FileHeaderParts header = codec.createHeader();
-		Assertions.assertArrayEquals(BaseEncoding.base64().decode(HEADER_VECTOR), header.encrypted().array());
+		Assertions.assertArrayEquals(Base64.getDecoder().decode(HEADER_VECTOR), header.encrypted().array());
 		Assertions.assertArrayEquals(new byte[16], header.nonce());
 		Assertions.assertArrayEquals(new byte[32], header.fileKey().getEncoded());
 	}
@@ -54,7 +54,7 @@ public class CtrMacCodecTest {
 	@Test
 	@DisplayName("decrypt header")
 	public void testDecryptHeader() throws AuthenticationFailedException {
-		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode(HEADER_VECTOR));
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR));
 		FileHeaderParts header = codec.decryptHeader(ciphertext);
 		Assertions.assertArrayEquals(new byte[16], header.nonce());
 		Assertions.assertArrayEquals(new byte[32], header.fileKey().getEncoded());
@@ -70,7 +70,7 @@ public class CtrMacCodecTest {
 	@Test
 	@DisplayName("decrypt header with invalid MAC")
 	public void testDecryptHeaderWithInvalidMac() {
-		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa=="));
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImjrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga26lJzstK9RUv1hj5zDC4wC9FgMfoVE1mD0HnuENuYXkJa=="));
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ciphertext));
 	}
 
@@ -80,7 +80,7 @@ public class CtrMacCodecTest {
 		ByteBuffer ciphertext = ByteBuffer.allocate(100);
 		codec.encryptChunk(new byte[16], zeroKey(), US_ASCII.encode("hello world"), ciphertext, 0);
 		ciphertext.flip();
-		Assertions.assertEquals(ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), ciphertext);
+		Assertions.assertEquals(ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), ciphertext);
 	}
 
 	@Test
@@ -91,7 +91,7 @@ public class CtrMacCodecTest {
 		codec.encryptChunk(new byte[16], zeroKey(), US_ASCII.encode("hello world"), ciphertext, 0);
 		Assertions.assertFalse(ciphertext.hasRemaining());
 		ciphertext.position(3);
-		Assertions.assertEquals(ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), ciphertext);
+		Assertions.assertEquals(ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), ciphertext);
 	}
 
 	@Test
@@ -105,7 +105,7 @@ public class CtrMacCodecTest {
 	@DisplayName("decrypt chunk")
 	public void testDecryptChunk() throws AuthenticationFailedException {
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
-		codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 0);
+		codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0);
 		cleartext.flip();
 		Assertions.assertEquals(US_ASCII.encode("hello world"), cleartext);
 	}
@@ -114,7 +114,7 @@ public class CtrMacCodecTest {
 	@DisplayName("decrypt chunk with wrong index")
 	public void testDecryptChunkWithWrongIndex() {
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 1));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 1));
 	}
 
 	@Test
@@ -123,14 +123,14 @@ public class CtrMacCodecTest {
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
 		byte[] nonce = new byte[16];
 		nonce[0] = 1;
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(nonce, zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 0));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(nonce, zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0));
 	}
 
 	@Test
 	@DisplayName("decrypt chunk with too small cleartext buffer")
 	public void testDecryptChunkWithTooSmallBuffer() {
 		ByteBuffer cleartext = ByteBuffer.allocate(10);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 0));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0));
 	}
 
 	@Test

@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.cvf8;
 
-import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
@@ -11,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
+import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
@@ -39,7 +39,7 @@ public class GcmCodecTest {
 		// -> MVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhew== (the tag is not produced by openssl, though)
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
 		FileHeaderParts header = codec.createHeader();
-		Assertions.assertArrayEquals(BaseEncoding.base64().decode(HEADER_VECTOR), header.encrypted().array());
+		Assertions.assertArrayEquals(Base64.getDecoder().decode(HEADER_VECTOR), header.encrypted().array());
 		Assertions.assertArrayEquals(new byte[12], header.nonce());
 		Assertions.assertArrayEquals(new byte[32], header.fileKey().getEncoded());
 	}
@@ -48,7 +48,7 @@ public class GcmCodecTest {
 	@DisplayName("decrypt header")
 	public void testDecryptHeader() throws AuthenticationFailedException {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
-		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode(HEADER_VECTOR));
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR));
 		FileHeaderParts header = codec.decryptHeader(ciphertext);
 		Assertions.assertArrayEquals(new byte[12], header.nonce());
 		Assertions.assertArrayEquals(new byte[32], header.fileKey().getEncoded());
@@ -66,7 +66,7 @@ public class GcmCodecTest {
 	@DisplayName("decrypt header with invalid tag")
 	public void testDecryptHeaderWithInvalidTag() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
-		ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA="));
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode("AAAAAAAAAAAAAAAAMVi/wrKflJEHTsXTuvOdGHJgA8o3pip00aL1jnUGNY7dSrEoTUrhey+maVG6P0F2RBmZR74SjUA="));
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ciphertext));
 	}
 
@@ -77,7 +77,7 @@ public class GcmCodecTest {
 		ByteBuffer ciphertext = ByteBuffer.allocate(100);
 		codec.encryptChunk(new byte[12], zeroKey(), US_ASCII.encode("hello world"), ciphertext, 0);
 		ciphertext.flip();
-		Assertions.assertEquals(ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), ciphertext);
+		Assertions.assertEquals(ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), ciphertext);
 	}
 
 	@Test
@@ -93,7 +93,7 @@ public class GcmCodecTest {
 	public void testDecryptChunk() throws AuthenticationFailedException {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
-		codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 0);
+		codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0);
 		cleartext.flip();
 		Assertions.assertEquals(US_ASCII.encode("hello world"), cleartext);
 	}
@@ -103,7 +103,7 @@ public class GcmCodecTest {
 	public void testDecryptChunkWithWrongIndex() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 1));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 1));
 	}
 
 	@Test
@@ -111,7 +111,7 @@ public class GcmCodecTest {
 	public void testDecryptChunkWithTooSmallBuffer() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer cleartext = ByteBuffer.allocate(10);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(BaseEncoding.base64().decode(CHUNK_VECTOR)), cleartext, 0));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0));
 	}
 
 	private static DestroyableSecretKey zeroKey() {

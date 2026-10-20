@@ -46,7 +46,6 @@ import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -56,7 +55,7 @@ import java.util.Random;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class UvfVaultTest {
+class UvfVaultTest {
 
 	private static final SecureRandom CSPRNG = SecureRandomMock.PRNG_RANDOM;
 	private static final byte[] UVF_MAGIC = {0x75, 0x76, 0x66, 0x00};
@@ -613,7 +612,7 @@ public class UvfVaultTest {
 
 	@Test
 	@DisplayName("destroying the vault destroys the seeds")
-	public void testDestroy() {
+	void testDestroy() {
 		UvfVault vault = specVault();
 		vault.close();
 		Assertions.assertTrue(vault.isDestroyed());

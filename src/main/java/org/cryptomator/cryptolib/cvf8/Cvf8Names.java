@@ -1,6 +1,6 @@
 package org.cryptomator.cryptolib.cvf8;
 
-import com.google.common.io.BaseEncoding;
+import org.bouncycastle.util.encoders.Base32;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
@@ -10,6 +10,7 @@ import org.cryptomator.siv.UnauthenticCiphertextException;
 
 import javax.crypto.IllegalBlockSizeException;
 import java.security.MessageDigest;
+import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -18,8 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 final class Cvf8Names {
 
-	private static final BaseEncoding BASE32 = BaseEncoding.base32();
-	private static final BaseEncoding BASE64URL = BaseEncoding.base64Url();
+	private static final Base64.Encoder BASE64URL = Base64.getUrlEncoder();
+	private static final Base64.Decoder BASE64URL_DECODER = Base64.getUrlDecoder();
 	private static final SivMode AES_SIV = new SivMode(); // thread-safe, uses thread-local block ciphers
 
 	private final CvfMasterkey masterkey;
@@ -37,7 +38,7 @@ final class Cvf8Names {
 			MessageDigest sha1 = MessageDigestSupplier.SHA1.instance();
 			byte[] encrypted = AES_SIV.encrypt(ek, mk, dirId.getBytes(UTF_8));
 			byte[] hashed = sha1.digest(encrypted);
-			return BASE32.encode(hashed);
+			return Base32.toBase32String(hashed);
 		}
 	}
 
@@ -49,7 +50,7 @@ final class Cvf8Names {
 	String encryptName(String cleartextName, String dirId) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
 			byte[] encrypted = AES_SIV.encrypt(ek, mk, cleartextName.getBytes(UTF_8), dirId.getBytes(UTF_8));
-			return BASE64URL.encode(encrypted);
+			return BASE64URL.encodeToString(encrypted);
 		}
 	}
 
@@ -61,7 +62,7 @@ final class Cvf8Names {
 	 */
 	String decryptName(String ciphertextName, String dirId) throws AuthenticationFailedException {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey()) {
-			byte[] encrypted = BASE64URL.decode(ciphertextName);
+			byte[] encrypted = BASE64URL_DECODER.decode(ciphertextName);
 			byte[] cleartext = AES_SIV.decrypt(ek, mk, encrypted, dirId.getBytes(UTF_8));
 			return new String(cleartext, UTF_8);
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
@@ -76,7 +77,7 @@ final class Cvf8Names {
 	static String shorten(String ciphertextName) {
 		MessageDigest sha1 = MessageDigestSupplier.SHA1.instance();
 		byte[] hash = sha1.digest(ciphertextName.getBytes(UTF_8));
-		return BASE64URL.encode(hash) + Constants.SHORTENED_FILE_EXT;
+		return BASE64URL.encodeToString(hash) + Constants.SHORTENED_FILE_EXT;
 	}
 
 }

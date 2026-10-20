@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.internal;
 
-import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CiphertextReader;
 import org.cryptomator.cryptolib.api.CiphertextWriter;
@@ -71,7 +70,9 @@ public final class VaultFileImpl implements VaultFile {
 
 	@Override
 	public int read(long cleartextPosition, ByteBuffer dst, CiphertextReader ciphertextReader) throws IOException, AuthenticationFailedException {
-		Preconditions.checkArgument(cleartextPosition >= 0, "position must not be negative");
+		if (cleartextPosition < 0) {
+			throw new IllegalArgumentException("position must not be negative");
+		}
 		if (cleartextPosition >= size) {
 			return -1;
 		}
@@ -90,7 +91,9 @@ public final class VaultFileImpl implements VaultFile {
 
 	@Override
 	public int write(long cleartextPosition, ByteBuffer src, CiphertextReader ciphertextReader, CiphertextWriter ciphertextWriter) throws IOException, AuthenticationFailedException {
-		Preconditions.checkArgument(cleartextPosition >= 0, "position must not be negative");
+		if (cleartextPosition < 0) {
+			throw new IllegalArgumentException("position must not be negative");
+		}
 		int length = src.remaining();
 		persistHeader(ciphertextWriter);
 		if (cleartextPosition > size) {
@@ -103,7 +106,9 @@ public final class VaultFileImpl implements VaultFile {
 
 	@Override
 	public void truncate(long newSize, CiphertextReader ciphertextReader, CiphertextWriter ciphertextWriter) throws IOException, AuthenticationFailedException {
-		Preconditions.checkArgument(newSize >= 0 && newSize <= size, "new size %s must be within [0, %s]", newSize, size);
+		if (newSize < 0 || newSize > size) {
+			throw new IllegalArgumentException(String.format("new size %s must be within [0, %s]", newSize, size));
+		}
 		if (newSize == size) {
 			return;
 		}

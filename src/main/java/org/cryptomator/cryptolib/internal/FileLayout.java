@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.internal;
 
-import com.google.common.base.Preconditions;
 
 /**
  * Size and offset arithmetic for a chunked file format: a fixed-size header followed by chunks of equal size, the last one possibly shorter, optionally terminated by an empty EOF chunk.
@@ -19,7 +18,9 @@ public final class FileLayout {
 	 * @param eofChunk Whether a file whose cleartext size is a multiple of {@code cleartextChunkSize} (including 0) ends with an additional empty chunk
 	 */
 	public FileLayout(int headerSize, int cleartextChunkSize, int ciphertextChunkSize, boolean eofChunk) {
-		Preconditions.checkArgument(headerSize >= 0 && cleartextChunkSize > 0 && ciphertextChunkSize > cleartextChunkSize);
+		if (!(headerSize >= 0 && cleartextChunkSize > 0 && ciphertextChunkSize > cleartextChunkSize)) {
+			throw new IllegalArgumentException();
+		}
 		this.headerSize = headerSize;
 		this.cleartextChunkSize = cleartextChunkSize;
 		this.ciphertextChunkSize = ciphertextChunkSize;
@@ -51,7 +52,9 @@ public final class FileLayout {
 	 * @return Size of the ciphertext file in bytes, including the header
 	 */
 	public long ciphertextSize(long cleartextSize) {
-		Preconditions.checkArgument(cleartextSize >= 0, "expected cleartextSize to be positive, but was %s", cleartextSize);
+		if (cleartextSize < 0) {
+			throw new IllegalArgumentException(String.format("expected cleartextSize to be positive, but was %s", cleartextSize));
+		}
 		long fullChunks = cleartextSize / cleartextChunkSize;
 		long remainder = cleartextSize % cleartextChunkSize;
 		long result = headerSize + fullChunks * ciphertextChunkSize;
@@ -69,7 +72,9 @@ public final class FileLayout {
 	 * @throws IllegalArgumentException If no valid file can have the given size
 	 */
 	public long cleartextSize(long ciphertextFileSize) {
-		Preconditions.checkArgument(ciphertextFileSize >= headerSize, "ciphertext file size %s is smaller than the header size %s", ciphertextFileSize, headerSize);
+		if (ciphertextFileSize < headerSize) {
+			throw new IllegalArgumentException(String.format("ciphertext file size %s is smaller than the header size %s", ciphertextFileSize, headerSize));
+		}
 		long body = ciphertextFileSize - headerSize;
 		long fullChunks = body / ciphertextChunkSize;
 		long remainder = body % ciphertextChunkSize;
@@ -96,7 +101,9 @@ public final class FileLayout {
 	 * @return Number of chunks a complete file of this size consists of, including the EOF chunk where applicable
 	 */
 	public long chunkCount(long cleartextSize) {
-		Preconditions.checkArgument(cleartextSize >= 0);
+		if (cleartextSize < 0) {
+			throw new IllegalArgumentException();
+		}
 		if (eofChunk) {
 			return cleartextSize / cleartextChunkSize + 1;
 		} else {
@@ -105,22 +112,30 @@ public final class FileLayout {
 	}
 
 	public long chunkIndex(long cleartextPosition) {
-		Preconditions.checkArgument(cleartextPosition >= 0);
+		if (cleartextPosition < 0) {
+			throw new IllegalArgumentException();
+		}
 		return cleartextPosition / cleartextChunkSize;
 	}
 
 	public int offsetInChunk(long cleartextPosition) {
-		Preconditions.checkArgument(cleartextPosition >= 0);
+		if (cleartextPosition < 0) {
+			throw new IllegalArgumentException();
+		}
 		return (int) (cleartextPosition % cleartextChunkSize);
 	}
 
 	public long ciphertextChunkOffset(long chunkIndex) {
-		Preconditions.checkArgument(chunkIndex >= 0);
+		if (chunkIndex < 0) {
+			throw new IllegalArgumentException();
+		}
 		return headerSize + chunkIndex * ciphertextChunkSize;
 	}
 
 	public long cleartextChunkOffset(long chunkIndex) {
-		Preconditions.checkArgument(chunkIndex >= 0);
+		if (chunkIndex < 0) {
+			throw new IllegalArgumentException();
+		}
 		return chunkIndex * cleartextChunkSize;
 	}
 

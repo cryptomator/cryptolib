@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.api;
 
-import com.google.common.base.Preconditions;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 
 import java.security.SecureRandom;
@@ -18,7 +17,9 @@ public class CvfMasterkey extends DestroyableSecretKey {
 	}
 
 	private static byte[] checkKeyLength(byte[] key) {
-		Preconditions.checkArgument(key.length == SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES, "Invalid raw key length %s", key.length);
+		if (key.length != SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES) {
+			throw new IllegalArgumentException(String.format("Invalid raw key length %s", key.length));
+		}
 		return key;
 	}
 
@@ -33,8 +34,12 @@ public class CvfMasterkey extends DestroyableSecretKey {
 	}
 
 	public static CvfMasterkey from(DestroyableSecretKey encKey, DestroyableSecretKey macKey) {
-		Preconditions.checkArgument(encKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of encKey");
-		Preconditions.checkArgument(macKey.getEncoded().length == SUBKEY_LEN_BYTES, "Invalid key length of macKey");
+		if (encKey.getEncoded().length != SUBKEY_LEN_BYTES) {
+			throw new IllegalArgumentException("Invalid key length of encKey");
+		}
+		if (macKey.getEncoded().length != SUBKEY_LEN_BYTES) {
+			throw new IllegalArgumentException("Invalid key length of macKey");
+		}
 		byte[] key = new byte[SUBKEY_LEN_BYTES + SUBKEY_LEN_BYTES];
 		try {
 			System.arraycopy(encKey.getEncoded(), 0, key, 0, SUBKEY_LEN_BYTES);

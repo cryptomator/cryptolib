@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.google.common.base.Preconditions;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 
@@ -34,8 +33,12 @@ final class RecoveryKeyPkcs8 {
 	 * @return The PKCS#8 encoding
 	 */
 	static byte[] encode(ECKey keyPair) {
-		Preconditions.checkArgument(Curve.P_384.equals(keyPair.getCurve()), "Not a P-384 key");
-		Preconditions.checkArgument(keyPair.isPrivate(), "Key has no private part");
+		if (!Curve.P_384.equals(keyPair.getCurve())) {
+			throw new IllegalArgumentException("Not a P-384 key");
+		}
+		if (!keyPair.isPrivate()) {
+			throw new IllegalArgumentException("Key has no private part");
+		}
 		byte[] d = keyPair.getD().decode();
 		byte[] x = keyPair.getX().decode();
 		byte[] y = keyPair.getY().decode();

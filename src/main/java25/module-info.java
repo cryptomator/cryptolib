@@ -12,7 +12,6 @@ module org.cryptomator.cryptolib {
 	requires com.nimbusds.jose.jwt;
 	requires org.cryptomator.siv;
 	requires com.google.gson;
-	requires com.google.common;
 	requires org.slf4j;
 	requires static org.jspecify;
 

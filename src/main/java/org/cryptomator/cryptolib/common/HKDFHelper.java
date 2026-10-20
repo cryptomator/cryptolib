@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.bouncycastle.crypto.DerivationFunction;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.digests.SHA512Digest;
@@ -22,7 +21,8 @@ public class HKDFHelper {
 		return hkdf(new SHA512Digest(), salt, ikm, info, length);
 	}
 
-	@VisibleForTesting static byte[] hkdf(Digest digest, byte[] salt, byte[] ikm, byte[] info, int length) {
+	// visible for testing
+	static byte[] hkdf(Digest digest, byte[] salt, byte[] ikm, byte[] info, int length) {
 		byte[] result = new byte[length];
 		DerivationFunction hkdf = new HKDFBytesGenerator(digest);
 		hkdf.init(new HKDFParameters(ikm, salt, info));
