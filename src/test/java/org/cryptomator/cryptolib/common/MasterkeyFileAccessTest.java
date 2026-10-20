@@ -22,6 +22,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -330,6 +332,46 @@ public class MasterkeyFileAccessTest {
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
 
+	}
+
+	@Test
+	@DisplayName("persist with custom cost and load")
+	public void testPersistWithCustomCostAndLoad(@TempDir Path tmpDir) throws IOException, MasterkeyLoadingFailedException {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+
+		masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", 1 << 17);
+		try (Reader reader = Files.newBufferedReader(masterkeyFile, UTF_8);
+			 Masterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd")) {
+			MasterkeyFile parsed = MasterkeyFile.read(reader);
+			Assertions.assertEquals(1 << 17, parsed.scryptCostParam);
+			Assertions.assertEquals(8, parsed.scryptBlockSize);
+			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({"0", "1", "3", "65535", "2097152"})
+	@DisplayName("persist rejects invalid custom cost without writing a file")
+	public void testPersistRejectsInvalidCost(int cost, @TempDir Path tmpDir) {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", cost));
+		Assertions.assertFalse(Files.exists(masterkeyFile));
+		Assertions.assertFalse(Files.exists(masterkeyFile.resolveSibling("masterkey.cryptomator.tmp")));
+	}
+
+	@Test
+	@DisplayName("changePassphrase retains custom cost")
+	public void testChangePassphraseRetainsCustomCost(@TempDir Path tmpDir) throws IOException {
+		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
+		masterkeyFileAccess.persistWithScryptCost(key, masterkeyFile, "asd", 1 << 17);
+
+		byte[] changed = masterkeyFileAccess.changePassphrase(Files.readAllBytes(masterkeyFile), "asd", "qwe");
+		try (Reader reader = new InputStreamReader(new ByteArrayInputStream(changed), UTF_8);
+			 Masterkey loaded = masterkeyFileAccess.load(new ByteArrayInputStream(changed), "qwe")) {
+			Assertions.assertEquals(1 << 17, MasterkeyFile.read(reader).scryptCostParam);
+			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+		}
 	}
 
 	@Test
