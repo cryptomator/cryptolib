@@ -10,7 +10,7 @@ Changes to prior versions can be found on the [Github release page](https://gith
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
 
 ### Added
-* Overloaded `MasterkeyFileAccess::changePassphrase` to apply a custom `MasterkeyFileValidator`. It also validates the scrypt parameters of the reencrypted masterkey if they differ from the original ones ([#141](https://github.com/cryptomator/cryptolib/pull/141))
+* Overloaded `MasterkeyFileAccess::changePassphrase` to apply a custom `MasterkeyFileValidator` ([#141](https://github.com/cryptomator/cryptolib/pull/141))
 
 ### Changed
 * `MasterkeyFileAccess::changePassphrase` now rejects structurally invalid masterkey files with an `IOException` before validating them ([#141](https://github.com/cryptomator/cryptolib/pull/141))
