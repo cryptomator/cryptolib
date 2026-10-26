@@ -70,31 +70,97 @@ public class MasterkeyFileAccess {
 	}
 
 	/**
-	 * Reencrypts a masterkey with a new passphrase.
+	 * Reencrypts a masterkey with a new passphrase, validating it using {@link MasterkeyFileValidator#DEFAULT}.
 	 *
 	 * @param masterkey     The original JSON representation of the masterkey
 	 * @param oldPassphrase The old passphrase
 	 * @param newPassphrase The new passphrase
 	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
-	 * @throws IOException                If failing to read, parse or write JSON
+	 * @throws IOException                If failing to read, parse or write JSON or if the validation fails
 	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
+	 * @see #changePassphrase(byte[], CharSequence, CharSequence, MasterkeyFileValidator)
 	 */
 	public byte[] changePassphrase(byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
+		return changePassphrase(masterkey, oldPassphrase, newPassphrase, MasterkeyFileValidator.DEFAULT);
+	}
+
+	/**
+	 * Reencrypts a masterkey with a new passphrase, validating it using a custom <code>validator</code>.
+	 *
+	 * @param masterkey     The original JSON representation of the masterkey
+	 * @param oldPassphrase The old passphrase
+	 * @param newPassphrase The new passphrase
+	 * @param validator     Validation the parsed masterkey file must pass, see {@link #changePassphrase(InputStream, OutputStream, CharSequence, CharSequence, MasterkeyFileValidator)}
+	 * @return A JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>
+	 * @throws IOException                If failing to read, parse or write JSON or if the <code>validator</code> rejects the masterkey file. In the latter case the validator's exception is rethrown as is.
+	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the <code>masterkey</code>
+	 */
+	public byte[] changePassphrase(byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase, MasterkeyFileValidator validator) throws IOException, InvalidPassphraseException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
 			 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-			changePassphrase(in, out, oldPassphrase, newPassphrase);
+			changePassphrase(in, out, oldPassphrase, newPassphrase, validator);
 			return out.toByteArray();
 		}
 	}
 
+	/**
+	 * Reencrypts a masterkey with a new passphrase, validating it using {@link MasterkeyFileValidator#DEFAULT}.
+	 *
+	 * @param oldIn         Stream to read the original JSON representation of the masterkey from
+	 * @param newOut        Stream to write the JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>, to
+	 * @param oldPassphrase The old passphrase
+	 * @param newPassphrase The new passphrase
+	 * @throws IOException                If failing to read, parse or write JSON or if the validation fails
+	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the masterkey
+	 * @see #changePassphrase(InputStream, OutputStream, CharSequence, CharSequence, MasterkeyFileValidator)
+	 */
 	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
+		changePassphrase(oldIn, newOut, oldPassphrase, newPassphrase, MasterkeyFileValidator.DEFAULT);
+	}
+
+	/**
+	 * Reencrypts a masterkey with a new passphrase, validating it using a custom <code>validator</code>.
+	 * <p>
+	 * The validator runs before any key derivation happens and replaces {@link MasterkeyFileValidator#DEFAULT}, just like in {@link #load(Path, CharSequence, MasterkeyFileValidator)}.
+	 * The reencrypted masterkey keeps the scrypt cost parameter of the original one, but uses the default scrypt block size. If that differs from the original block size,
+	 * the validator is invoked a second time with a file carrying the scrypt parameters of the reencrypted masterkey, so it can also reject the parameters used for the new passphrase.
+	 *
+	 * @param oldIn         Stream to read the original JSON representation of the masterkey from
+	 * @param newOut        Stream to write the JSON representation of the masterkey, now encrypted with <code>newPassphrase</code>, to
+	 * @param oldPassphrase The old passphrase
+	 * @param newPassphrase The new passphrase
+	 * @param validator     Validation the original masterkey file and the scrypt parameters of the reencrypted one must pass
+	 * @throws IOException                If failing to read, parse or write JSON or if the <code>validator</code> rejects the masterkey file. In the latter case the validator's exception is rethrown as is.
+	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the masterkey
+	 */
+	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase, MasterkeyFileValidator validator) throws IOException, InvalidPassphraseException {
+		Preconditions.checkNotNull(validator);
 		try (Reader reader = new InputStreamReader(oldIn, UTF_8);
 			 Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
 			MasterkeyFile original = MasterkeyFile.read(reader);
-			MasterkeyFileValidator.DEFAULT.validate(original);
+			if (!original.isValid()) {
+				throw new IOException("Invalid key file");
+			}
+			validator.validate(original);
+			if (original.scryptBlockSize != DEFAULT_SCRYPT_BLOCK_SIZE) {
+				validator.validate(withScryptBlockSize(original, DEFAULT_SCRYPT_BLOCK_SIZE));
+			}
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			updated.write(writer);
 		}
+	}
+
+	// copy of the given file with a different scrypt block size
+	private static MasterkeyFile withScryptBlockSize(MasterkeyFile file, int scryptBlockSize) {
+		MasterkeyFile result = new MasterkeyFile();
+		result.version = file.version;
+		result.versionMac = file.versionMac;
+		result.scryptSalt = file.scryptSalt;
+		result.scryptCostParam = file.scryptCostParam;
+		result.scryptBlockSize = scryptBlockSize;
+		result.encMasterKey = file.encMasterKey;
+		result.macMasterKey = file.macMasterKey;
+		return result;
 	}
 
 	// visible for testing

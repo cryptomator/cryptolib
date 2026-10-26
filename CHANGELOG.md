@@ -4,8 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-The changelog starts with version 2.3.0.
+The changelog starts with version 2.2.2.
 Changes to prior versions can be found on the [Github release page](https://github.com/cryptomator/cryptolib/releases).
+
+## [2.4.0](https://github.com/cryptomator/cryptolib/releases/tag/2.4.0) - 2026-10-26
+
+### Added
+* Overloaded `MasterkeyFileAccess::changePassphrase` to apply a custom `MasterkeyFileValidator` ([#141](https://github.com/cryptomator/cryptolib/pull/141))
+
+### Changed
+* `MasterkeyFileAccess::changePassphrase` now rejects structurally invalid masterkey files with an `IOException` before validating them ([#141](https://github.com/cryptomator/cryptolib/pull/141))
+
 
 ## [2.3.0](https://github.com/cryptomator/cryptolib/releases/tag/2.3.0) - 2026-10-12
 
@@ -20,7 +29,6 @@ Changes to prior versions can be found on the [Github release page](https://gith
     - Updated `com.google.code.gson:gson` from 2.13.2 to 2.14.0
     - Updated `com.google.guava:guava` from 33.5.0-jre to 33.7.2-jre
     - Updated `org.slf4j:slf4j-api` from 2.0.17 to 2.0.20
-
 
 
 ## [2.2.2](https://github.com/cryptomator/cryptolib/releases/tag/2.2.2) - 2026-01-30
