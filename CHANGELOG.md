@@ -9,7 +9,8 @@ Changes to prior versions can be found on the [Github release page](https://gith
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
 
-No changes yet.
+### Added
+* Overloaded `MasterkeyFileAccess::changePassphrase` to apply a custom `MasterkeyFileValidator`. It also validates the scrypt parameters of the reencrypted masterkey if they differ from the original ones
 
 
 ## [2.3.0](https://github.com/cryptomator/cryptolib/releases/tag/2.3.0) - 2026-10-12
