@@ -138,6 +138,9 @@ public class MasterkeyFileAccess {
 		try (Reader reader = new InputStreamReader(oldIn, UTF_8);
 			 Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
 			MasterkeyFile original = MasterkeyFile.read(reader);
+			if (!original.isValid()) {
+				throw new IOException("Invalid key file");
+			}
 			validator.validate(original);
 			if (original.scryptBlockSize != DEFAULT_SCRYPT_BLOCK_SIZE) {
 				validator.validate(withScryptBlockSize(original, DEFAULT_SCRYPT_BLOCK_SIZE));

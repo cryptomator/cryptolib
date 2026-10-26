@@ -261,6 +261,20 @@ public class MasterkeyFileAccessTest {
 		}
 
 		@Test
+		@DisplayName("structurally invalid file throws exception before the validator is invoked")
+		public void testChangePassphraseWithInvalidFile() throws IOException, InvalidPassphraseException {
+			keyFile.scryptSalt = null;
+			byte[] serialized = serialize(keyFile);
+			MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+			Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", validator);
+			});
+			Mockito.verifyNoInteractions(validator);
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+		@Test
 		@DisplayName("validator is invoked once if the scrypt block size stays the same")
 		public void testValidatorInvokedOnceForDefaultBlockSize() throws IOException {
 			byte[] serialized = serialize(keyFile);
