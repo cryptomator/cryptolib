@@ -7,7 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The changelog starts with version 2.2.2.
 Changes to prior versions can be found on the [Github release page](https://github.com/cryptomator/cryptolib/releases).
 
-## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
+## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.4.0...HEAD)
+
+No changes yet.
+
+
+## [2.4.0](https://github.com/cryptomator/cryptolib/releases/tag/2.4.0) - 2026-10-26
 
 ### Added
 * Overloaded `MasterkeyFileAccess::changePassphrase` to apply a custom `MasterkeyFileValidator` ([#141](https://github.com/cryptomator/cryptolib/pull/141))
