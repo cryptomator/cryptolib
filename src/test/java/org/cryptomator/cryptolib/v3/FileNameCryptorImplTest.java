@@ -26,11 +26,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class FileNameCryptorImplTest {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
-	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
-	private static final byte[] KDF_SALT =  Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
-	private static final UVFMasterkey MASTERKEY = new UVFMasterkey(SEEDS, KDF_SALT, -1540072521, -1540072521);
+	private static final int SEED_ID = 1925996179; // derived from the seed and KDF_SALT, see UVFMasterkeyTest
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(SEED_ID, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
+	private static final byte[] KDF_SALT = Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
+	private static final UVFMasterkey MASTERKEY = new UVFMasterkey(SEEDS, KDF_SALT, SEED_ID, SEED_ID);
 
-	private final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(MASTERKEY, -1540072521);
+	private final FileNameCryptorImpl filenameCryptor = new FileNameCryptorImpl(MASTERKEY, SEED_ID);
 
 	private static Stream<String> filenameGenerator() {
 		return Stream.generate(UUID::randomUUID).map(UUID::toString).limit(100);
@@ -72,6 +73,17 @@ public class FileNameCryptorImplTest {
 
 		Assertions.assertEquals(encryptedPath3a, encryptedPath3b);
 		Assertions.assertEquals(originalPath3, decryptedPath3);
+	}
+
+	@Test
+	@DisplayName("encrypt NFC and NFD representations of the same name")
+	public void testNormalizationOfFilenames() throws AuthenticationFailedException {
+		String nfc = "caf\u00E9";
+		String nfd = "cafe\u0301";
+		Assertions.assertNotEquals(nfc, nfd);
+
+		Assertions.assertEquals(filenameCryptor.encryptFilename(BASE32, nfc), filenameCryptor.encryptFilename(BASE32, nfd));
+		Assertions.assertEquals(nfc, filenameCryptor.decryptFilename(BASE32, filenameCryptor.encryptFilename(BASE32, nfd)));
 	}
 
 	@DisplayName("hash root dir id")

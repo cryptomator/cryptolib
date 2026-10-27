@@ -13,7 +13,6 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
@@ -21,16 +20,35 @@ import static org.cryptomator.cryptolib.v3.Constants.GCM_TAG_SIZE;
 
 class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
-	private static final byte[] KDF_CONTEXT = "fileHeader".getBytes(StandardCharsets.US_ASCII);
-
 	private final RevolvingMasterkey masterkey;
 	private final SecureRandom random;
 	private final int revision;
+	private final byte[] kdfContext;
 
+	/**
+	 * Creates a header cryptor for regular file content.
+	 *
+	 * @param masterkey The masterkey from which to derive the header key
+	 * @param random A CSPRNG for nonces and file keys
+	 * @param revision The seed used for newly created headers
+	 */
 	FileHeaderCryptorImpl(RevolvingMasterkey masterkey, SecureRandom random, int revision) {
+		this(masterkey, random, revision, Constants.KDF_CONTEXT_FILE_HEADER);
+	}
+
+	/**
+	 * Creates a header cryptor for a specific node type.
+	 *
+	 * @param masterkey The masterkey from which to derive the header key
+	 * @param random A CSPRNG for nonces and file keys
+	 * @param revision The seed used for newly created headers
+	 * @param kdfContext The header key's KDF context, one of {@link Constants#KDF_CONTEXT_FILE_HEADER}, {@link Constants#KDF_CONTEXT_DIR_HEADER} or {@link Constants#KDF_CONTEXT_SYMLINK_HEADER}
+	 */
+	FileHeaderCryptorImpl(RevolvingMasterkey masterkey, SecureRandom random, int revision, byte[] kdfContext) {
 		this.masterkey = masterkey;
 		this.random = random;
 		this.revision = revision;
+		this.kdfContext = kdfContext;
 	}
 
 	@Override
@@ -51,7 +69,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 	@Override
 	public ByteBuffer encryptHeader(FileHeader header) {
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
-		try (DestroyableSecretKey headerKey = masterkey.subKey(headerImpl.getSeedId(), 32, KDF_CONTEXT, "AES")) {
+		try (DestroyableSecretKey headerKey = masterkey.subKey(headerImpl.getSeedId(), 32, kdfContext, "AES")) {
 			ByteBuffer result = ByteBuffer.allocate(FileHeaderImpl.SIZE);
 
 			// general header:
@@ -77,6 +95,14 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		}
 	}
 
+	/**
+	 * Decrypts a file header.
+	 *
+	 * @param ciphertextHeaderBuf The encrypted header
+	 * @return The decrypted header
+	 * @throws AuthenticationFailedException If the header's tag does not match, e.g. because it was encrypted for a different node type
+	 * @throws IllegalArgumentException If the header is too short, is not a UVF header, uses an unsupported spec version or references a seed unknown to the masterkey
+	 */
 	@Override
 	public FileHeaderImpl decryptHeader(ByteBuffer ciphertextHeaderBuf) throws AuthenticationFailedException {
 		if (ciphertextHeaderBuf.remaining() < FileHeaderImpl.SIZE) {
@@ -85,10 +111,14 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 		ByteBuffer buf = ciphertextHeaderBuf.duplicate();
 
 		// general header:
-		byte[] magicBytes = new byte[Constants.UVF_MAGIC_BYTES.length];
+		byte[] magicBytes = new byte[Constants.UVF_MAGIC.length];
 		buf.get(magicBytes);
-		if (!Arrays.equals(Constants.UVF_MAGIC_BYTES, magicBytes)) {
-			throw new IllegalArgumentException("Not an UVF0 file");
+		if (!Arrays.equals(Constants.UVF_MAGIC, magicBytes)) {
+			throw new IllegalArgumentException("Not a UVF file");
+		}
+		byte specVersion = buf.get();
+		if (specVersion != Constants.UVF_SPEC_VERSION) {
+			throw new IllegalArgumentException("Unsupported UVF spec version: " + (specVersion & 0xFF));
 		}
 		int seedId = buf.order(ByteOrder.BIG_ENDIAN).getInt();
 		ByteBuffer generalHeaderBuf = buf.duplicate();
@@ -104,7 +134,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
 		// FileHeaderImpl.Payload.SIZE + GCM_TAG_SIZE is required to fix a bug in Android API level pre 29, see https://issuetracker.google.com/issues/197534888 and #24
 		ByteBuffer payloadCleartextBuf = ByteBuffer.allocate(FileHeaderImpl.CONTENT_KEY_LEN + GCM_TAG_SIZE);
-		try (DestroyableSecretKey headerKey = masterkey.subKey(seedId, 32, KDF_CONTEXT, "AES")) {
+		try (DestroyableSecretKey headerKey = masterkey.subKey(seedId, 32, kdfContext, "AES")) { // throws IllegalArgumentException if the seed ID is not in seeds
 			// decrypt payload:
 			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(headerKey, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
 				cipher.get().updateAAD(generalHeaderBuf);

@@ -9,7 +9,18 @@ Changes to prior versions can be found on the [Github release page](https://gith
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.4.0...HEAD)
 
-No changes yet.
+### Added
+* `DirectoryContentCryptor::encryptSymlinkTarget` / `decryptSymlinkTarget` for UVF symlink metadata (`symlink.uvf`), encrypted under the `symlinkHeader` key context
+* `UVFMasterkey::seedDigests`, `seedDigest` and `seedId` for seed pinning and seed ID derivation
+
+### Changed
+* The experimental UVF implementation (`CryptorProvider.Scheme.UVF_DRAFT`) now follows the [UVF spec](https://github.com/encryption-alliance/unified-vault-format) as of 2026-10-20, which changes the on-disk format of existing draft vaults:
+    - seed IDs are derived from the seeds (`kdf(seed, 32, "seedDigest")[0..4]`) and verified when parsing the vault metadata payload, which is now validated as required by the spec (seed and salt lengths, `initialSeed`/`latestSeed` present, canonical base64url)
+    - file header version byte is `1`; chunks carry 32740 payload bytes and use a 4 byte big-endian chunk number as AAD; an empty EOF chunk terminates files whose size is a multiple of the chunk size
+    - header keys are derived per node type (`fileHeader`, `dirHeader`, `symlinkHeader`)
+    - ciphertext names are unpadded base64url and must decode canonically; cleartext names are NFC-normalized and rejected if empty, `.`, `..` or containing `/` or NUL
+* `DecryptingReadableByteChannel` validates the ciphertext structure (e.g. the UVF EOF chunk) when reading a whole file
+* The JWE layer of `vault.uvf` (protected header and recipient validation, `recipientDetails`, re-wrapping with a fresh CEK) and the persistence of seed pins remain the responsibility of the library consumer
 
 
 ## [2.4.0](https://github.com/cryptomator/cryptolib/releases/tag/2.4.0) - 2026-10-26

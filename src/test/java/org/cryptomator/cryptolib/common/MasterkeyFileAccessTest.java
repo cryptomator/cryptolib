@@ -279,7 +279,7 @@ public class MasterkeyFileAccessTest {
 
 			byte[] changed = masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", validator);
 
-			try (Masterkey loaded = masterkeyFileAccess.load(new ByteArrayInputStream(changed), "qwe")) {
+			try (PerpetualMasterkey loaded = masterkeyFileAccess.load(new ByteArrayInputStream(changed), "qwe")) {
 				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 			}
 			ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);

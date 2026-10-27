@@ -8,11 +8,13 @@ import java.util.Arrays;
 
 public class FileHeaderImplTest {
 
+	private static final int SEED_ID = 1925996179;
+
 	@Test
 	public void testConstructionFailsWithInvalidNonceSize() {
 		DestroyableSecretKey contentKey = new DestroyableSecretKey(new byte[FileHeaderImpl.CONTENT_KEY_LEN], "AES");
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			new FileHeaderImpl(-1540072521, new byte[3], contentKey);
+			new FileHeaderImpl(SEED_ID, new byte[3], contentKey);
 		});
 	}
 
@@ -21,7 +23,7 @@ public class FileHeaderImplTest {
 		byte[] nonNullKey = new byte[FileHeaderImpl.CONTENT_KEY_LEN];
 		Arrays.fill(nonNullKey, (byte) 0x42);
 		DestroyableSecretKey contentKey = new DestroyableSecretKey(nonNullKey, "AES");
-		FileHeaderImpl header = new FileHeaderImpl(-1540072521, new byte[FileHeaderImpl.NONCE_LEN], contentKey);
+		FileHeaderImpl header = new FileHeaderImpl(SEED_ID, new byte[FileHeaderImpl.NONCE_LEN], contentKey);
 		Assertions.assertFalse(header.isDestroyed());
 		header.destroy();
 		Assertions.assertTrue(header.isDestroyed());

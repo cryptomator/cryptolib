@@ -3,11 +3,9 @@ package org.cryptomator.cryptolib.v3;
 import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
-import org.cryptomator.cryptolib.api.Masterkey;
 import org.cryptomator.cryptolib.api.RevolvingMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
-import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.cryptolib.common.ObjectPool;
 import org.cryptomator.siv.SivMode;
 import org.cryptomator.siv.UnauthenticCiphertextException;
@@ -15,8 +13,7 @@ import org.cryptomator.siv.UnauthenticCiphertextException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Arrays;
+import java.text.Normalizer;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -51,7 +48,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
 		try (DestroyableSecretKey key = this.sivKey.copy(); ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
-			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
+			byte[] cleartextBytes = Normalizer.normalize(cleartextName, Normalizer.Form.NFC).getBytes(UTF_8); // the spec requires NFC for a unique binary representation
 			byte[] encryptedBytes = siv.get().encrypt(key, cleartextBytes, associatedData);
 			return encoding.encode(encryptedBytes);
 		}

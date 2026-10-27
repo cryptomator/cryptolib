@@ -17,12 +17,19 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.SecureRandom;
 
+import static org.cryptomator.cryptolib.v3.Constants.CHUNK_OVERHEAD;
 import static org.cryptomator.cryptolib.v3.Constants.CHUNK_SIZE;
 import static org.cryptomator.cryptolib.v3.Constants.GCM_NONCE_SIZE;
 import static org.cryptomator.cryptolib.v3.Constants.GCM_TAG_SIZE;
 import static org.cryptomator.cryptolib.v3.Constants.MAX_CHUNK_NUMBER;
 import static org.cryptomator.cryptolib.v3.Constants.PAYLOAD_SIZE;
 
+/**
+ * AES-256-GCM-32k file content encryption.
+ * <p>
+ * A file body always ends with a trailing chunk that is empty (the EOF chunk) if the cleartext size is a multiple of the chunk size, including the empty file.
+ * {@link #cleartextSize(long)} enforces this structure, so a ciphertext size that lacks the EOF chunk is rejected.
+ */
 class FileContentCryptorImpl implements FileContentCryptor {
 
 	private final SecureRandom random;
@@ -47,6 +54,31 @@ class FileContentCryptorImpl implements FileContentCryptor {
 	}
 
 	@Override
+	public long cleartextSize(long ciphertextSize) {
+		if (ciphertextSize < CHUNK_OVERHEAD) {
+			throw new IllegalArgumentException("Ciphertext too short for the EOF chunk: " + ciphertextSize);
+		}
+		long numFullChunks = ciphertextSize / CHUNK_SIZE;
+		long lastChunkSize = ciphertextSize % CHUNK_SIZE;
+		if (lastChunkSize == 0) {
+			throw new IllegalArgumentException("Missing EOF chunk, ciphertext ends on a full chunk: " + ciphertextSize);
+		} else if (lastChunkSize < CHUNK_OVERHEAD) {
+			throw new IllegalArgumentException("Impossible size of last chunk: " + lastChunkSize);
+		}
+		return numFullChunks * PAYLOAD_SIZE + (lastChunkSize - CHUNK_OVERHEAD);
+	}
+
+	@Override
+	public long ciphertextSize(long cleartextSize) {
+		if (cleartextSize < 0) {
+			throw new IllegalArgumentException("expected cleartextSize to be positive, but was " + cleartextSize);
+		}
+		long numFullChunks = cleartextSize / PAYLOAD_SIZE;
+		long lastChunkPayload = cleartextSize % PAYLOAD_SIZE; // 0 means an empty EOF chunk
+		return numFullChunks * CHUNK_SIZE + CHUNK_OVERHEAD + lastChunkPayload;
+	}
+
+	@Override
 	public ByteBuffer encryptChunk(ByteBuffer cleartextChunk, long chunkNumber, FileHeader header) {
 		ByteBuffer ciphertextChunk = ByteBuffer.allocate(CHUNK_SIZE);
 		encryptChunk(cleartextChunk, ciphertextChunk, chunkNumber, header);
@@ -56,8 +88,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public void encryptChunk(ByteBuffer cleartextChunk, ByteBuffer ciphertextChunk, long chunkNumber, FileHeader header) {
-		if (cleartextChunk.remaining() < 0 || cleartextChunk.remaining() > PAYLOAD_SIZE) {
-			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", expected range [1, " + PAYLOAD_SIZE + "]");
+		if (cleartextChunk.remaining() > PAYLOAD_SIZE) { // an empty chunk is valid: it is the EOF chunk
+			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", expected range [0, " + PAYLOAD_SIZE + "]");
 		}
 		if (ciphertextChunk.remaining() < CHUNK_SIZE) {
 			throw new IllegalArgumentException("Invalid ciphertext chunk size: " + ciphertextChunk.remaining() + ", must fit up to " + CHUNK_SIZE + " bytes.");
@@ -80,8 +112,8 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	@Override
 	public void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, FileHeader header, boolean authenticate) throws AuthenticationFailedException {
-		if (ciphertextChunk.remaining() < GCM_NONCE_SIZE + GCM_TAG_SIZE || ciphertextChunk.remaining() > CHUNK_SIZE) {
-			throw new IllegalArgumentException("Invalid ciphertext chunk size: " + ciphertextChunk.remaining() + ", expected range [" + (GCM_NONCE_SIZE + GCM_TAG_SIZE) + ", " + CHUNK_SIZE + "]");
+		if (ciphertextChunk.remaining() < CHUNK_OVERHEAD || ciphertextChunk.remaining() > CHUNK_SIZE) {
+			throw new IllegalArgumentException("Invalid ciphertext chunk size: " + ciphertextChunk.remaining() + ", expected range [" + CHUNK_OVERHEAD + ", " + CHUNK_SIZE + "]");
 		}
 		if (cleartextChunk.remaining() < PAYLOAD_SIZE) {
 			throw new IllegalArgumentException("Invalid cleartext chunk size: " + cleartextChunk.remaining() + ", must fit up to " + PAYLOAD_SIZE + " bytes.");
@@ -89,7 +121,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		if (!authenticate) {
 			throw new UnsupportedOperationException("authenticate can not be false");
 		}
-		if ( chunkNumber < 0 || chunkNumber > MAX_CHUNK_NUMBER) {
+		if (chunkNumber < 0 || chunkNumber > MAX_CHUNK_NUMBER) {
 			throw new IllegalArgumentException("Invalid chunk number: " + chunkNumber + "expected range [0, " + Constants.MAX_CHUNK_NUMBER + "]");
 		}
 		FileHeaderImpl headerImpl = FileHeaderImpl.cast(header);
@@ -105,8 +137,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.encryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
-				cipher.get().updateAAD(chunkNumberBigEndian);
+				cipher.get().updateAAD(chunkNumberBigEndian(chunkNumber));
 				cipher.get().updateAAD(headerNonce);
 				ciphertextChunk.put(nonce);
 				assert ciphertextChunk.remaining() >= cipher.get().getOutputSize(cleartextChunk.remaining());
@@ -121,7 +152,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 	// visible for testing
 	void decryptChunk(ByteBuffer ciphertextChunk, ByteBuffer cleartextChunk, long chunkNumber, byte[] headerNonce, DestroyableSecretKey fileKey) throws AuthenticationFailedException {
-		assert ciphertextChunk.remaining() >= GCM_NONCE_SIZE + GCM_TAG_SIZE;
+		assert ciphertextChunk.remaining() >= CHUNK_OVERHEAD;
 
 		try (DestroyableSecretKey fk = fileKey.copy()) {
 			// nonce:
@@ -134,8 +165,7 @@ class FileContentCryptorImpl implements FileContentCryptor {
 
 			// payload:
 			try (ObjectPool.Lease<Cipher> cipher = CipherSupplier.AES_GCM.decryptionCipher(fk, new GCMParameterSpec(GCM_TAG_SIZE * Byte.SIZE, nonce))) {
-				final byte[] chunkNumberBigEndian = longToBigEndianByteArray(chunkNumber);
-				cipher.get().updateAAD(chunkNumberBigEndian);
+				cipher.get().updateAAD(chunkNumberBigEndian(chunkNumber));
 				cipher.get().updateAAD(headerNonce);
 				assert cleartextChunk.remaining() >= cipher.get().getOutputSize(payloadBuf.remaining());
 				cipher.get().doFinal(payloadBuf, cleartextChunk);
@@ -149,8 +179,10 @@ class FileContentCryptorImpl implements FileContentCryptor {
 		}
 	}
 
-	private byte[] longToBigEndianByteArray(long n) {
-		return ByteBuffer.allocate(Long.BYTES).order(ByteOrder.BIG_ENDIAN).putLong(n).array();
+	// the spec mixes the block number into the AAD as an unsigned 32 bit big-endian integer
+	private static byte[] chunkNumberBigEndian(long chunkNumber) {
+		assert chunkNumber >= 0 && chunkNumber <= 0xFFFFFFFFL;
+		return ByteBuffer.allocate(Integer.BYTES).order(ByteOrder.BIG_ENDIAN).putInt((int) chunkNumber).array();
 	}
 
 }

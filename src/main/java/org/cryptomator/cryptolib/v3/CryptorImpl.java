@@ -39,8 +39,19 @@ class CryptorImpl implements Cryptor {
 
 	@Override
 	public FileHeaderCryptorImpl fileHeaderCryptor(int revision) {
+		return fileHeaderCryptor(revision, Constants.KDF_CONTEXT_FILE_HEADER);
+	}
+
+	/**
+	 * Creates a header cryptor for a specific node type.
+	 *
+	 * @param revision The seed used for newly created headers
+	 * @param kdfContext The header key's KDF context, see {@link FileHeaderCryptorImpl#FileHeaderCryptorImpl(RevolvingMasterkey, SecureRandom, int, byte[])}
+	 * @return A header cryptor deriving its key with the given context
+	 */
+	FileHeaderCryptorImpl fileHeaderCryptor(int revision, byte[] kdfContext) {
 		assertNotDestroyed();
-		return new FileHeaderCryptorImpl(masterkey, random, revision);
+		return new FileHeaderCryptorImpl(masterkey, random, revision, kdfContext);
 	}
 
 	@Override

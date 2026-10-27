@@ -15,14 +15,15 @@ import java.util.Map;
 public class CryptorImplTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
-	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(-1540072521, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
-	private static final byte[] KDF_SALT =  Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
+	private static final int SEED_ID = 1925996179; // derived from the seed and KDF_SALT, see UVFMasterkeyTest
+	private static final Map<Integer, byte[]> SEEDS = Collections.singletonMap(SEED_ID, Base64.getUrlDecoder().decode("fP4V4oAjsUw5DqackAvLzA0oP1kAQZ0f5YFZQviXSuU"));
+	private static final byte[] KDF_SALT = Base64.getUrlDecoder().decode("HE4OP-2vyfLLURicF1XmdIIsWv0Zs6MobLKROUIEhQY");
 
 	private UVFMasterkey masterkey;
 
 	@BeforeEach
 	public void setup() {
-		 masterkey = new UVFMasterkey(SEEDS, KDF_SALT, -1540072521, -1540072521);
+		 masterkey = new UVFMasterkey(SEEDS, KDF_SALT, SEED_ID, SEED_ID);
 	}
 
 	@Test
@@ -56,7 +57,7 @@ public class CryptorImplTest {
 	@Test
 	public void testGetFileNameCryptorWithCorrectRevisions() {
 		try (CryptorImpl cryptor = new CryptorImpl(masterkey, RANDOM_MOCK)) {
-			Assertions.assertInstanceOf(FileNameCryptorImpl.class, cryptor.fileNameCryptor(-1540072521));
+			Assertions.assertInstanceOf(FileNameCryptorImpl.class, cryptor.fileNameCryptor(SEED_ID));
 		}
 	}
 
