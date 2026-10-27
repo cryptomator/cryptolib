@@ -122,6 +122,25 @@ class Cvf8VaultTest {
 		}
 
 		@Test
+		@DisplayName("serializeConfig and unlock leave the masterkey intact")
+		void testKeysSurviveConfigRoundTrip() {
+			byte[] raw = new byte[64];
+			CSPRNG.nextBytes(raw);
+			try (CvfMasterkey callerKey = new CvfMasterkey(raw); Cvf8UnlockedVault created = Cvf8UnlockedVault.create(callerKey, 220, CSPRNG)) {
+				byte[] config = created.serializeConfig();
+				Assertions.assertArrayEquals(raw, created.masterkey().getEncoded(), "vault's key survives serializeConfig()");
+				Assertions.assertArrayEquals(raw, callerKey.getEncoded(), "caller's key survives serializeConfig()");
+
+				Cvf8LockedVault locked = (Cvf8LockedVault) LockedVault.parse(config);
+				try (Cvf8UnlockedVault unlocked = locked.unlock(callerKey, CSPRNG)) {
+					Assertions.assertArrayEquals(raw, unlocked.masterkey().getEncoded(), "vault's key survives unlock()");
+					Assertions.assertArrayEquals(raw, callerKey.getEncoded(), "caller's key survives unlock()");
+					Assertions.assertArrayEquals(config, unlocked.serializeConfig(), "re-serialization with an intact key yields the same config");
+				}
+			}
+		}
+
+		@Test
 		@DisplayName("unlock via masterkey loader destroys the loaded key")
 		void testUnlockViaLoader() {
 			byte[] config = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG).serializeConfig();

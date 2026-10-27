@@ -93,7 +93,7 @@ final class Cvf8ConfigCodec {
 	 * @throws VaultKeyInvalidException If the signature does not verify
 	 */
 	static void verify(SignedJWT jwt, CvfMasterkey masterkey) throws VaultKeyInvalidException {
-		byte[] rawKey = masterkey.getEncoded();
+		byte[] rawKey = masterkey.getEncoded().clone(); // getEncoded() returns the live array
 		try {
 			if (!jwt.verify(new MACVerifier(rawKey))) {
 				throw new VaultKeyInvalidException("Vault config signature does not match the provided key");
@@ -124,7 +124,7 @@ final class Cvf8ConfigCodec {
 				.claim(CLAIM_SHORTENING_THRESHOLD, shorteningThreshold) //
 				.build();
 		SignedJWT jwt = new SignedJWT(header, claims);
-		byte[] rawKey = masterkey.getEncoded();
+		byte[] rawKey = masterkey.getEncoded().clone(); // getEncoded() returns the live array
 		try {
 			jwt.sign(new MACSigner(rawKey));
 			return jwt.serialize();
