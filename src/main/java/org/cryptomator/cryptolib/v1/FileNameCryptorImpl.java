@@ -12,6 +12,7 @@ import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.FileNameCryptor;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MessageDigestSupplier;
 import org.cryptomator.cryptolib.common.ObjectPool;
@@ -28,19 +29,18 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();
 	private static final ObjectPool<SivMode> AES_SIV = new ObjectPool<>(SivMode::new);
 
-	private final Masterkey masterkey;
+	private final PerpetualMasterkey masterkey;
 
-	FileNameCryptorImpl(Masterkey masterkey) {
+	FileNameCryptorImpl(PerpetualMasterkey masterkey) {
 		this.masterkey = masterkey;
 	}
 
 	@Override
-	public String hashDirectoryId(String cleartextDirectoryId) {
+	public String hashDirectoryId(byte[] cleartextDirectoryId) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
 			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
 			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
-			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
-			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes);
+			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextDirectoryId);
 			byte[] hashedBytes = sha1.get().digest(encryptedBytes);
 			return BASE32.encode(hashedBytes);
 		}

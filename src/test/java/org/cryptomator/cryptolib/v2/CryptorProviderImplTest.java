@@ -8,7 +8,9 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v2;
 
+import org.cryptomator.cryptolib.api.CryptorProvider;
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,9 +25,9 @@ public class CryptorProviderImplTest {
 
 	@Test
 	public void testProvide() {
-		Masterkey masterkey = Mockito.mock(Masterkey.class);
-		CryptorImpl cryptor = new CryptorProviderImpl().provide(masterkey, RANDOM_MOCK);
-		Assertions.assertNotNull(cryptor);
+		PerpetualMasterkey masterkey = Mockito.mock(PerpetualMasterkey.class);
+		CryptorProvider provider = new CryptorProviderImpl();
+		Assertions.assertInstanceOf(CryptorImpl.class, provider.provide(masterkey, RANDOM_MOCK));
 	}
 
 }
