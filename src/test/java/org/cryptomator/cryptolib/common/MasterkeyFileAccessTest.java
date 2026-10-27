@@ -238,6 +238,94 @@ public class MasterkeyFileAccessTest {
 		Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
 	}
 
+	@Nested
+	@DisplayName("changePassphrase() with validator")
+	class ChangePassphraseWithValidator {
+
+		@Test
+		@DisplayName("all-rejecting validator throws exception, no key derivation happens")
+		public void testChangePassphraseWithRejectingValidator() throws IOException, InvalidPassphraseException {
+			byte[] serialized = serialize(keyFile);
+			IOException rejection = new IOException("scrypt parameters exceed memory limit");
+
+			IOException thrown = Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", file -> {
+					throw rejection;
+				});
+			});
+			Assertions.assertSame(rejection, thrown);
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+		@Test
+		@DisplayName("structurally invalid file throws exception before the validator is invoked")
+		public void testChangePassphraseWithInvalidFile() throws IOException, InvalidPassphraseException {
+			keyFile.scryptSalt = null;
+			byte[] serialized = serialize(keyFile);
+			MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+			Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", validator);
+			});
+			Mockito.verifyNoInteractions(validator);
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+		@Test
+		@DisplayName("validator is invoked once if the scrypt block size stays the same")
+		public void testValidatorInvokedOnceForDefaultBlockSize() throws IOException {
+			byte[] serialized = serialize(keyFile);
+			MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+			byte[] changed = masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", validator);
+
+			try (Masterkey loaded = masterkeyFileAccess.load(new ByteArrayInputStream(changed), "qwe")) {
+				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
+			}
+			ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
+			Mockito.verify(validator).validate(captor.capture());
+			Assertions.assertEquals(2, captor.getValue().scryptCostParam);
+			Assertions.assertEquals(8, captor.getValue().scryptBlockSize);
+		}
+
+		@Test
+		@DisplayName("validator is invoked a second time with the new scrypt parameters if the scrypt block size changes")
+		public void testValidatorInvokedTwiceForDifferentBlockSize() throws IOException, InvalidPassphraseException {
+			keyFile.scryptBlockSize = 4;
+			byte[] serialized = serialize(keyFile);
+			Mockito.doReturn(key).when(masterkeyFileAccess).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+			MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
+
+			masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", validator);
+
+			ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
+			Mockito.verify(validator, Mockito.times(2)).validate(captor.capture());
+			Assertions.assertEquals(2, captor.getAllValues().get(0).scryptCostParam);
+			Assertions.assertEquals(4, captor.getAllValues().get(0).scryptBlockSize);
+			Assertions.assertEquals(2, captor.getAllValues().get(1).scryptCostParam);
+			Assertions.assertEquals(8, captor.getAllValues().get(1).scryptBlockSize);
+		}
+
+		@Test
+		@DisplayName("validator rejecting the new scrypt parameters throws exception, no key derivation happens")
+		public void testValidatorRejectingNewScryptParams() throws IOException, InvalidPassphraseException {
+			keyFile.scryptBlockSize = 4;
+			byte[] serialized = serialize(keyFile);
+			IOException rejection = new IOException("scrypt parameters exceed memory limit");
+
+			IOException thrown = Assertions.assertThrows(IOException.class, () -> {
+				masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", file -> {
+					if (file.scryptBlockSize > 4) {
+						throw rejection;
+					}
+				});
+			});
+			Assertions.assertSame(rejection, thrown);
+			Mockito.verify(masterkeyFileAccess, Mockito.never()).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
+		}
+
+	}
+
 	private static byte[] serialize(MasterkeyFile keyFile) throws IOException {
 		StringWriter writer = new StringWriter();
 		keyFile.write(writer);
