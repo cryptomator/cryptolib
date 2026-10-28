@@ -22,7 +22,7 @@ public class ReseedingSecureRandomTest {
 	public void setup() {
 		seeder = Mockito.mock(SecureRandom.class);
 		csprng = Mockito.mock(SecureRandom.class);
-		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(invocation ->  {
+		Mockito.when(seeder.generateSeed(Mockito.anyInt())).then(invocation -> {
 			int num = invocation.getArgument(0);
 			return new byte[num];
 		});

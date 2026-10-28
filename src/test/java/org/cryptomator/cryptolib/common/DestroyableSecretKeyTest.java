@@ -18,7 +18,8 @@ public class DestroyableSecretKeyTest {
 
 	@DisplayName("generate(...)")
 	@ParameterizedTest(name = "keylen = {0}")
-	@ValueSource(ints = {0, 16, 24, 32, 64, 777})
+	@ValueSource(ints = {0, 16, 24, 32, 64, 777
+	})
 	public void testGenerateNew(int keylen) {
 		byte[] keySrc = new byte[keylen];
 		new Random(42).nextBytes(keySrc);

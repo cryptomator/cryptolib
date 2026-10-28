@@ -37,8 +37,8 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	@Override
 	public String hashDirectoryId(String cleartextDirectoryId) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
-			 ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		        ObjectPool.Lease<MessageDigest> sha1 = MessageDigestSupplier.SHA1.instance();
+		        ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] cleartextBytes = cleartextDirectoryId.getBytes(UTF_8);
 			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes);
 			byte[] hashedBytes = sha1.get().digest(encryptedBytes);
@@ -49,7 +49,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	@Override
 	public String encryptFilename(BaseEncoding encoding, String cleartextName, byte[]... associatedData) {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		        ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] cleartextBytes = cleartextName.getBytes(UTF_8);
 			byte[] encryptedBytes = siv.get().encrypt(ek, mk, cleartextBytes, associatedData);
 			return encoding.encode(encryptedBytes);
@@ -59,7 +59,7 @@ class FileNameCryptorImpl implements FileNameCryptor {
 	@Override
 	public String decryptFilename(BaseEncoding encoding, String ciphertextName, byte[]... associatedData) throws AuthenticationFailedException {
 		try (DestroyableSecretKey ek = masterkey.getEncKey(); DestroyableSecretKey mk = masterkey.getMacKey();
-			 ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
+		        ObjectPool.Lease<SivMode> siv = AES_SIV.get()) {
 			byte[] encryptedBytes = encoding.decode(ciphertextName);
 			byte[] cleartextBytes = siv.get().decrypt(ek, mk, encryptedBytes, associatedData);
 			return new String(cleartextBytes, UTF_8);

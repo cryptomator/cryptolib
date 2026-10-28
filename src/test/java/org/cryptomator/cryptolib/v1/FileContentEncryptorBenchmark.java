@@ -35,7 +35,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Thread)
 @Warmup(iterations = 2)
 @Measurement(iterations = 2)
-@BenchmarkMode(value = {Mode.SingleShotTime})
+@BenchmarkMode(value = {Mode.SingleShotTime
+})
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class FileContentEncryptorBenchmark {
 

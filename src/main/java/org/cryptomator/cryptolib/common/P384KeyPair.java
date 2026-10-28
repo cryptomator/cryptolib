@@ -135,6 +135,4 @@ public class P384KeyPair extends ECKeyPair {
 		}
 	}
 
-
-
 }

@@ -87,8 +87,10 @@ public class ECKeyPair implements Destroyable {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		ECKeyPair that = (ECKeyPair) o;
 		return MessageDigest.isEqual(this.getPublic().getEncoded(), that.getPublic().getEncoded());
 	}

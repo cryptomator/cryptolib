@@ -64,7 +64,7 @@ public class MasterkeyFileAccess {
 	@Deprecated
 	public static int readAllegedVaultVersion(byte[] masterkey) throws IOException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
-			 Reader reader = new InputStreamReader(in, UTF_8)) {
+		        Reader reader = new InputStreamReader(in, UTF_8)) {
 			MasterkeyFile parsedFile = MasterkeyFile.read(reader);
 			return parsedFile.version;
 		}
@@ -82,7 +82,7 @@ public class MasterkeyFileAccess {
 	 */
 	public byte[] changePassphrase(byte[] masterkey, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
 		try (ByteArrayInputStream in = new ByteArrayInputStream(masterkey);
-			 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+		        ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 			changePassphrase(in, out, oldPassphrase, newPassphrase);
 			return out.toByteArray();
 		}
@@ -90,7 +90,7 @@ public class MasterkeyFileAccess {
 
 	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase) throws IOException, InvalidPassphraseException {
 		try (Reader reader = new InputStreamReader(oldIn, UTF_8);
-			 Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
+		        Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
 			MasterkeyFile original = MasterkeyFile.read(reader);
 			MasterkeyFile updated = changePassphrase(original, oldPassphrase, newPassphrase);
 			updated.write(writer);
@@ -140,8 +140,8 @@ public class MasterkeyFileAccess {
 		Preconditions.checkNotNull(passphrase);
 
 		try (DestroyableSecretKey kek = scrypt(passphrase, parsedFile.scryptSalt, pepper, parsedFile.scryptCostParam, parsedFile.scryptBlockSize);
-			 DestroyableSecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG);
-			 DestroyableSecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG)) {
+		        DestroyableSecretKey encKey = AesKeyWrap.unwrap(kek, parsedFile.encMasterKey, Masterkey.ENC_ALG);
+		        DestroyableSecretKey macKey = AesKeyWrap.unwrap(kek, parsedFile.macMasterKey, Masterkey.MAC_ALG)) {
 			return Masterkey.from(encKey, macKey);
 		} catch (InvalidKeyException e) {
 			throw new InvalidPassphraseException();
@@ -193,8 +193,8 @@ public class MasterkeyFileAccess {
 		final byte[] salt = new byte[DEFAULT_SCRYPT_SALT_LENGTH];
 		csprng.nextBytes(salt);
 		try (DestroyableSecretKey kek = scrypt(passphrase, salt, pepper, scryptCostParam, DEFAULT_SCRYPT_BLOCK_SIZE);
-			 DestroyableSecretKey macKey = masterkey.getMacKey();
-			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(macKey)) {
+		        DestroyableSecretKey macKey = masterkey.getMacKey();
+		        ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(macKey)) {
 			final byte[] versionMac = mac.get().doFinal(ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(vaultVersion).array());
 			MasterkeyFile result = new MasterkeyFile();
 			result.version = vaultVersion;
@@ -219,6 +219,5 @@ public class MasterkeyFileAccess {
 			Arrays.fill(kekBytes, (byte) 0x00);
 		}
 	}
-
 
 }

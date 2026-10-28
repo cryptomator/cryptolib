@@ -104,7 +104,7 @@ class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
 		// check mac:
 		try (DestroyableSecretKey mk = masterkey.getMacKey();
-			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
+		        ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(mk)) {
 			ByteBuffer nonceAndCiphertextBuf = buf.duplicate();
 			nonceAndCiphertextBuf.position(FileHeaderImpl.NONCE_POS).limit(FileHeaderImpl.NONCE_POS + FileHeaderImpl.NONCE_LEN + FileHeaderImpl.PAYLOAD_LEN);
 			mac.get().update(nonceAndCiphertextBuf);

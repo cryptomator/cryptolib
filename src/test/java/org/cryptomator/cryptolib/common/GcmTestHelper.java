@@ -41,7 +41,7 @@ public class GcmTestHelper {
 	public interface CipherInitializer {
 
 		void init(int opmode, SecretKey key, AlgorithmParameterSpec params)
-				throws InvalidKeyException, InvalidAlgorithmParameterException;
+		        throws InvalidKeyException, InvalidAlgorithmParameterException;
 
 	}
 

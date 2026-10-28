@@ -131,12 +131,12 @@ public class X509CertBuilder {
 
 	private X509CertificateHolder buildCertHolder() throws CertIOException {
 		X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder( //
-				issuer, //
-				randomSerialNo(), //
-				notBefore, //
-				notAfter, //
-				subject, //
-				keyPair.getPublic());
+		        issuer, //
+		        randomSerialNo(), //
+		        notBefore, //
+		        notAfter, //
+		        subject, //
+		        keyPair.getPublic());
 		certificateBuilder.addExtension(ASN1_SUBJECT_KEY_ID, false, getX509ExtensionUtils().createSubjectKeyIdentifier(keyPair.getPublic()));
 		return certificateBuilder.build(signer);
 	}

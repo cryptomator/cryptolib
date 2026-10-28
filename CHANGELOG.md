@@ -24,4 +24,3 @@ No changes yet.
     - Updated `org.bouncycastle:bcpkix-jdk18on` from 1.80 to 1.83
     - Updated `com.google.code.gson:gson` from 2.12.1 to 2.13.2
     - Updated `com.google.guava:guava` from 33.4.0-jre to 33.5.0-jre
-

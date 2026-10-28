@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-
 public class FileNameCryptorImplTest {
 
 	private static final BaseEncoding BASE32 = BaseEncoding.base32();

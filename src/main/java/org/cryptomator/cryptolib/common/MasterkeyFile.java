@@ -21,10 +21,10 @@ import java.io.Writer;
 public class MasterkeyFile {
 
 	private static final Gson GSON = new GsonBuilder() //
-			.setPrettyPrinting() //
-			.disableHtmlEscaping() //
-			.registerTypeHierarchyAdapter(byte[].class, new MasterkeyFile.ByteArrayJsonAdapter()) //
-			.create();
+	        .setPrettyPrinting() //
+	        .disableHtmlEscaping() //
+	        .registerTypeHierarchyAdapter(byte[].class, new MasterkeyFile.ByteArrayJsonAdapter()) //
+	        .create();
 
 	@SerializedName("version")
 	public int version;
@@ -72,12 +72,12 @@ public class MasterkeyFile {
 
 	boolean isValid() {
 		return version != 0
-				&& scryptSalt != null
-				&& scryptCostParam > 1
-				&& scryptBlockSize > 0
-				&& encMasterKey != null
-				&& macMasterKey != null
-				&& versionMac != null;
+		        && scryptSalt != null
+		        && scryptCostParam > 1
+		        && scryptBlockSize > 0
+		        && encMasterKey != null
+		        && macMasterKey != null
+		        && versionMac != null;
 	}
 
 	private static class ByteArrayJsonAdapter extends TypeAdapter<byte[]> {

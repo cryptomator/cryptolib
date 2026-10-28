@@ -91,7 +91,8 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("encrypt chunk with invalid size")
 		@ParameterizedTest(name = "cleartext size: {0}")
-		@ValueSource(ints = {Constants.PAYLOAD_SIZE + 1})
+		@ValueSource(ints = {Constants.PAYLOAD_SIZE + 1
+		})
 		public void testEncryptChunkOfInvalidSize(int size) {
 			ByteBuffer cleartext = ByteBuffer.allocate(size);
 
@@ -141,7 +142,7 @@ public class FileContentCryptorImplTest {
 			dst.position(0);
 			dst.get(ciphertext);
 			byte[] expected = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAACNqP4ddv3Z2rUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga24VjC86+zlHN49BfM" //
-					+ "dzvHF3f9EE0LSnRLSsu6ps3IRcJgAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+			        + "dzvHF3f9EE0LSnRLSsu6ps3IRcJgAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 			Assertions.assertArrayEquals(expected, ciphertext);
 		}
 
@@ -152,7 +153,8 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("decrypt chunk with invalid size")
 		@ParameterizedTest(name = "ciphertext size: {0}")
-		@ValueSource(ints = {0, Constants.NONCE_SIZE + Constants.MAC_SIZE - 1, Constants.CHUNK_SIZE + 1})
+		@ValueSource(ints = {0, Constants.NONCE_SIZE + Constants.MAC_SIZE - 1, Constants.CHUNK_SIZE + 1
+		})
 		public void testDecryptChunkOfInvalidSize(int size) {
 			ByteBuffer ciphertext = ByteBuffer.allocate(size);
 
@@ -197,7 +199,7 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt file")
 		public void testFileDecryption() throws IOException {
 			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
+			        + "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo");
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			ByteBuffer result = ByteBuffer.allocate(20);
@@ -225,9 +227,9 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt unauthentic chunk")
 		@ParameterizedTest(name = "unauthentic {1}")
 		@CsvSource(value = {
-				"aAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, NONCE",
-				"AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3YTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, CONTENT",
-				"AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG=, MAC",
+		        "aAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, NONCE",
+		        "AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3YTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3Og=, CONTENT",
+		        "AAAAAAAAAAAAAAAAAAAAALTwrBTNYP7m3yTGKlhka9WPvX1Lpn5EYfVxlyX1ISgRXtdRnivM7r6F3OG=, MAC",
 		})
 		public void testUnauthenticChunkDecryption(String chunkData, String ignored) {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode(chunkData));
@@ -240,9 +242,9 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt unauthentic file")
 		@ParameterizedTest(name = "unauthentic {1} in first chunk")
 		@CsvSource(value = {
-				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, NONCE",
-				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, CONTENT",
-				"AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO, MAC",
+		        "AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAABAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, NONCE",
+		        "AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUZWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzo, CONTENT",
+		        "AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO, MAC",
 		})
 		public void testDecryptionWithUnauthenticFirstChunk(String fileData, String ignored) throws IOException {
 			byte[] ciphertext = BaseEncoding.base64().decode(fileData);
@@ -270,7 +272,7 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt file with unauthentic MAC in first chunk but skipping MAC verficiation")
 		public void testDecryptionWithUnauthenticMacSkipAuth() throws InterruptedException, IOException {
 			byte[] ciphertext = BaseEncoding.base64().decode("AAAAAAAAAAAAAAAAAAAAANyVwHiiQImCrUiiFJKEIIdTD4r7x0U2ualjtPHEy3OLzqdAPU1ga27XjlTjFxC1VCqZa+" //
-					+ "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
+			        + "L2eH+xWVgrSLX+JkG35ZJxk5xXswAAAAAAAAAAAAAAAAAAAAC08KwUzWD+5t8kxipYZGvVj719S6Z+RGH1cZcl9SEoEV7XUZ4rzO6+hdzO");
 			ReadableByteChannel ciphertextCh = Channels.newChannel(new ByteArrayInputStream(ciphertext));
 
 			ByteBuffer result = ByteBuffer.allocate(20);

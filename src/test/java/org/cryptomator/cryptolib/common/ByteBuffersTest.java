@@ -87,19 +87,21 @@ public class ByteBuffersTest {
 	public void testFillReachingBufferLimit() throws IOException {
 		final ReadableByteChannel src = Mockito.mock(ReadableByteChannel.class);
 		final ByteBuffer dst = ByteBuffer.allocate(10);
-		Mockito.when(src.read(dst)).then(new Answer(){
+		Mockito.when(src.read(dst)).then(new Answer() {
 			private int call = 0;
 
 			public Object answer(InvocationOnMock invocation) {
 				ByteBuffer buf = invocation.getArgument(0);
 				switch (call++) {
-					case 0:
-						buf.put(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04});
+					case 0 :
+						buf.put(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04
+						});
 						return 5;
-					case 1:
-						buf.put(new byte[]{0x06, 0x07, 0x08, 0x09, 0x0A});
+					case 1 :
+						buf.put(new byte[]{0x06, 0x07, 0x08, 0x09, 0x0A
+						});
 						return 5;
-					default:
+					default :
 						return -1;
 				}
 			}
@@ -110,26 +112,29 @@ public class ByteBuffersTest {
 		Assertions.assertEquals(10, read);
 		Assertions.assertEquals(0, dst.position());
 		Assertions.assertEquals(10, dst.remaining());
-		Assertions.assertArrayEquals(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0A}, dst.array());
+		Assertions.assertArrayEquals(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0A
+		}, dst.array());
 	}
 
 	@Test
 	public void testFillReachingEof() throws IOException {
 		final ReadableByteChannel src = Mockito.mock(ReadableByteChannel.class);
 		final ByteBuffer dst = ByteBuffer.allocate(10);
-		Mockito.when(src.read(dst)).then(new Answer(){
+		Mockito.when(src.read(dst)).then(new Answer() {
 			private int call = 0;
 
 			public Object answer(InvocationOnMock invocation) {
 				ByteBuffer buf = invocation.getArgument(0);
 				switch (call++) {
-					case 0:
-						buf.put(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04});
+					case 0 :
+						buf.put(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04
+						});
 						return 5;
-					case 1:
-						buf.put(new byte[]{0x06, 0x07, 0x08});
+					case 1 :
+						buf.put(new byte[]{0x06, 0x07, 0x08
+						});
 						return 3;
-					default:
+					default :
 						return -1;
 				}
 			}
@@ -140,7 +145,8 @@ public class ByteBuffersTest {
 		Assertions.assertEquals(8, read);
 		Assertions.assertEquals(0, dst.position());
 		Assertions.assertEquals(8, dst.remaining());
-		Assertions.assertArrayEquals(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x00, 0x00}, dst.array());
+		Assertions.assertArrayEquals(new byte[]{0x00, 0x01, 0x02, 0x03, 0x04, 0x06, 0x07, 0x08, 0x00, 0x00
+		}, dst.array());
 	}
 
 	@Test

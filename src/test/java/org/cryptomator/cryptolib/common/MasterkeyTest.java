@@ -18,7 +18,7 @@ public class MasterkeyTest {
 	@BeforeEach
 	public void setup() {
 		raw = new byte[64];
-		for (byte b=0; b<raw.length; b++) {
+		for (byte b = 0; b < raw.length; b++) {
 			raw[b] = b;
 		}
 		masterkey = new Masterkey(raw);
@@ -56,7 +56,7 @@ public class MasterkeyTest {
 	public void testGetEncKey() {
 		SecretKey encKey = masterkey.getEncKey();
 
-		Assertions.assertArrayEquals(Arrays.copyOfRange(raw, 0,32), encKey.getEncoded());
+		Assertions.assertArrayEquals(Arrays.copyOfRange(raw, 0, 32), encKey.getEncoded());
 	}
 
 	@Test

@@ -32,7 +32,7 @@ public class ECKeyPairTest {
 	}
 
 	private ECParameterSpec getParamsFromPublicKey(KeyPair keyPair) {
-		return ((ECPublicKey)keyPair.getPublic()).getParams();
+		return ((ECPublicKey) keyPair.getPublic()).getParams();
 	}
 
 	@Nested
@@ -167,10 +167,10 @@ public class ECKeyPairTest {
 
 		@ParameterizedTest
 		@CsvSource(value = {
-				"-1, 0",
-				"0, -1",
-				"2, 0",
-				"0, 2",
+		        "-1, 0",
+		        "0, -1",
+		        "2, 0",
+		        "0, 2",
 		})
 		public void testInvalidPoint(int x, int y) {
 			Mockito.doReturn(new ECPoint(BigInteger.valueOf(x), BigInteger.valueOf(y))).when(publicKey).getW();
@@ -179,8 +179,8 @@ public class ECKeyPairTest {
 
 		@ParameterizedTest
 		@CsvSource(value = {
-				"1, 0",
-				"0, 1",
+		        "1, 0",
+		        "0, 1",
 		})
 		public void testInvalidCurveCoefficients(int a, int b) {
 			Mockito.doReturn(BigInteger.valueOf(a)).when(curve).getA();
@@ -189,6 +189,5 @@ public class ECKeyPairTest {
 		}
 
 	}
-
 
 }

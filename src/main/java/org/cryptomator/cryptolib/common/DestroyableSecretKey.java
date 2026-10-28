@@ -151,8 +151,10 @@ public class DestroyableSecretKey implements SecretKey, AutoCloseable {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
 		DestroyableSecretKey that = (DestroyableSecretKey) o;
 		return algorithm.equals(that.algorithm) && MessageDigest.isEqual(this.key, that.key);
 	}

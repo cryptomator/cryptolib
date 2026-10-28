@@ -184,8 +184,10 @@ public class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("different peppers -> different wrapped keys")
 		public void testLockWithDifferentPeppers() {
-			byte[] pepper1 = new byte[]{(byte) 0x01};
-			byte[] pepper2 = new byte[]{(byte) 0x02};
+			byte[] pepper1 = new byte[]{(byte) 0x01
+			};
+			byte[] pepper2 = new byte[]{(byte) 0x02
+			};
 			MasterkeyFileAccess masterkeyFileAccess1 = new MasterkeyFileAccess(pepper1, RANDOM_MOCK);
 			MasterkeyFileAccess masterkeyFileAccess2 = new MasterkeyFileAccess(pepper2, RANDOM_MOCK);
 

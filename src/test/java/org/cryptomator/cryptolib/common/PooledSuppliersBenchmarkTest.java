@@ -30,7 +30,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Thread)
 @Warmup(iterations = 2)
 @Measurement(iterations = 2)
-@BenchmarkMode(value = {Mode.AverageTime})
+@BenchmarkMode(value = {Mode.AverageTime
+})
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class PooledSuppliersBenchmarkTest {
 
@@ -45,10 +46,10 @@ public class PooledSuppliersBenchmarkTest {
 	@Test
 	public void runBenchmarks() throws RunnerException {
 		Options opt = new OptionsBuilder() //
-				.include(getClass().getName()) //
-				.threads(2).forks(1) //
-				.shouldFailOnError(true).shouldDoGC(true) //
-				.build();
+		        .include(getClass().getName()) //
+		        .threads(2).forks(1) //
+		        .shouldFailOnError(true).shouldDoGC(true) //
+		        .build();
 		new Runner(opt).run();
 	}
 

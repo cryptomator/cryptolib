@@ -100,7 +100,8 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("encrypt chunk with invalid size")
 		@ParameterizedTest(name = "cleartext size: {0}")
-		@ValueSource(ints = {Constants.PAYLOAD_SIZE + 1})
+		@ValueSource(ints = {Constants.PAYLOAD_SIZE + 1
+		})
 		public void testEncryptChunkOfInvalidSize(int size) {
 			ByteBuffer cleartext = ByteBuffer.allocate(size);
 
@@ -184,7 +185,8 @@ public class FileContentCryptorImplTest {
 
 		@DisplayName("decrypt chunk with invalid size")
 		@ParameterizedTest(name = "ciphertext size: {0}")
-		@ValueSource(ints = {0, Constants.GCM_NONCE_SIZE + Constants.GCM_TAG_SIZE - 1, Constants.CHUNK_SIZE + 1})
+		@ValueSource(ints = {0, Constants.GCM_NONCE_SIZE + Constants.GCM_TAG_SIZE - 1, Constants.CHUNK_SIZE + 1
+		})
 		public void testDecryptChunkOfInvalidSize(int size) {
 			ByteBuffer ciphertext = ByteBuffer.allocate(size);
 
@@ -256,9 +258,9 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt unauthentic chunk")
 		@ParameterizedTest(name = "unauthentic {1}")
 		@CsvSource(value = {
-				"vVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv, NONCE",
-				"VVVVVVVVVVVVVVVVNHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv, CONTENT",
-				"VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHV, TAG",
+		        "vVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv, NONCE",
+		        "VVVVVVVVVVVVVVVVNHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHv, CONTENT",
+		        "VVVVVVVVVVVVVVVVnHVdh+EbedvPeiCwCdaTYpzn1CXQjhSh7PHV, TAG",
 		})
 		public void testUnauthenticChunkDecryption(String chunkData, String ignored) {
 			ByteBuffer ciphertext = ByteBuffer.wrap(BaseEncoding.base64().decode(chunkData));
@@ -271,9 +273,9 @@ public class FileContentCryptorImplTest {
 		@DisplayName("decrypt unauthentic file")
 		@ParameterizedTest(name = "unauthentic {1} in first chunk")
 		@CsvSource(value = {
-				"VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5vVVVVVVVvVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=, NONCE",
-				"VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVvVVVVVVVsxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=, CONTENT",
-				"VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coVx=, TAG",
+		        "VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5vVVVVVVVvVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=, NONCE",
+		        "VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVvVVVVVVVsxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coV0=, CONTENT",
+		        "VVVVVVVVVVVVVVVVC+/OFHHE8UvKYTOPlrMO5rCRLAI7/zk8Hjoisja03+yi9ugeeMz1evZhxDExrawl93vf9DKQPx5VVVVVVVVVVVVVVVVSxe6Nf7RO8orsVTzHAmXlNSy1oJpDrg9coVx=, TAG",
 		})
 		public void testDecryptionWithUnauthenticFirstChunk(String fileData, String ignored) throws IOException {
 			byte[] ciphertext = BaseEncoding.base64().decode(fileData);

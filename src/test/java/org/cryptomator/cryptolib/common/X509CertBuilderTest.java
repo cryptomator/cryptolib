@@ -81,8 +81,8 @@ public class X509CertBuilderTest {
 		@DisplayName("build() with missing issuer")
 		public void testBuildWithMissingIssuer() {
 			builder.withSubject("CN=Test") //
-					.withNotBefore(Instant.now()) //
-					.withNotAfter(Instant.now().minusSeconds(3600));
+			        .withNotBefore(Instant.now()) //
+			        .withNotAfter(Instant.now().minusSeconds(3600));
 			Assertions.assertThrows(IllegalStateException.class, () -> {
 				builder.build();
 			});
@@ -92,8 +92,8 @@ public class X509CertBuilderTest {
 		@DisplayName("build() with missing subject")
 		public void testBuildWithMissingSubject() {
 			builder.withIssuer("CN=Test") //
-					.withNotBefore(Instant.now()) //
-					.withNotAfter(Instant.now().minusSeconds(3600));
+			        .withNotBefore(Instant.now()) //
+			        .withNotAfter(Instant.now().minusSeconds(3600));
 			Assertions.assertThrows(IllegalStateException.class, () -> {
 				builder.build();
 			});
@@ -103,8 +103,8 @@ public class X509CertBuilderTest {
 		@DisplayName("build() with missing notBefore")
 		public void testBuildWithMissingNotBefore() {
 			builder.withIssuer("CN=Test") //
-					.withSubject("CN=Test") //
-					.withNotAfter(Instant.now().minusSeconds(3600));
+			        .withSubject("CN=Test") //
+			        .withNotAfter(Instant.now().minusSeconds(3600));
 			Assertions.assertThrows(IllegalStateException.class, () -> {
 				builder.build();
 			});
@@ -114,8 +114,8 @@ public class X509CertBuilderTest {
 		@DisplayName("build() with missing notAfter")
 		public void testBuildWithMissingNotAfter() {
 			builder.withIssuer("CN=Test") //
-					.withSubject("CN=Test") //
-					.withNotBefore(Instant.now());
+			        .withSubject("CN=Test") //
+			        .withNotBefore(Instant.now());
 			Assertions.assertThrows(IllegalStateException.class, () -> {
 				builder.build();
 			});
@@ -125,9 +125,9 @@ public class X509CertBuilderTest {
 		@DisplayName("build() with invalid notAfter")
 		public void testBuildWithInvalidNotAfter() {
 			builder.withIssuer("CN=Test") //
-					.withSubject("CN=Test") //
-					.withNotBefore(Instant.now()) //
-					.withNotAfter(Instant.now().minusSeconds(1));
+			        .withSubject("CN=Test") //
+			        .withNotBefore(Instant.now()) //
+			        .withNotAfter(Instant.now().minusSeconds(1));
 			Assertions.assertThrows(IllegalStateException.class, () -> {
 				builder.build();
 			});
@@ -137,11 +137,11 @@ public class X509CertBuilderTest {
 		@DisplayName("build() with all params set")
 		public void testBuild() throws CertificateException {
 			X509Certificate cert = builder //
-					.withIssuer("CN=Test") //
-					.withSubject("CN=Test") //
-					.withNotBefore(Instant.now()) //
-					.withNotAfter(Instant.now().plusSeconds(3600)) //
-					.build();
+			        .withIssuer("CN=Test") //
+			        .withSubject("CN=Test") //
+			        .withNotBefore(Instant.now()) //
+			        .withNotAfter(Instant.now().plusSeconds(3600)) //
+			        .build();
 
 			Assertions.assertNotNull(cert);
 			Assertions.assertDoesNotThrow(() -> {

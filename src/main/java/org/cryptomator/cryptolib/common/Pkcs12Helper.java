@@ -40,12 +40,13 @@ class Pkcs12Helper {
 			KeyStore keyStore = getKeyStore();
 			keyStore.load(null, pw);
 			X509Certificate cert = X509CertBuilder.init(keyPair, signatureAlg) //
-					.withIssuer(X509_ISSUER) //
-					.withSubject(X509_SUBJECT) //
-					.withNotBefore(Instant.now()) //
-					.withNotAfter(Instant.now().plus(Period.ofDays(X509_VALID_DAYS)))
-					.build();
-			X509Certificate[] chain = new X509Certificate[]{cert};
+			        .withIssuer(X509_ISSUER) //
+			        .withSubject(X509_SUBJECT) //
+			        .withNotBefore(Instant.now()) //
+			        .withNotAfter(Instant.now().plus(Period.ofDays(X509_VALID_DAYS)))
+			        .build();
+			X509Certificate[] chain = new X509Certificate[]{cert
+			};
 			keyStore.setKeyEntry(KEYSTORE_ALIAS_KEY, keyPair.getPrivate(), pw, chain);
 			keyStore.setCertificateEntry(KEYSTORE_ALIAS_CERT, cert);
 			keyStore.store(out, pw);

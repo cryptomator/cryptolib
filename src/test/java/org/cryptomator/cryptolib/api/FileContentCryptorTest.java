@@ -21,22 +21,23 @@ public class FileContentCryptorTest {
 
 	@ParameterizedTest(name = "cleartextSize({1}) == {0}")
 	@CsvSource(value = {
-			"0,0",
-			"1,9",
-			"31,39",
-			"32,40",
-			"33,49",
-			"34,50",
-			"63,79",
-			"64,80",
-			"65,89"
+	        "0,0",
+	        "1,9",
+	        "31,39",
+	        "32,40",
+	        "33,49",
+	        "34,50",
+	        "63,79",
+	        "64,80",
+	        "65,89"
 	})
 	public void testCleartextSize(int cleartextSize, int ciphertextSize) {
 		Assertions.assertEquals(cleartextSize, contentCryptor.cleartextSize(ciphertextSize));
 	}
 
 	@ParameterizedTest(name = "cleartextSize({0}) == undefined")
-	@ValueSource(ints = {-1, 1, 8, 41, 48, 81, 88})
+	@ValueSource(ints = {-1, 1, 8, 41, 48, 81, 88
+	})
 	public void testCleartextSizeWithInvalidCiphertextSize(int invalidCiphertextSize) {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			contentCryptor.cleartextSize(invalidCiphertextSize);
@@ -45,22 +46,23 @@ public class FileContentCryptorTest {
 
 	@ParameterizedTest(name = "ciphertextSize({0}) == {1}")
 	@CsvSource(value = {
-			"0,0",
-			"1,9",
-			"31,39",
-			"32,40",
-			"33,49",
-			"34,50",
-			"63,79",
-			"64,80",
-			"65,89"
+	        "0,0",
+	        "1,9",
+	        "31,39",
+	        "32,40",
+	        "33,49",
+	        "34,50",
+	        "63,79",
+	        "64,80",
+	        "65,89"
 	})
 	public void testCiphertextSize(int cleartextSize, int ciphertextSize) {
 		Assertions.assertEquals(ciphertextSize, contentCryptor.ciphertextSize(cleartextSize));
 	}
 
 	@ParameterizedTest(name = "ciphertextSize({0}) == undefined")
-	@ValueSource(ints = {-1})
+	@ValueSource(ints = {-1
+	})
 	public void testCiphertextSizewithInvalidCleartextSize(int invalidCleartextSize) {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			contentCryptor.ciphertextSize(invalidCleartextSize);
