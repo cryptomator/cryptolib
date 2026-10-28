@@ -43,6 +43,7 @@ public class MasterkeyFileAccess {
 	private static final int DEFAULT_MASTERKEY_FILE_VERSION = 999; // legacy field. dropped with vault format 8
 	private static final int DEFAULT_SCRYPT_SALT_LENGTH = 8;
 	private static final int DEFAULT_SCRYPT_COST_PARAM = 1 << 15; // 2^15
+	private static final int MIN_CUSTOM_SCRYPT_COST_PARAM = 1 << 15; // 2^15, match the existing default
 	private static final int DEFAULT_SCRYPT_BLOCK_SIZE = 8;
 	private final byte[] pepper;
 	private final SecureRandom csprng;
@@ -277,6 +278,46 @@ public class MasterkeyFileAccess {
 			persist(masterkey, out, passphrase, vaultVersion);
 		}
 		Files.move(tmpFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
+	}
+
+	/**
+	 * Persists a masterkey using the specified scrypt cost parameter and the default block size of 8.
+	 * The cost must be a power of two between 2^15 (the existing default) and {@link MasterkeyFileValidator#DEFAULT_MAX_SCRYPT_COST_PARAM}.
+	 * This lower bound applies only to this custom-persistence method; loading existing vaults and changing their passphrases are unchanged.
+	 * Devices unlocking this file must have enough memory to derive a key with this cost.
+	 *
+	 * @param masterkey The key to protect
+	 * @param filePath Where to store the file
+	 * @param passphrase The passphrase used during key derivation
+	 * @param scryptCostParam Scrypt CPU/memory cost parameter N
+	 * @throws IllegalArgumentException If the cost parameter is out of range
+	 * @throws IOException If writing the file fails
+	 */
+	public void persistWithScryptCost(Masterkey masterkey, Path filePath, CharSequence passphrase, int scryptCostParam) throws IOException {
+		validateScryptCostParam(scryptCostParam);
+		Path tmpFilePath = filePath.resolveSibling(filePath.getFileName().toString() + ".tmp");
+		boolean created = false;
+		try {
+			try (OutputStream out = Files.newOutputStream(tmpFilePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) {
+				created = true;
+				persist(masterkey, out, passphrase, DEFAULT_MASTERKEY_FILE_VERSION, scryptCostParam);
+			}
+			Files.move(tmpFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException | RuntimeException | Error e) {
+			if (created) {
+				try {
+					Files.deleteIfExists(tmpFilePath);
+				} catch (IOException | SecurityException cleanupFailure) {
+					e.addSuppressed(cleanupFailure);
+				}
+			}
+			throw e;
+		}
+	}
+
+	private static void validateScryptCostParam(int costParam) {
+		Preconditions.checkArgument(costParam >= MIN_CUSTOM_SCRYPT_COST_PARAM && (costParam & (costParam - 1)) == 0
+				&& costParam <= MasterkeyFileValidator.DEFAULT_MAX_SCRYPT_COST_PARAM, "Invalid scrypt cost parameter");
 	}
 
 	public void persist(Masterkey masterkey, OutputStream out, CharSequence passphrase, @Deprecated int vaultVersion) throws IOException {
