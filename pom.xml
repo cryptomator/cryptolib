@@ -173,13 +173,48 @@
 							<include>src/test/java/**/*.java</include>
 						</includes>
 						<removeUnusedImports />
+						<forbidWildcardImports />
 						<!-- everything else, then javax+java, then static; matches the IntelliJ layout in .idea/codeStyles -->
 						<importOrder>
 							<order>,javax|java,\#</order>
 						</importOrder>
+						<!-- deliberately no indent step: it flattens continuation-line alignment (try-with-resources lists, wrapped conditions) onto the body's indent level -->
+						<indent>
+							<tabs>true</tabs>
+							<spacesPerTab>4</spacesPerTab>
+						</indent>
 						<trimTrailingWhitespace />
 						<endWithNewline />
+						<!-- hand-mapped from .idea/codeStyles/Project.xml; brace-forcing has no JDT equivalent -->
+						<eclipse>
+							<file>${project.basedir}/eclipse-formatter.xml</file>
+						</eclipse>
 					</java>
+					<formats>
+						<!-- XML is tab-indented per .idea/codeStyles/Project.xml; .idea/*.xml is IDE-managed and stays excluded -->
+						<format>
+							<includes>
+								<include>pom.xml</include>
+								<include>suppression.xml</include>
+							</includes>
+							<indent>
+								<tabs>true</tabs>
+								<spacesPerTab>4</spacesPerTab>
+							</indent>
+							<trimTrailingWhitespace />
+							<endWithNewline />
+						</format>
+						<!-- deliberately no indent step: tabs are invalid in YAML and start code blocks in Markdown -->
+						<format>
+							<includes>
+								<include>*.md</include>
+								<include>.gitignore</include>
+								<include>.github/**/*.yml</include>
+							</includes>
+							<trimTrailingWhitespace />
+							<endWithNewline />
+						</format>
+					</formats>
 				</configuration>
 				<executions>
 					<execution>
@@ -501,12 +536,12 @@
 				<plugins>
 					<plugin>
 						<groupId>org.sonatype.central</groupId>
- 						<artifactId>central-publishing-maven-plugin</artifactId>
- 						<version>${central-publishing.version}</version>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<version>${central-publishing.version}</version>
 						<extensions>true</extensions>
 						<configuration>
 							<publishingServerId>central</publishingServerId>
-  							<autoPublish>true</autoPublish>
+							<autoPublish>true</autoPublish>
 						</configuration>
 					</plugin>
 				</plugins>

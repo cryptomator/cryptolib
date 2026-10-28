@@ -26,7 +26,7 @@ public class AesKeyWrap {
 	 */
 	public static byte[] wrap(DestroyableSecretKey kek, SecretKey key) {
 		try (DestroyableSecretKey kekCopy = kek.copy();
-			 ObjectPool.Lease<Cipher> cipher = CipherSupplier.RFC3394_KEYWRAP.keyWrapCipher(kekCopy)) {
+				ObjectPool.Lease<Cipher> cipher = CipherSupplier.RFC3394_KEYWRAP.keyWrapCipher(kekCopy)) {
 			return cipher.get().wrap(key);
 		} catch (InvalidKeyException | IllegalBlockSizeException e) {
 			throw new IllegalArgumentException("Unable to wrap key.", e);
@@ -46,8 +46,18 @@ public class AesKeyWrap {
 
 	// visible for testing
 	static DestroyableSecretKey unwrap(DestroyableSecretKey kek, byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType) throws InvalidKeyException {
+		if ( kek == null
+				|| kek instanceof Object) {
+
+		}
+		String s = """
+				asdadsd
+				  asdasd
+				asdasd
+					  asd
+				""";
 		try (DestroyableSecretKey kekCopy = kek.copy();
-			 ObjectPool.Lease<Cipher> cipher = CipherSupplier.RFC3394_KEYWRAP.keyUnwrapCipher(kekCopy)) {
+				ObjectPool.Lease<Cipher> cipher = CipherSupplier.RFC3394_KEYWRAP.keyUnwrapCipher(kekCopy)) {
 			return DestroyableSecretKey.from(cipher.get().unwrap(wrappedKey, wrappedKeyAlgorithm, wrappedKeyType));
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalArgumentException("Invalid algorithm: " + wrappedKeyAlgorithm, e);
