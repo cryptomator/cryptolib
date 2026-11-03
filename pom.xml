@@ -19,7 +19,7 @@
 		<project.build.outputTimestamp>2026-10-26T10:35:59Z</project.build.outputTimestamp>
 
 		<!-- dependencies -->
-		<gson.version>2.14.0</gson.version>
+		<gson.version>2.15.0</gson.version>
 		<guava.version>33.7.2-jre</guava.version>
 		<siv-mode.version>1.6.1</siv-mode.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
@@ -35,12 +35,12 @@
 		<central-publishing.version>0.12.0</central-publishing.version>
 		<dependency-check.version>13.0.0</dependency-check.version>
 		<exec-maven.version>3.6.4</exec-maven.version>
-		<jacoco.version>0.8.15</jacoco.version>
+		<jacoco.version>0.8.16</jacoco.version>
 		<mvn-compiler.version>3.16.0</mvn-compiler.version>
 		<mvn-clean.version>3.5.0</mvn-clean.version>
 		<mvn-dependency.version>3.11.0</mvn-dependency.version>
 		<mvn-deploy.version>3.2.0</mvn-deploy.version>
-		<mvn-enforcer.version>3.6.3</mvn-enforcer.version>
+		<mvn-enforcer.version>3.7.0</mvn-enforcer.version>
 		<mvn-install.version>3.2.0</mvn-install.version>
 		<mvn-javadoc.version>3.12.0</mvn-javadoc.version>
 		<mvn-jar.version>3.5.1</mvn-jar.version>
@@ -48,7 +48,7 @@
 		<mvn-resources.version>3.5.0</mvn-resources.version>
 		<mvn-shade.version>3.6.2</mvn-shade.version>
 		<mvn-source.version>3.4.0</mvn-source.version>
-		<mvn-surefire.version>3.6.0</mvn-surefire.version>
+		<mvn-surefire.version>3.6.1</mvn-surefire.version>
 
 		<!-- Property used by surefire to determine jacoco engine -->
 		<surefire.jacoco.args />
