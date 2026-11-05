@@ -70,6 +70,16 @@ public interface VaultFile extends Destroyable, AutoCloseable {
 	 */
 	void truncate(long newSize, CiphertextReader ciphertextReader, CiphertextWriter ciphertextWriter) throws IOException, AuthenticationFailedException;
 
+	/**
+	 * Adopts the size of a ciphertext that was changed through another handle.
+	 * <p>
+	 * The header must be the one this file was opened with; header, file key and chunk arithmetic stay as they are and no I/O happens.
+	 *
+	 * @param ciphertextSize The current total size of the ciphertext file in bytes, including the header
+	 * @throws IllegalArgumentException If {@code ciphertextSize} is impossible for this format, in particular if it is smaller than the header
+	 */
+	void adoptCiphertextSize(long ciphertextSize);
+
 	// CHUNK LAYER
 
 	/**

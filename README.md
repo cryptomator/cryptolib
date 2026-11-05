@@ -171,10 +171,11 @@ try (FileChannel ch = FileChannel.open(ciphertextPath, READ, WRITE)) {
 	header.flip();
 	try (VaultFile file = vault.openFile(header, ch.size())) {
 		ByteBuffer buf = ByteBuffer.allocate(4096);
-		int read = file.read(1_000_000L, buf, ch::read);           // -1 at EOF; AuthenticationFailedException if a chunk was tampered
+		int read = file.read(1_000_000L, buf, ch::read);            // -1 at EOF; AuthenticationFailedException if a chunk was tampered
 		file.write(file.size(), data, ch::read, ch::write);         // append
 		file.truncate(100, ch::read, ch::write);                    // re-encrypts the last chunk ...
 		ch.truncate(vault.ciphertextSize(100));                     // ... the caller cuts the channel
+		file.adoptCiphertextSize(ch.size());                        // adopt a size changed through another handle (same header), no I/O
 	}
 }
 
@@ -188,7 +189,7 @@ long cleartextSize = vault.cleartextSize(Files.size(ciphertextPath));
 long ciphertextSize = vault.ciphertextSize(cleartextSize);
 ```
 
-Nothing is cached: every call touches the ciphertext through the callbacks. A file system with its own chunk cache uses the chunk layer below instead. All buffers are caller-provided; no method allocates and returns a `ByteBuffer`.
+Nothing is cached: every call touches the ciphertext through the callbacks. Only the cleartext size is state; if another handle changed the ciphertext, `adoptCiphertextSize(ciphertextSize)` adopts the new size without re-opening the file. A file system with its own chunk cache uses the chunk layer below instead. All buffers are caller-provided; no method allocates and returns a `ByteBuffer`.
 
 ### Files: chunk layer
 

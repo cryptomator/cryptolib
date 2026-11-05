@@ -123,6 +123,11 @@ public final class VaultFileImpl implements VaultFile {
 		writeEofChunkIfNeeded(ciphertextWriter);
 	}
 
+	@Override
+	public void adoptCiphertextSize(long ciphertextSize) {
+		size = layout.cleartextSize(ciphertextSize);
+	}
+
 	// writes [pos, pos + length) from src (or zeros if src is null); pos must not exceed the current size
 	private void writeRegion(long pos, long length, @Nullable ByteBuffer src, CiphertextReader in, CiphertextWriter out) throws IOException {
 		assert pos <= size;

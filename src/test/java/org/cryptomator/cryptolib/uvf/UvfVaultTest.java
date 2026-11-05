@@ -274,6 +274,23 @@ class UvfVaultTest {
 		}
 
 		@Test
+		@DisplayName("adoptCiphertextSize honours the EOF chunk")
+		void testAdoptCiphertextSize() throws IOException {
+			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(new byte[1]));
+			ByteBuffer header = ByteBuffer.wrap(ciphertext.toByteArray(), 0, 68);
+			try (VaultFile stale = vault.openFile(header.duplicate(), ciphertext.size()); VaultFile writer = vault.openFile(header.duplicate(), ciphertext.size())) {
+				writer.write(1, ByteBuffer.wrap(new byte[32739]), ciphertext, ciphertext); // exactly one chunk + EOF chunk
+				Assertions.assertEquals(68 + 32768 + 28, ciphertext.size());
+				Assertions.assertThrows(IllegalArgumentException.class, () -> stale.adoptCiphertextSize(68 + 32768), "missing EOF chunk");
+				stale.adoptCiphertextSize(ciphertext.size());
+				Assertions.assertEquals(32740, stale.size());
+				Assertions.assertEquals(-1, stale.read(32740, ByteBuffer.allocate(1), ciphertext));
+				ByteBuffer dst = ByteBuffer.allocate(32740);
+				Assertions.assertEquals(32740, stale.read(0, dst, ciphertext));
+			}
+		}
+
+		@Test
 		@DisplayName("range access maintains the EOF chunk")
 		void testRangeAccessEofChunk() throws IOException {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext();

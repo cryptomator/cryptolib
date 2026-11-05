@@ -184,6 +184,47 @@ class Cvf8VaultFileTest {
 			}
 		}
 	}
+	@ParameterizedTest(name = "{0}: adoptCiphertextSize follows changes made through another handle")
+	@EnumSource(CipherCombo.class)
+	void testAdoptCiphertextSize(CipherCombo combo) throws IOException {
+		byte[] cleartext = randomBytes(2 * CHUNK + 500, 7);
+		try (Cvf8Vault vault = vault(combo)) {
+			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(Arrays.copyOf(cleartext, 10)));
+			ByteBuffer header = ByteBuffer.wrap(ciphertext.toByteArray(), 0, vault.headerSize());
+			try (VaultFile stale = vault.openFile(header.duplicate(), ciphertext.size()); VaultFile writer = vault.openFile(header.duplicate(), ciphertext.size())) {
+				Assertions.assertThrows(IllegalArgumentException.class, () -> stale.adoptCiphertextSize(0));
+				Assertions.assertThrows(IllegalArgumentException.class, () -> stale.adoptCiphertextSize(vault.headerSize() + 10));
+				Assertions.assertEquals(10, stale.size());
+
+				// grow through the other handle:
+				writer.write(10, ByteBuffer.wrap(cleartext, 10, cleartext.length - 10), ciphertext, ciphertext);
+				Assertions.assertEquals(10, stale.size());
+				Assertions.assertEquals(-1, stale.read(CHUNK, ByteBuffer.allocate(10), ciphertext));
+				stale.adoptCiphertextSize(ciphertext.size());
+				Assertions.assertEquals(cleartext.length, stale.size());
+				ByteBuffer dst = ByteBuffer.allocate(cleartext.length);
+				while (dst.hasRemaining()) {
+					stale.read(dst.position(), dst, ciphertext);
+				}
+				Assertions.assertArrayEquals(cleartext, dst.array());
+
+				// shrink through the other handle:
+				writer.truncate(CHUNK + 100, ciphertext, ciphertext);
+				ciphertext.truncate(vault.ciphertextSize(CHUNK + 100));
+				stale.adoptCiphertextSize(ciphertext.size());
+				Assertions.assertEquals(CHUNK + 100, stale.size());
+				Assertions.assertEquals(-1, stale.read(CHUNK + 100, ByteBuffer.allocate(10), ciphertext));
+
+				// header and key are untouched: the resized handle still writes valid chunks
+				stale.write(stale.size(), ByteBuffer.wrap(new byte[]{42}), ciphertext, ciphertext);
+				byte[] expected = Arrays.copyOf(cleartext, CHUNK + 101);
+				expected[CHUNK + 100] = 42;
+				Assertions.assertArrayEquals(expected, vault.decryptFile(ciphertext.toByteArray()));
+				Assertions.assertArrayEquals(Arrays.copyOf(header.array(), vault.headerSize()), Arrays.copyOf(ciphertext.toByteArray(), vault.headerSize()), "header unchanged");
+			}
+		}
+	}
+
 
 	@ParameterizedTest(name = "{0}: tampered chunk fails on read and on partial overwrite")
 	@EnumSource(CipherCombo.class)
