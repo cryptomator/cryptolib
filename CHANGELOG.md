@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The changelog starts with version 2.2.2.
 Changes to prior versions can be found on the [Github release page](https://github.com/cryptomator/cryptolib/releases).
 
-## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.3.0...HEAD)
+## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.4.0...HEAD)
 
 ### Added
 * Recovery keys as words: `UnlockedVault.serializedRecoveryKey()` encodes the CVF8 masterkey (44 words) or the UVF private recovery key (126 words, PKCS#8 as produced by Cryptomator Hub), `LockedVault.recover(words, csprng)` unlocks with them. The encoding (CRC32-based checksum, 4096-word dictionary, now `common.WordEncoder`) is the one used by Cryptomator and Cryptomator Hub. A vault retains its P-384 recovery key pair for that when created or configured with a `UvfRecoveryKey` that holds the private key.
@@ -28,6 +28,15 @@ Changes to prior versions can be found on the [Github release page](https://gith
 * Added `com.nimbusds:nimbus-jose-jwt` as a dependency (vault config handling for `vault.cryptomator` and `vault.uvf`).
 * Added `org.jspecify:jspecify` for nullness annotations; the public API is `@NullMarked` (`requires static org.jspecify` in the module descriptor).
 * Multi-release jar now has exactly two layers: Java 8 (base) and Java 25 (`module-info`, sealed API roots). JDK 25 is required to build.
+
+
+## [2.4.0](https://github.com/cryptomator/cryptolib/releases/tag/2.4.0) - 2026-10-26
+
+### Added
+* Overloaded `MasterkeyFileAccess::changePassphrase` to apply a custom `MasterkeyFileValidator` ([#141](https://github.com/cryptomator/cryptolib/pull/141))
+
+### Changed
+* `MasterkeyFileAccess::changePassphrase` now rejects structurally invalid masterkey files with an `IOException` before validating them ([#141](https://github.com/cryptomator/cryptolib/pull/141))
 
 
 ## [2.3.0](https://github.com/cryptomator/cryptolib/releases/tag/2.3.0) - 2026-10-12

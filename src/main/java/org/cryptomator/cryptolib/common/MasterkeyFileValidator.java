@@ -5,7 +5,8 @@ import java.io.IOException;
 /**
  * Validation of a parsed {@link MasterkeyFile} before any key derivation happens.
  * <p>
- * Used by {@link MasterkeyFileAccess#load(java.nio.file.Path, CharSequence, MasterkeyFileValidator)} to reject files that are structurally valid
+ * Used by {@link MasterkeyFileAccess#load(java.nio.file.Path, CharSequence, MasterkeyFileValidator)}
+ * and {@link MasterkeyFileAccess#changePassphrase(java.io.InputStream, java.io.OutputStream, CharSequence, CharSequence, MasterkeyFileValidator)} to reject files that are structurally valid
  * but unsuitable for the calling environment, e.g. because their scrypt parameters require more memory than the caller is willing to spend.
  */
 @FunctionalInterface
@@ -43,6 +44,7 @@ public interface MasterkeyFileValidator {
 	 *
 	 * @param masterkeyFile The parsed masterkey file
 	 * @throws IOException If the file is rejected. The exception is propagated to the caller of {@link MasterkeyFileAccess#load(java.io.InputStream, CharSequence, MasterkeyFileValidator)}
+	 *                     or {@link MasterkeyFileAccess#changePassphrase(java.io.InputStream, java.io.OutputStream, CharSequence, CharSequence, MasterkeyFileValidator)}
 	 */
 	void validate(MasterkeyFile masterkeyFile) throws IOException;
 
