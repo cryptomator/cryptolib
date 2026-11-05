@@ -117,7 +117,7 @@ public class MasterkeyFileAccess {
 	 * @throws InvalidPassphraseException If the wrong <code>oldPassphrase</code> has been supplied for the masterkey
 	 */
 	public void changePassphrase(InputStream oldIn, OutputStream newOut, CharSequence oldPassphrase, CharSequence newPassphrase, MasterkeyFileValidator validator) throws IOException, InvalidPassphraseException {
-		Preconditions.checkNotNull(validator);
+		Objects.requireNonNull(validator);
 		try (Reader reader = new InputStreamReader(oldIn, UTF_8);
 			 Writer writer = new OutputStreamWriter(newOut, UTF_8)) {
 			MasterkeyFile original = MasterkeyFile.read(reader);
