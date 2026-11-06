@@ -22,6 +22,12 @@ public interface FileHeaderCryptor {
 	 */
 	ByteBuffer encryptHeader(FileHeader header);
 
+	/**
+	 * @param ciphertextHeaderBuf The encrypted header
+	 * @return The decrypted header
+	 * @throws AuthenticationFailedException If the header is unauthentic
+	 * @throws IllegalArgumentException If the header is malformed, in particular (Universal Vault Format) if its spec version is unsupported or it references a seed unknown to the masterkey
+	 */
 	FileHeader decryptHeader(ByteBuffer ciphertextHeaderBuf) throws AuthenticationFailedException;
 
 }

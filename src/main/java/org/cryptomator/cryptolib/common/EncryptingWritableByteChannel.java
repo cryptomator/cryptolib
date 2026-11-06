@@ -32,7 +32,7 @@ public class EncryptingWritableByteChannel implements WritableByteChannel {
 	@Override
 	public synchronized void close() throws IOException {
 		writeHeaderOnFirstWrite();
-		encryptAndFlushBuffer();
+		encryptAndFlushBuffer(); // deliberately also flushes an empty buffer: this trailing empty chunk is the EOF chunk required by Universal Vault Format
 		delegate.close();
 	}
 

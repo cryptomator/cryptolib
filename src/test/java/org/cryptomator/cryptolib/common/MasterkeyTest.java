@@ -1,6 +1,7 @@
 package org.cryptomator.cryptolib.common;
 
 import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.PerpetualMasterkey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,7 @@ import java.util.Arrays;
 public class MasterkeyTest {
 
 	private byte[] raw;
-	private Masterkey masterkey;
+	private PerpetualMasterkey masterkey;
 
 	@BeforeEach
 	public void setup() {
@@ -21,7 +22,7 @@ public class MasterkeyTest {
 		for (byte b=0; b<raw.length; b++) {
 			raw[b] = b;
 		}
-		masterkey = new Masterkey(raw);
+		masterkey = new PerpetualMasterkey(raw);
 	}
 
 	@Test
@@ -45,7 +46,7 @@ public class MasterkeyTest {
 		Mockito.when(encKey.getEncoded()).thenReturn(encKeyBytes);
 		Mockito.when(macKey.getEncoded()).thenReturn(macKeyBytes);
 
-		Masterkey masterkey = Masterkey.from(encKey, macKey);
+		PerpetualMasterkey masterkey = Masterkey.from(encKey, macKey);
 
 		Assertions.assertNotNull(masterkey);
 		Assertions.assertArrayEquals(encKeyBytes, masterkey.getEncKey().getEncoded());
@@ -70,7 +71,7 @@ public class MasterkeyTest {
 	public void testCopy() {
 		byte[] raw = new byte[64];
 		Arrays.fill(raw, (byte) 0x55);
-		Masterkey original = new Masterkey(raw);
+		PerpetualMasterkey original = new PerpetualMasterkey(raw);
 
 		Masterkey copy = original.copy();
 

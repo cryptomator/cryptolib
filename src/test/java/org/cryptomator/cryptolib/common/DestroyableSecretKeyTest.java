@@ -14,6 +14,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Random;
 
+@SuppressWarnings("resource")
 public class DestroyableSecretKeyTest {
 
 	@DisplayName("generate(...)")

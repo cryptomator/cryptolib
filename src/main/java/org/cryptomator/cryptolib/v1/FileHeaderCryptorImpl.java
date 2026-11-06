@@ -8,10 +8,7 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.v1;
 
-import org.cryptomator.cryptolib.api.AuthenticationFailedException;
-import org.cryptomator.cryptolib.api.FileHeader;
-import org.cryptomator.cryptolib.api.FileHeaderCryptor;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.*;
 import org.cryptomator.cryptolib.common.CipherSupplier;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.MacSupplier;
@@ -30,10 +27,10 @@ import java.util.Arrays;
 
 class FileHeaderCryptorImpl implements FileHeaderCryptor {
 
-	private final Masterkey masterkey;
+	private final PerpetualMasterkey masterkey;
 	private final SecureRandom random;
 
-	FileHeaderCryptorImpl(Masterkey masterkey, SecureRandom random) {
+	FileHeaderCryptorImpl(PerpetualMasterkey masterkey, SecureRandom random) {
 		this.masterkey = masterkey;
 		this.random = random;
 	}

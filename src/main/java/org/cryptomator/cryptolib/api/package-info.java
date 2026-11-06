@@ -10,7 +10,7 @@
  * // Create new masterkey and safe it to a file:
  * SecureRandom csprng = SecureRandom.getInstanceStrong();
  * Masterkey masterkey = {@link org.cryptomator.cryptolib.api.Masterkey#generate(java.security.SecureRandom) Masterkey.generate(csprng)};
- * {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#persist(org.cryptomator.cryptolib.api.Masterkey, java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.persist(masterkey, path, passphrase)};
+ * {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#persist(org.cryptomator.cryptolib.api.PerpetualMasterkey, java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.persist(masterkey, path, passphrase)};
  *
  * // Load a masterkey from a file:
  * Masterkey masterkey = {@link org.cryptomator.cryptolib.common.MasterkeyFileAccess#load(java.nio.file.Path, java.lang.CharSequence) masterkeyFileAccess.load(path, passphrase)};

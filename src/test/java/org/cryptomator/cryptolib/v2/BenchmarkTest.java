@@ -9,12 +9,14 @@
 package org.cryptomator.cryptolib.v2;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+@DisplayName("Benchmark V2 (GCM)")
 public class BenchmarkTest {
 
 	@Disabled("only on demand")
