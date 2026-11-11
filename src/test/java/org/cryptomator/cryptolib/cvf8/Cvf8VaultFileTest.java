@@ -246,7 +246,7 @@ class Cvf8VaultFileTest {
 
 	@ParameterizedTest(name = "{0}: externally truncated ciphertext")
 	@EnumSource(CipherCombo.class)
-	void testExternallyTruncatedCiphertext(CipherCombo combo) throws IOException {
+	void testExternallyTruncatedCiphertext(CipherCombo combo) {
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(randomBytes(1000, 6)));
 			try (VaultFile file = vault.openFile(ByteBuffer.wrap(ciphertext.toByteArray(), 0, vault.headerSize()), ciphertext.size())) {

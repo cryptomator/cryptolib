@@ -336,9 +336,9 @@ class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("with correct password")
 		void testUnlockWithCorrectPassword() throws CryptoException {
-			CvfMasterkey key = masterkeyFileAccess.unlock(keyFile, "asd");
+			CvfMasterkey unlocked = masterkeyFileAccess.unlock(keyFile, "asd");
 
-			Assertions.assertNotNull(key);
+			Assertions.assertNotNull(unlocked);
 		}
 
 		@Test
@@ -385,15 +385,15 @@ class MasterkeyFileAccessTest {
 		@Test
 		@DisplayName("creates expected values")
 		void testLock() throws GeneralSecurityException {
-			MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 2);
+			MasterkeyFile locked = masterkeyFileAccess.lock(key, "asd", 2);
 
-			Assertions.assertEquals(999, keyFile.version);
-			Assertions.assertArrayEquals(new byte[8], keyFile.scryptSalt);
-			Assertions.assertEquals(2, keyFile.scryptCostParam);
-			Assertions.assertEquals(8, keyFile.scryptBlockSize);
-			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.encMasterKey);
-			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.macMasterKey);
-			Assertions.assertArrayEquals(versionMac(999), keyFile.versionMac);
+			Assertions.assertEquals(999, locked.version);
+			Assertions.assertArrayEquals(new byte[8], locked.scryptSalt);
+			Assertions.assertEquals(2, locked.scryptCostParam);
+			Assertions.assertEquals(8, locked.scryptBlockSize);
+			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), locked.encMasterKey);
+			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), locked.macMasterKey);
+			Assertions.assertArrayEquals(versionMac(999), locked.versionMac);
 		}
 
 		@Test

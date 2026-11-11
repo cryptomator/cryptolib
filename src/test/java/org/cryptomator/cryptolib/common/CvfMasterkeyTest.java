@@ -28,10 +28,10 @@ class CvfMasterkeyTest {
 	void testGenerate() {
 		SecureRandom csprng = Mockito.mock(SecureRandom.class);
 
-		CvfMasterkey masterkey = CvfMasterkey.generate(csprng);
+		CvfMasterkey generated = CvfMasterkey.generate(csprng);
 
 		Mockito.verify(csprng, Mockito.atLeastOnce()).nextBytes(Mockito.any());
-		Assertions.assertNotNull(masterkey);
+		Assertions.assertNotNull(generated);
 	}
 
 	@Test
@@ -45,11 +45,11 @@ class CvfMasterkeyTest {
 		Mockito.when(encKey.getEncoded()).thenReturn(encKeyBytes);
 		Mockito.when(macKey.getEncoded()).thenReturn(macKeyBytes);
 
-		CvfMasterkey masterkey = CvfMasterkey.from(encKey, macKey);
+		CvfMasterkey combined = CvfMasterkey.from(encKey, macKey);
 
-		Assertions.assertNotNull(masterkey);
-		Assertions.assertArrayEquals(encKeyBytes, masterkey.getEncKey().getEncoded());
-		Assertions.assertArrayEquals(macKeyBytes, masterkey.getMacKey().getEncoded());
+		Assertions.assertNotNull(combined);
+		Assertions.assertArrayEquals(encKeyBytes, combined.getEncKey().getEncoded());
+		Assertions.assertArrayEquals(macKeyBytes, combined.getMacKey().getEncoded());
 	}
 
 	@Test
@@ -68,9 +68,9 @@ class CvfMasterkeyTest {
 
 	@Test
 	void testCopy() {
-		byte[] raw = new byte[64];
-		Arrays.fill(raw, (byte) 0x55);
-		CvfMasterkey original = new CvfMasterkey(raw);
+		byte[] rawKey = new byte[64];
+		Arrays.fill(rawKey, (byte) 0x55);
+		CvfMasterkey original = new CvfMasterkey(rawKey);
 
 		CvfMasterkey copy = original.copy();
 

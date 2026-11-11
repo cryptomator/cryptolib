@@ -8,6 +8,9 @@ import org.bouncycastle.crypto.params.HKDFParameters;
 
 public class HKDFHelper {
 
+	private HKDFHelper() {
+	}
+
 	/**
 	 * Derives a key from the given input keying material (IKM) using the HMAC-based Key Derivation Function (HKDF) with the SHA-512 hash function.
 	 * @param salt The optional salt (can be an empty byte array)

@@ -25,6 +25,13 @@ final class Constants {
 	static final int KDF_SALT_LEN = 32;
 	static final int DIR_ID_LEN = 32;
 	static final int SEED_DIGEST_LEN = 32;
+	static final String FILE_FORMAT_FIELD = "fileFormat";
+	static final String NAME_FORMAT_FIELD = "nameFormat";
+	static final String SEEDS_FIELD = "seeds";
+	static final String INITIAL_SEED_FIELD = "initialSeed";
+	static final String LATEST_SEED_FIELD = "latestSeed";
+	static final String KDF_FIELD = "kdf";
+	static final String KDF_SALT_FIELD = "kdfSalt";
 	static final String RECIPIENT_DETAILS_FIELD = "recipientDetails";
 	static final String NAME_SHORTENING_THRESHOLD_FIELD = "nameShorteningThreshold";
 

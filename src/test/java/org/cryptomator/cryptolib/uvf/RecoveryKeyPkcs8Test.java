@@ -31,7 +31,7 @@ class RecoveryKeyPkcs8Test {
 	static final String HUB_Y = "hHUag3OvDzEr0uUQND4PXHQTXP5IDGdYhJhL-WLKjnGjQAw0rNGy5V29-aV-yseW";
 	static final String HUB_THUMBPRINT = "T-LR82IaI1_TGHwcyn1u8vAYakGPz4upg1lPnE0xBZQ";
 
-	static ECKey hubKeyPair() throws Exception {
+	static ECKey hubKeyPair() {
 		ECPrivateKey privateKey = RecoveryKeyPkcs8.decode(HUB_PKCS8);
 		ECKey publicKey = new ECKey.Builder(Curve.P_384, new Base64URL(HUB_X), new Base64URL(HUB_Y)).build();
 		return new ECKey.Builder(publicKey).privateKey(privateKey).build();
@@ -50,7 +50,7 @@ class RecoveryKeyPkcs8Test {
 
 	@Test
 	@DisplayName("re-encoding Hub's key is byte-identical")
-	void testEncodeHubKey() throws Exception {
+	void testEncodeHubKey() {
 		byte[] pkcs8 = RecoveryKeyPkcs8.encode(hubKeyPair());
 		Assertions.assertArrayEquals(HUB_PKCS8, pkcs8);
 		Assertions.assertEquals(HUB_WORDS, RecoveryKeys.encode(pkcs8, true));

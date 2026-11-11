@@ -12,9 +12,9 @@ class Argon2ParamsTest {
 		Assertions.assertEquals(64 * 1024, Argon2Params.DEFAULT.memoryKiB());
 		Assertions.assertEquals(3, Argon2Params.DEFAULT.iterations());
 		Assertions.assertEquals(4, Argon2Params.DEFAULT.parallelism());
-		Assertions.assertEquals(new Argon2Params(65536, 3, 4), Argon2Params.DEFAULT);
+		Assertions.assertEquals(Argon2Params.DEFAULT, new Argon2Params(65536, 3, 4));
 		Assertions.assertEquals(new Argon2Params(65536, 3, 4).hashCode(), Argon2Params.DEFAULT.hashCode());
-		Assertions.assertNotEquals(new Argon2Params(65536, 2, 4), Argon2Params.DEFAULT);
+		Assertions.assertNotEquals(Argon2Params.DEFAULT, new Argon2Params(65536, 2, 4));
 	}
 
 	@ParameterizedTest(name = "m={0} t={1} p={2}")

@@ -19,9 +19,9 @@ import java.security.spec.PKCS8EncodedKeySpec;
 final class RecoveryKeyPkcs8 {
 
 	private static final int COORDINATE_LEN = 48;
-	// SEQUENCE { INTEGER 0, SEQUENCE { OID id-ecPublicKey, OID secp384r1 }, OCTET STRING { SEQUENCE { INTEGER 1, OCTET STRING(48) ...
+	// DER up to the private scalar: PrivateKeyInfo with version 0 and algorithm id-ecPublicKey on secp384r1, wrapping an ECPrivateKey with version 1 and a 48 byte octet string
 	private static final byte[] PREFIX = {0x30, (byte) 0x81, (byte) 0xb6, 0x02, 0x01, 0x00, 0x30, 0x10, 0x06, 0x07, 0x2a, (byte) 0x86, 0x48, (byte) 0xce, 0x3d, 0x02, 0x01, 0x06, 0x05, 0x2b, (byte) 0x81, 0x04, 0x00, 0x22, 0x04, (byte) 0x81, (byte) 0x9e, 0x30, (byte) 0x81, (byte) 0x9b, 0x02, 0x01, 0x01, 0x04, 0x30};
-	// ... [1] { BIT STRING(97) 0x04 || x || y } } }
+	// DER between the private scalar and the public point: context tag 1 holding a 97 byte bit string, which starts with 0x04 (uncompressed point) and continues with x and y
 	private static final byte[] INFIX = {(byte) 0xa1, 0x64, 0x03, 0x62, 0x00, 0x04};
 	static final int LEN = PREFIX.length + COORDINATE_LEN + INFIX.length + 2 * COORDINATE_LEN;
 

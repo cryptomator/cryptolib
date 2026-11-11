@@ -36,7 +36,8 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	private static final Base64.Encoder B64 = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder B64_DECODER = Base64.getUrlDecoder();
 	private static final Gson GSON = new Gson();
-	private static final Set<String> KNOWN_FIELDS = new HashSet<>(Arrays.asList("fileFormat", "nameFormat", "seeds", "initialSeed", "latestSeed", "kdf", "kdfSalt", Constants.NAME_SHORTENING_THRESHOLD_FIELD, Constants.RECIPIENT_DETAILS_FIELD));
+	private static final Set<String> KNOWN_FIELDS = new HashSet<>(Arrays.asList(Constants.FILE_FORMAT_FIELD, Constants.NAME_FORMAT_FIELD, Constants.SEEDS_FIELD, Constants.INITIAL_SEED_FIELD, Constants.LATEST_SEED_FIELD, Constants.KDF_FIELD, Constants.KDF_SALT_FIELD,
+			Constants.NAME_SHORTENING_THRESHOLD_FIELD, Constants.RECIPIENT_DETAILS_FIELD));
 	private static final String ALG_MEMBER = "alg";
 	private static final String JWK_MEMBER = "jwk";
 
@@ -143,14 +144,14 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	static UvfSeeds fromDecryptedPayload(String json) throws VaultConfigLoadException {
 		try {
 			JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-			requireFormat(root, "fileFormat", Constants.FILE_FORMAT);
-			requireFormat(root, "nameFormat", Constants.NAME_FORMAT);
-			requireFormat(root, "kdf", Constants.KDF);
-			byte[] kdfSalt = decodeStrict(requireString(root, "kdfSalt"));
-			int initialSeed = decodeSeedId(requireString(root, "initialSeed"));
-			int latestSeed = decodeSeedId(requireString(root, "latestSeed"));
+			requireFormat(root, Constants.FILE_FORMAT_FIELD, Constants.FILE_FORMAT);
+			requireFormat(root, Constants.NAME_FORMAT_FIELD, Constants.NAME_FORMAT);
+			requireFormat(root, Constants.KDF_FIELD, Constants.KDF);
+			byte[] kdfSalt = decodeStrict(requireString(root, Constants.KDF_SALT_FIELD));
+			int initialSeed = decodeSeedId(requireString(root, Constants.INITIAL_SEED_FIELD));
+			int latestSeed = decodeSeedId(requireString(root, Constants.LATEST_SEED_FIELD));
 			Map<Integer, byte[]> seeds = new LinkedHashMap<>();
-			for (Map.Entry<String, JsonElement> entry : requireObject(root, "seeds").entrySet()) {
+			for (Map.Entry<String, JsonElement> entry : requireObject(root, Constants.SEEDS_FIELD).entrySet()) {
 				seeds.put(decodeSeedId(entry.getKey()), decodeStrict(entry.getValue().getAsString()));
 			}
 			int nameShorteningThreshold = parseNameShorteningThreshold(root);
@@ -239,17 +240,17 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	String toDecryptedPayload() {
 		assertNotDestroyed();
 		JsonObject root = new JsonObject();
-		root.addProperty("fileFormat", Constants.FILE_FORMAT);
-		root.addProperty("nameFormat", Constants.NAME_FORMAT);
+		root.addProperty(Constants.FILE_FORMAT_FIELD, Constants.FILE_FORMAT);
+		root.addProperty(Constants.NAME_FORMAT_FIELD, Constants.NAME_FORMAT);
 		JsonObject seedsObject = new JsonObject();
 		for (Map.Entry<Integer, byte[]> entry : seeds.entrySet()) {
 			seedsObject.addProperty(encodeSeedId(entry.getKey()), B64.encodeToString(entry.getValue()));
 		}
-		root.add("seeds", seedsObject);
-		root.addProperty("initialSeed", encodeSeedId(initialSeedId));
-		root.addProperty("latestSeed", encodeSeedId(latestSeedId));
-		root.addProperty("kdf", Constants.KDF);
-		root.addProperty("kdfSalt", B64.encodeToString(kdfSalt));
+		root.add(Constants.SEEDS_FIELD, seedsObject);
+		root.addProperty(Constants.INITIAL_SEED_FIELD, encodeSeedId(initialSeedId));
+		root.addProperty(Constants.LATEST_SEED_FIELD, encodeSeedId(latestSeedId));
+		root.addProperty(Constants.KDF_FIELD, Constants.KDF);
+		root.addProperty(Constants.KDF_SALT_FIELD, B64.encodeToString(kdfSalt));
 		if (nameShorteningThreshold != NameShortener.DISABLED) {
 			root.addProperty(Constants.NAME_SHORTENING_THRESHOLD_FIELD, nameShorteningThreshold);
 		}

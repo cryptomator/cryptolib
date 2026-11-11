@@ -71,6 +71,7 @@ class UvfVaultTest {
 	private static final SecureRandom CSPRNG = SecureRandomMock.PRNG_RANDOM;
 	private static final byte[] UVF_MAGIC = {0x75, 0x76, 0x66, 0x01};
 	private static final String SPEC_PROTECTED_HEADER = "eyJlbmMiOiJBMjU2R0NNIiwiY3R5IjoianNvbiIsImNyaXQiOlsidXZmLnNwZWMudmVyc2lvbiJdLCJ1dmYuc3BlYy52ZXJzaW9uIjoxfQ";
+	private static final Argon2Params CHEAP = new Argon2Params(64, 1, 1);
 
 	private static KeyPair ecKeyPair() {
 		try {
@@ -360,8 +361,6 @@ class UvfVaultTest {
 	@Nested
 	@DisplayName("vault.uvf")
 	class Config {
-
-		private final Argon2Params CHEAP = new Argon2Params(64, 1, 1);
 
 		@Test
 		@DisplayName("spec example protected header is accepted")
