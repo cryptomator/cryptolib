@@ -2,6 +2,7 @@ package org.cryptomator.cryptolib.internal;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.common.ByteBuffers;
+import org.jspecify.annotations.Nullable;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -19,7 +20,7 @@ final class DecryptingReadableByteChannel implements ReadableByteChannel {
 	private final FileLayout layout;
 	private final ByteBuffer cleartextBuffer;
 	private final ByteBuffer ciphertextBuffer;
-	private VaultFileImpl file;
+	private @Nullable VaultFileImpl file; // set once the header has been read
 	private long chunkIndex = 0;
 	private boolean lastChunkWasFull = true; // an empty file must still have its EOF chunk
 	private boolean sawEmptyChunk = false;
@@ -57,13 +58,13 @@ final class DecryptingReadableByteChannel implements ReadableByteChannel {
 
 	@Override
 	public synchronized int read(ByteBuffer dst) throws IOException, AuthenticationFailedException {
-		loadHeaderIfNecessary();
+		VaultFileImpl vaultFile = loadHeaderIfNecessary();
 		if (reachedEof) {
 			return -1;
 		}
 		int result = 0;
 		while (dst.hasRemaining() && !reachedEof) {
-			if (cleartextBuffer.hasRemaining() || loadNextCleartextChunk()) {
+			if (cleartextBuffer.hasRemaining() || loadNextCleartextChunk(vaultFile)) {
 				result += ByteBuffers.copy(cleartextBuffer, dst);
 			}
 		}
@@ -73,19 +74,22 @@ final class DecryptingReadableByteChannel implements ReadableByteChannel {
 		return result;
 	}
 
-	private void loadHeaderIfNecessary() throws IOException, AuthenticationFailedException {
-		if (file == null) {
+	private VaultFileImpl loadHeaderIfNecessary() throws IOException, AuthenticationFailedException {
+		VaultFileImpl result = file;
+		if (result == null) {
 			ByteBuffer headerBuf = ByteBuffer.allocate(layout.headerSize());
 			int read = ByteBuffers.fill(delegate, headerBuf);
 			if (read != headerBuf.capacity()) {
 				throw new EOFException("Unable to read header from channel.");
 			}
 			headerBuf.flip();
-			file = headerParser.apply(headerBuf);
+			result = headerParser.apply(headerBuf);
+			file = result;
 		}
+		return result;
 	}
 
-	private boolean loadNextCleartextChunk() throws IOException, AuthenticationFailedException {
+	private boolean loadNextCleartextChunk(VaultFileImpl vaultFile) throws IOException, AuthenticationFailedException {
 		ciphertextBuffer.clear();
 		int read = ByteBuffers.fill(delegate, ciphertextBuffer);
 		if (read == 0) {
@@ -103,7 +107,7 @@ final class DecryptingReadableByteChannel implements ReadableByteChannel {
 		}
 		ciphertextBuffer.flip();
 		cleartextBuffer.clear();
-		file.decryptChunk(ciphertextBuffer, cleartextBuffer, chunkIndex++);
+		vaultFile.decryptChunk(ciphertextBuffer, cleartextBuffer, chunkIndex++);
 		cleartextBuffer.flip();
 		lastChunkWasFull = cleartextBuffer.remaining() == layout.cleartextChunkSize();
 		sawEmptyChunk = !cleartextBuffer.hasRemaining();

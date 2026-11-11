@@ -117,16 +117,17 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		if (rotationRequired) {
 			throw new IllegalStateException("A key was replaced, call addSeed() before serializing");
 		}
-		if (serialized != null) {
-			return serialized.clone();
+		byte[] result = serialized;
+		if (result == null) {
+			byte[] payload = seeds.toDecryptedPayload().getBytes(StandardCharsets.UTF_8);
+			try {
+				result = UvfMetadataCodec.serialize(protectedHeader, payload, seeds.recipientDetails(), keyEncryptionKey).getBytes(StandardCharsets.UTF_8);
+				serialized = result;
+			} finally {
+				Arrays.fill(payload, (byte) 0x00);
+			}
 		}
-		byte[] payload = seeds.toDecryptedPayload().getBytes(StandardCharsets.UTF_8);
-		try {
-			serialized = UvfMetadataCodec.serialize(protectedHeader, payload, seeds.recipientDetails(), keyEncryptionKey).getBytes(StandardCharsets.UTF_8);
-			return serialized.clone();
-		} finally {
-			Arrays.fill(payload, (byte) 0x00);
-		}
+		return result.clone();
 	}
 
 	private void markDirty() {

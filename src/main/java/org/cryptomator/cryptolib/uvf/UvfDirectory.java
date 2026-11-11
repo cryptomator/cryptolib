@@ -6,6 +6,7 @@ import org.cryptomator.cryptolib.api.VaultNode;
 import org.cryptomator.cryptolib.api.VaultReader;
 import org.cryptomator.cryptolib.api.VaultWriter;
 import org.cryptomator.cryptolib.internal.PlainVaultNode;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -19,7 +20,7 @@ final class UvfDirectory implements VaultDirectory {
 	private final UvfVault vault;
 	private final int seedId;
 	private final byte[] dirId;
-	private volatile String dirHash; // computed lazily
+	private volatile @Nullable String dirHash; // computed lazily
 
 	UvfDirectory(UvfVault vault, int seedId, byte[] dirId) {
 		if (dirId.length != Constants.DIR_ID_LEN) {

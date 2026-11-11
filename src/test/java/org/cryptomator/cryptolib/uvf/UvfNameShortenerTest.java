@@ -56,9 +56,15 @@ class UvfNameShortenerTest {
 	}
 
 	@ParameterizedTest(name = "{0} is reserved")
-	@ValueSource(strings = {"WQ6QCEQX5BTXEPNQZNJLHDN52MADIVA4.shortened.uvf", "WQ6QCEQX5BTXEPNQZNJLHDN52MADIVA4.original.uvf", "foo.shortened.uvf", "foo.original (1).uvf", "foo.shortened (conflicted copy).uvf"})
+	@ValueSource(strings = {"WQ6QCEQX5BTXEPNQZNJLHDN52MADIVA4.shortened.uvf", "WQ6QCEQX5BTXEPNQZNJLHDN52MADIVA4.original.uvf", "foo.shortened.uvf", "foo.original.uvf", ".shortened.uvf"})
 	void testReservedNames(String name) {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.shorten(name));
+	}
+
+	@ParameterizedTest(name = "{0} is not reserved")
+	@ValueSource(strings = {"foo.original (1).uvf", "foo.shortened (conflicted copy).uvf", "foo.shortened.bar.uvf", "original.uvf", "foo.shortened.uvf.bak", "foo.shortened"})
+	void testNamesContainingSuffixParts(String name) {
+		Assertions.assertNull(shortener.shorten(name));
 	}
 
 	@Test

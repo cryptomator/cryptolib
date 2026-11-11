@@ -29,7 +29,6 @@ public final class UvfNameShortener implements NameShortener {
 	private static final int HASH_LENGTH = 32; // 160 bits in base32
 	private static final Pattern SHORTENED_NAME = Pattern.compile("[A-Z2-7]{32}\\.shortened\\.uvf");
 	private static final Pattern SIDECAR_NAME = Pattern.compile("[A-Z2-7]{32}\\.original\\.uvf");
-	private static final Pattern RESERVED_NAME = Pattern.compile(".*\\.(shortened|original).*\\.uvf", Pattern.DOTALL);
 
 	private final int threshold;
 
@@ -65,7 +64,7 @@ public final class UvfNameShortener implements NameShortener {
 		}
 		byte[] utf8Name = name.getBytes(StandardCharsets.UTF_8);
 		if (utf8Name.length <= threshold) {
-			if (RESERVED_NAME.matcher(name).matches()) {
+			if (name.endsWith(SHORTENED_SUFFIX) || name.endsWith(SIDECAR_SUFFIX)) {
 				throw new IllegalArgumentException("Reserved name: " + name);
 			}
 			return null;

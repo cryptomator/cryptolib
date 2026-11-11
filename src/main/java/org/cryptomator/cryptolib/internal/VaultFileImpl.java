@@ -28,8 +28,8 @@ public final class VaultFileImpl implements VaultFile {
 	private final int seedId;
 	private long size;
 	private boolean headerPersisted;
-	private ByteBuffer cleartextBuf; // working buffers, allocated on first use of the range operations
-	private ByteBuffer ciphertextBuf;
+	private @Nullable ByteBuffer cleartextBuf; // working buffers, allocated on first use of the range operations
+	private @Nullable ByteBuffer ciphertextBuf;
 
 	/**
 	 * @param layout The format's layout
@@ -136,7 +136,7 @@ public final class VaultFileImpl implements VaultFile {
 		while (cur < end) {
 			long chunkIndex = layout.chunkIndex(cur);
 			int offset = layout.offsetInChunk(cur);
-			int count = (int) Math.min(layout.cleartextChunkSize() - offset, end - cur);
+			int count = (int) Math.min((long) layout.cleartextChunkSize() - offset, end - cur);
 			int existing = Math.max(0, layout.cleartextChunkLength(size, chunkIndex));
 			ByteBuffer cleartextChunk;
 			if (existing > 0 && !(offset == 0 && count >= existing)) {
@@ -203,17 +203,21 @@ public final class VaultFileImpl implements VaultFile {
 	}
 
 	private ByteBuffer cleartextBuffer() {
-		if (cleartextBuf == null) {
-			cleartextBuf = ByteBuffer.allocate(layout.cleartextChunkSize());
+		ByteBuffer result = cleartextBuf;
+		if (result == null) {
+			result = ByteBuffer.allocate(layout.cleartextChunkSize());
+			cleartextBuf = result;
 		}
-		return cleartextBuf;
+		return result;
 	}
 
 	private ByteBuffer ciphertextBuffer() {
-		if (ciphertextBuf == null) {
-			ciphertextBuf = ByteBuffer.allocate(layout.ciphertextChunkSize());
+		ByteBuffer result = ciphertextBuf;
+		if (result == null) {
+			result = ByteBuffer.allocate(layout.ciphertextChunkSize());
+			ciphertextBuf = result;
 		}
-		return ciphertextBuf;
+		return result;
 	}
 
 	private static void readFully(CiphertextReader in, ByteBuffer buf, long position) throws IOException {

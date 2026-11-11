@@ -6,6 +6,7 @@ import org.cryptomator.cryptolib.api.VaultNode;
 import org.cryptomator.cryptolib.api.VaultReader;
 import org.cryptomator.cryptolib.api.VaultWriter;
 import org.cryptomator.cryptolib.internal.PlainVaultNode;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -17,7 +18,7 @@ final class Cvf8Directory implements VaultDirectory {
 
 	private final Cvf8Vault vault;
 	private final String dirId;
-	private volatile String dirHash; // computed lazily
+	private volatile @Nullable String dirHash; // computed lazily
 
 	Cvf8Directory(Cvf8Vault vault, String dirId) {
 		this.vault = vault;
