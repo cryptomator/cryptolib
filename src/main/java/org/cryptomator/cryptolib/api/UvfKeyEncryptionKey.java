@@ -7,7 +7,7 @@ import javax.crypto.SecretKey;
 /**
  * The key encryption key recipient of a UVF vault: either a password, from which the key is derived with Argon2id, or a member key supplied by Cryptomator Hub.
  * <p>
- * Instances are plain holders for {@link UvfUnlockedVault#create(java.security.SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey)} and
+ * Instances are plain holders for {@link UvfUnlockedVault#create(java.security.SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey, int)} and
  * {@link UvfUnlockedVault#setKeyEncryptionKey(UvfKeyEncryptionKey)}; the vault derives and retains the key, never the password.
  */
 public final class UvfKeyEncryptionKey {

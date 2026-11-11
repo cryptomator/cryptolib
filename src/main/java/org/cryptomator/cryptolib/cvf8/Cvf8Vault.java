@@ -4,6 +4,7 @@ import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.CipherCombo;
 import org.cryptomator.cryptolib.api.Cvf8UnlockedVault;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
+import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.cryptomator.cryptolib.common.ReseedingSecureRandom;
 import org.cryptomator.cryptolib.internal.AbstractUnlockedVault;
@@ -30,6 +31,7 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	private final int shorteningThreshold;
 	private final Cvf8ContentCodec codec;
 	private final Cvf8Names names;
+	private final NameShortener nameShortener;
 
 	Cvf8Vault(CvfMasterkey masterkey, String vaultId, URI keyId, CipherCombo cipherCombo, int shorteningThreshold, SecureRandom csprng) {
 		this(masterkey, vaultId, keyId, cipherCombo, shorteningThreshold, codec(cipherCombo, masterkey, ReseedingSecureRandom.create(csprng)));
@@ -45,6 +47,7 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 		this.shorteningThreshold = shorteningThreshold;
 		this.codec = codec;
 		this.names = new Cvf8Names(masterkey);
+		this.nameShortener = new Cvf8NameShortener(shorteningThreshold);
 	}
 
 	private static Cvf8ContentCodec codec(CipherCombo cipherCombo, CvfMasterkey masterkey, SecureRandom random) {
@@ -62,7 +65,7 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	 * Creates a new vault, see {@link Cvf8UnlockedVault#create(CvfMasterkey, int, SecureRandom)}.
 	 *
 	 * @param masterkey The vault's masterkey
-	 * @param shorteningThreshold Ciphertext names longer than this are shortened
+	 * @param shorteningThreshold Ciphertext names longer than this are to be shortened
 	 * @param csprng A cryptographically secure random number generator
 	 * @return The new, unlocked vault
 	 */
@@ -167,17 +170,12 @@ public final class Cvf8Vault extends AbstractUnlockedVault implements Cvf8Unlock
 	@Override
 	public int maxCleartextNameLength(int maxCiphertextNameLength) {
 		// a base64url-encoded AES-SIV ciphertext of n bytes has 16 bytes overhead and expands by 4/3, plus the 4 character extension:
-		return (Math.min(shorteningThreshold, maxCiphertextNameLength) - Constants.FILE_EXT.length()) / 4 * 3 - 16;
+		return (maxCiphertextNameLength - Constants.FILE_EXT.length()) / 4 * 3 - 16;
 	}
 
 	@Override
-	public boolean isShortenedName(String nameOnDisk) {
-		return nameOnDisk.endsWith(Constants.SHORTENED_FILE_EXT);
-	}
-
-	@Override
-	public String shortenName(String ciphertextName) {
-		return Cvf8Names.shorten(ciphertextName);
+	public NameShortener nameShortener() {
+		return nameShortener;
 	}
 
 	// FILES

@@ -78,12 +78,17 @@ public sealed interface UnlockedVault extends Destroyable, AutoCloseable permits
 	VaultDirectory directoryFromBackup(byte[] backupFileContents) throws AuthenticationFailedException;
 
 	/**
-	 * Computes the longest cleartext name that can be stored when the underlying file system limits ciphertext names to the given length.
+	 * Computes the longest cleartext name whose ciphertext name does not exceed the given length. This is plain arithmetic and does not take name shortening into account.
 	 *
-	 * @param maxCiphertextNameLength Maximum length of a file name supported by the file system storing the vault
+	 * @param maxCiphertextNameLength Maximum length of a ciphertext name including its extension, e.g. the file name limit of the storage, or whatever a shortening layer accepts
 	 * @return Maximum number of UTF-8 bytes of a cleartext name
 	 */
 	int maxCleartextNameLength(int maxCiphertextNameLength);
+
+	/**
+	 * @return The name shortener configured for this vault: its format's scheme with the threshold from the vault configuration (disabled for a UVF vault without threshold)
+	 */
+	NameShortener nameShortener();
 
 	// FILES
 

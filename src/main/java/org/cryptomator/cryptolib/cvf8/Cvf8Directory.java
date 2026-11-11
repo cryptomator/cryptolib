@@ -5,6 +5,7 @@ import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.cryptomator.cryptolib.api.VaultNode;
 import org.cryptomator.cryptolib.api.VaultReader;
 import org.cryptomator.cryptolib.api.VaultWriter;
+import org.cryptomator.cryptolib.internal.PlainVaultNode;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -76,17 +77,7 @@ final class Cvf8Directory implements VaultDirectory {
 	@Override
 	public VaultNode encryptName(String cleartextName) {
 		String ciphertextName = vault.names().encryptName(cleartextName, dirId) + Constants.FILE_EXT;
-		return new Cvf8Node(this, ciphertextName);
-	}
-
-	@Override
-	public String decryptName(String nameOnDisk, VaultReader reader) throws IOException, AuthenticationFailedException {
-		if (nameOnDisk.endsWith(Constants.SHORTENED_FILE_EXT)) {
-			byte[] inflated = reader.read(dirPath() + "/" + nameOnDisk + "/" + Constants.INFLATED_NAME_FILE_NAME);
-			return decryptName(new String(inflated, StandardCharsets.UTF_8));
-		} else {
-			return decryptName(nameOnDisk);
-		}
+		return new PlainVaultNode(ciphertextName, Constants.DIR_FILE_NAME, Constants.SYMLINK_FILE_NAME);
 	}
 
 	@Override
@@ -96,6 +87,27 @@ final class Cvf8Directory implements VaultDirectory {
 		}
 		String ciphertext = ciphertextName.substring(0, ciphertextName.length() - Constants.FILE_EXT.length());
 		return vault.names().decryptName(ciphertext, dirId);
+	}
+
+	@Override
+	public VaultDirectory directory(VaultNode node, VaultReader reader) throws IOException, AuthenticationFailedException {
+		return vault.directory(reader.read(dirPath() + "/" + node.dirFile()));
+	}
+
+	@Override
+	public String symlinkTarget(VaultNode node, VaultReader reader) throws IOException, AuthenticationFailedException {
+		return vault.decryptSymlinkTarget(reader.read(dirPath() + "/" + node.symlinkFile()));
+	}
+
+	@Override
+	public void createDirectory(VaultNode node, VaultDirectory child, VaultWriter writer) throws IOException {
+		writer.write(dirPath() + "/" + node.dirFile(), child.encryptedMetadata());
+		child.writeMetadataBackup(writer);
+	}
+
+	@Override
+	public void createSymlink(VaultNode node, String target, VaultWriter writer) throws IOException {
+		writer.write(dirPath() + "/" + node.symlinkFile(), vault.encryptSymlinkTarget(target));
 	}
 
 	@Override

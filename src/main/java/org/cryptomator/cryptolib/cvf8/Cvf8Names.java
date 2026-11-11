@@ -16,7 +16,7 @@ import java.util.Base64;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * File name encryption (AES-SIV, base64url), directory id hashing and name shortening of CVF8.
+ * File name encryption (AES-SIV, base64url) and directory id hashing of CVF8.
  */
 final class Cvf8Names {
 
@@ -69,16 +69,6 @@ final class Cvf8Names {
 		} catch (UnauthenticCiphertextException | IllegalArgumentException | IllegalBlockSizeException e) {
 			throw new AuthenticationFailedException("Invalid Ciphertext.", e);
 		}
-	}
-
-	/**
-	 * @param ciphertextName A full ciphertext name including its {@code .c9r} extension
-	 * @return The shortened name: base64url(SHA-1(name)) + {@code .c9s}
-	 */
-	static String shorten(String ciphertextName) {
-		MessageDigest sha1 = MessageDigestSupplier.SHA1.instance();
-		byte[] hash = sha1.digest(ciphertextName.getBytes(UTF_8));
-		return BASE64URL.encodeToString(hash) + Constants.SHORTENED_FILE_EXT;
 	}
 
 }

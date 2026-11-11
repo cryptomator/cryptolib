@@ -1,6 +1,7 @@
 package org.cryptomator.cryptolib.uvf;
 
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
 import org.cryptomator.cryptolib.internal.FileHeaderParts;
@@ -42,7 +43,7 @@ public class UvfContentCodecBenchmark {
 
 	@Setup(Level.Trial)
 	public void prepareData() {
-		seeds = UvfSeeds.create(RANDOM_MOCK);
+		seeds = UvfSeeds.create(RANDOM_MOCK, NameShortener.DISABLED);
 		codec = new UvfContentCodec(seeds, RANDOM_MOCK);
 		codec.encryptChunk(headerNonce, FILE_KEY, cleartextChunk, ciphertextChunk, 0L);
 		ciphertextChunk.flip();

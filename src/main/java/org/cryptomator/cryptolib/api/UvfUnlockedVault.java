@@ -24,10 +24,13 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	 * @param csprng A cryptographically secure random number generator used for seeds, nonces, keys and directory ids
 	 * @param keyEncryptionKey The password or member key; a password is turned into the key encryption key immediately and not retained
 	 * @param recoveryKey The recovery key; its private part, if present, is retained for {@link #serializedRecoveryKey()}
+	 * @param nameShorteningThreshold Ciphertext names with more UTF-8 bytes than this are to be shortened, see {@link #nameShortener()}: {@link NameShortener#DISABLED} or at least
+	 * {@link NameShortener#MIN_UVF_THRESHOLD}, 220 is recommended. The value can not be changed later.
 	 * @return The new, unlocked vault
+	 * @throws IllegalArgumentException If {@code nameShorteningThreshold} is invalid
 	 */
-	static UvfUnlockedVault create(SecureRandom csprng, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey) {
-		return UvfVault.create(csprng, keyEncryptionKey, recoveryKey);
+	static UvfUnlockedVault create(SecureRandom csprng, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey, int nameShorteningThreshold) {
+		return UvfVault.create(csprng, keyEncryptionKey, recoveryKey, nameShorteningThreshold);
 	}
 
 	/**
@@ -40,6 +43,12 @@ public interface UvfUnlockedVault extends UnlockedVault {
 	 */
 	@Override
 	byte[] serializeConfig();
+
+	/**
+	 * @return The threshold of {@link #nameShortener()}: ciphertext names with more UTF-8 bytes than this are stored shortened; {@link NameShortener#DISABLED} if the vault does not
+	 * shorten names. An application that does not apply name shortening must not access a vault for which this is enabled.
+	 */
+	int nameShorteningThreshold();
 
 	/**
 	 * @return Fields of the decrypted vault metadata that cryptolib does not interpret (e.g. vendor-specific fields); preserved by {@link #serializeConfig()} (unmodifiable)

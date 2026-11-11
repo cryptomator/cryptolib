@@ -6,6 +6,7 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
+import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.UvfKeyEncryptionKey;
 import org.cryptomator.cryptolib.api.UvfLockedVault;
 import org.cryptomator.cryptolib.api.UvfRecoveryKey;
@@ -43,6 +44,7 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	private final SecureRandom random;
 	private final UvfContentCodec codec;
 	private final UvfNames names;
+	private final NameShortener nameShortener;
 	private @Nullable OctetSequenceKey keyEncryptionKey; // password-derived or member key, null after recovery until set
 	private @Nullable ECKey recoveryKey; // public key, plus the private part if set as key pair or recovered with it
 	private byte @Nullable [] serialized; // the last serialization (or the file the vault was unlocked from) while nothing changed, else null
@@ -72,18 +74,20 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		this.random = random;
 		this.codec = new UvfContentCodec(seeds, random);
 		this.names = new UvfNames(seeds);
+		this.nameShortener = new UvfNameShortener(seeds.nameShorteningThreshold());
 	}
 
 	/**
-	 * Creates a new vault, see {@link UvfUnlockedVault#create(SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey)}.
+	 * Creates a new vault, see {@link UvfUnlockedVault#create(SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey, int)}.
 	 *
 	 * @param csprng A cryptographically secure random number generator
 	 * @param keyEncryptionKey The password or member key
 	 * @param recoveryKey The recovery key
+	 * @param nameShorteningThreshold The name shortening threshold
 	 * @return The new, unlocked vault
 	 */
-	public static UvfVault create(SecureRandom csprng, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey) {
-		return create(UvfSeeds.create(csprng), keyEncryptionKey, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
+	public static UvfVault create(SecureRandom csprng, UvfKeyEncryptionKey keyEncryptionKey, UvfRecoveryKey recoveryKey, int nameShorteningThreshold) {
+		return create(UvfSeeds.create(csprng, nameShorteningThreshold), keyEncryptionKey, recoveryKey, csprng, ReseedingSecureRandom.create(csprng));
 	}
 
 	// visible for testing: a new vault around given seeds; its initial seed is fresh, so the initial recipients need no rotation
@@ -298,8 +302,19 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 	@Override
 	public int maxCleartextNameLength(int maxCiphertextNameLength) {
 		// an unpadded base64url-encoded AES-SIV ciphertext of n bytes has 16 bytes overhead and expands by 4/3, plus the 4 character extension:
-		return (maxCiphertextNameLength - Constants.FILE_EXT.length()) * 3 / 4 - 16;
+		return (int) (((long) maxCiphertextNameLength - Constants.FILE_EXT.length()) * 3 / 4 - 16);
 	}
+
+	@Override
+	public int nameShorteningThreshold() {
+		return seeds.nameShorteningThreshold();
+	}
+
+	@Override
+	public NameShortener nameShortener() {
+		return nameShortener;
+	}
+
 
 	// FILES
 

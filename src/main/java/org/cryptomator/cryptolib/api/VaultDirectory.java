@@ -53,33 +53,67 @@ public interface VaultDirectory {
 	void writeMetadataBackup(VaultWriter writer) throws IOException;
 
 	/**
-	 * Encrypts the name of a child of this directory. The result is deterministic.
+	 * Encrypts the name of a child of this directory. The result is deterministic and never shortened, see {@link NameShortener}.
 	 *
 	 * @param cleartextName The child's cleartext name
-	 * @return The child's node, including its name on disk and the layout of its well-known files
+	 * @return The child's node: its full ciphertext name and the layout of its well-known files
 	 */
 	VaultNode encryptName(String cleartextName);
 
 	/**
-	 * Decrypts the name of a child found inside {@link #dirPath()}, inflating shortened names through the given reader when necessary.
+	 * Decrypts the full ciphertext name of a child of this directory.
 	 *
-	 * @param nameOnDisk The child's node name as listed in the file system
-	 * @param reader Reads the child's {@code name.c9s} file if the name is shortened
-	 * @return The child's cleartext name
-	 * @throws IOException If the reader fails
-	 * @throws AuthenticationFailedException If the name is unauthentic or does not belong to this directory
-	 * @throws IllegalArgumentException If {@code nameOnDisk} is not a ciphertext node name (e.g. {@code dirid.c9r})
-	 */
-	String decryptName(String nameOnDisk, VaultReader reader) throws IOException, AuthenticationFailedException;
-
-	/**
-	 * Decrypts a full ciphertext name of a child of this directory.
-	 *
-	 * @param ciphertextName The child's full ciphertext name including the extension ({@code *.c9r} / {@code *.uvf}); for shortened nodes the contents of {@code name.c9s}
+	 * @param ciphertextName The child's full ciphertext name including the extension ({@code *.c9r} / {@code *.uvf}); for shortened entries the result of {@link NameShortener#unshorten(String, byte[])}
 	 * @return The child's cleartext name
 	 * @throws AuthenticationFailedException If the name is unauthentic or does not belong to this directory
-	 * @throws IllegalArgumentException If {@code ciphertextName} is not a ciphertext node name
+	 * @throws IllegalArgumentException If {@code ciphertextName} is not a ciphertext node name (e.g. {@code dirid.c9r} or a shortened name)
 	 */
 	String decryptName(String ciphertextName) throws AuthenticationFailedException;
+
+	/**
+	 * Resolves the directory a child entry points at by reading its {@link VaultNode#dirFile()}.
+	 *
+	 * @param node A child of this directory, plain or {@link ShortenedVaultNode shortened}
+	 * @param reader Reads files from the vault
+	 * @return The directory
+	 * @throws IOException If the reader fails (e.g. because the entry is not a directory)
+	 * @throws AuthenticationFailedException If the directory file is unauthentic
+	 */
+	VaultDirectory directory(VaultNode node, VaultReader reader) throws IOException, AuthenticationFailedException;
+
+	/**
+	 * Reads the target of the symbolic link a child entry represents from its {@link VaultNode#symlinkFile()}.
+	 *
+	 * @param node A child of this directory, plain or {@link ShortenedVaultNode shortened}
+	 * @param reader Reads files from the vault
+	 * @return The link target
+	 * @throws IOException If the reader fails (e.g. because the entry is not a symbolic link)
+	 * @throws AuthenticationFailedException If the symlink file is unauthentic
+	 */
+	String symlinkTarget(VaultNode node, VaultReader reader) throws IOException, AuthenticationFailedException;
+
+	/**
+	 * Creates a child entry as a directory pointing at {@code child}: writes the directory file and the child's metadata backup (which creates the child's content directory).
+	 * <p>
+	 * The sidecar of a {@link ShortenedVaultNode} is not written by this method.
+	 *
+	 * @param node A child of this directory, plain or {@link ShortenedVaultNode shortened}
+	 * @param child The directory to link, usually from {@link UnlockedVault#newDirectory()}
+	 * @param writer Writes files into the vault
+	 * @throws IOException If the writer fails
+	 */
+	void createDirectory(VaultNode node, VaultDirectory child, VaultWriter writer) throws IOException;
+
+	/**
+	 * Creates a child entry as a symbolic link by writing its symlink file.
+	 * <p>
+	 * The sidecar of a {@link ShortenedVaultNode} is not written by this method.
+	 *
+	 * @param node A child of this directory, plain or {@link ShortenedVaultNode shortened}
+	 * @param target The link target
+	 * @param writer Writes files into the vault
+	 * @throws IOException If the writer fails
+	 */
+	void createSymlink(VaultNode node, String target, VaultWriter writer) throws IOException;
 
 }

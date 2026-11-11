@@ -14,7 +14,7 @@ import java.security.spec.ECGenParameterSpec;
 /**
  * The recovery key recipient of a UVF vault: a P-384 EC key pair, or only its public key if the private key is held elsewhere (e.g. by Cryptomator Hub for a vault owner).
  * <p>
- * Instances are plain holders for {@link UvfUnlockedVault#create(SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey)} and {@link UvfUnlockedVault#setRecoveryKey(UvfRecoveryKey)}.
+ * Instances are plain holders for {@link UvfUnlockedVault#create(SecureRandom, UvfKeyEncryptionKey, UvfRecoveryKey, int)} and {@link UvfUnlockedVault#setRecoveryKey(UvfRecoveryKey)}.
  * Only a vault that knows the private key can encode it as {@link UnlockedVault#serializedRecoveryKey() recovery key words}.
  */
 public final class UvfRecoveryKey {

@@ -5,6 +5,7 @@ import org.cryptomator.cryptolib.api.VaultDirectory;
 import org.cryptomator.cryptolib.api.VaultNode;
 import org.cryptomator.cryptolib.api.VaultReader;
 import org.cryptomator.cryptolib.api.VaultWriter;
+import org.cryptomator.cryptolib.internal.PlainVaultNode;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -86,12 +87,7 @@ final class UvfDirectory implements VaultDirectory {
 	@Override
 	public VaultNode encryptName(String cleartextName) {
 		String ciphertextName = vault.names().encryptName(cleartextName, dirId, seedId) + Constants.FILE_EXT;
-		return new UvfNode(this, ciphertextName);
-	}
-
-	@Override
-	public String decryptName(String nameOnDisk, VaultReader reader) throws AuthenticationFailedException {
-		return decryptName(nameOnDisk); // UVF has no name shortening
+		return new PlainVaultNode(ciphertextName, Constants.DIR_FILE_NAME, Constants.SYMLINK_FILE_NAME);
 	}
 
 	@Override
@@ -101,6 +97,27 @@ final class UvfDirectory implements VaultDirectory {
 		}
 		String ciphertext = ciphertextName.substring(0, ciphertextName.length() - Constants.FILE_EXT.length());
 		return vault.names().decryptName(ciphertext, dirId, seedId);
+	}
+
+	@Override
+	public VaultDirectory directory(VaultNode node, VaultReader reader) throws IOException, AuthenticationFailedException {
+		return vault.directory(reader.read(dirPath() + "/" + node.dirFile()));
+	}
+
+	@Override
+	public String symlinkTarget(VaultNode node, VaultReader reader) throws IOException, AuthenticationFailedException {
+		return vault.decryptSymlinkTarget(reader.read(dirPath() + "/" + node.symlinkFile()));
+	}
+
+	@Override
+	public void createDirectory(VaultNode node, VaultDirectory child, VaultWriter writer) throws IOException {
+		writer.write(dirPath() + "/" + node.dirFile(), child.encryptedMetadata());
+		child.writeMetadataBackup(writer);
+	}
+
+	@Override
+	public void createSymlink(VaultNode node, String target, VaultWriter writer) throws IOException {
+		writer.write(dirPath() + "/" + node.symlinkFile(), vault.encryptSymlinkTarget(target));
 	}
 
 	@Override

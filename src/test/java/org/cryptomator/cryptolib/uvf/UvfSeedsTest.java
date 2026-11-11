@@ -2,6 +2,7 @@ package org.cryptomator.cryptolib.uvf;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
@@ -52,7 +53,7 @@ class UvfSeedsTest {
 	static final Map<Integer, byte[]> TEST_SEEDS = Collections.singletonMap(TEST_SEED_ID, TEST_SEED);
 
 	static UvfSeeds testSeeds() {
-		return new UvfSeeds(TEST_SEEDS, TEST_KDF_SALT, TEST_SEED_ID, TEST_SEED_ID, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap());
+		return new UvfSeeds(TEST_SEEDS, TEST_KDF_SALT, TEST_SEED_ID, TEST_SEED_ID, NameShortener.DISABLED, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap());
 	}
 
 	@Test
@@ -70,7 +71,7 @@ class UvfSeedsTest {
 			Assertions.assertTrue(seeds.hasSeedWithDigest(digests.get(TEST_SEED_ID)));
 			Assertions.assertFalse(seeds.hasSeedWithDigest(new byte[32]));
 		}
-		Assertions.assertThrows(IllegalArgumentException.class, () -> new UvfSeeds(Collections.singletonMap(42, TEST_SEED), TEST_KDF_SALT, 42, 42, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap()), "id must match the seed");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> new UvfSeeds(Collections.singletonMap(42, TEST_SEED), TEST_KDF_SALT, 42, 42, NameShortener.DISABLED, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap()), "id must match the seed");
 	}
 
 	@Test
@@ -188,10 +189,39 @@ class UvfSeedsTest {
 		}
 	}
 
+	private static String specPayloadWithThreshold(String jsonValue) {
+		return SPEC_PAYLOAD.replace("    \"recipientDetails\": {", "    \"nameShorteningThreshold\": " + jsonValue + ",\n    \"recipientDetails\": {");
+	}
+
+	@Test
+	@DisplayName("nameShorteningThreshold is optional, parsed and serialized")
+	void testNameShorteningThreshold() {
+		Assertions.assertEquals(NameShortener.DISABLED, UvfSeeds.fromDecryptedPayload(SPEC_PAYLOAD).nameShorteningThreshold());
+		UvfSeeds explicitlyDisabled = UvfSeeds.fromDecryptedPayload(specPayloadWithThreshold("-1"));
+		Assertions.assertEquals(NameShortener.DISABLED, explicitlyDisabled.nameShorteningThreshold());
+		Assertions.assertEquals(JsonParser.parseString(SPEC_PAYLOAD), JsonParser.parseString(explicitlyDisabled.toDecryptedPayload()), "-1 is the same as absent");
+
+		UvfSeeds seeds = UvfSeeds.fromDecryptedPayload(specPayloadWithThreshold("220"));
+		Assertions.assertEquals(220, seeds.nameShorteningThreshold());
+		Assertions.assertEquals(Collections.singletonMap("org.example.customfield", 42L), seeds.customFields(), "not a custom field");
+		Assertions.assertEquals(JsonParser.parseString(specPayloadWithThreshold("220")), JsonParser.parseString(seeds.toDecryptedPayload()));
+
+		try (UvfSeeds created = UvfSeeds.create(SecureRandomMock.PRNG_RANDOM, NameShortener.MIN_UVF_THRESHOLD)) {
+			Assertions.assertEquals(46, created.nameShorteningThreshold());
+		}
+		Assertions.assertThrows(IllegalArgumentException.class, () -> UvfSeeds.create(SecureRandomMock.PRNG_RANDOM, 45));
+	}
+
+	@ParameterizedTest(name = "nameShorteningThreshold {0} is rejected")
+	@ValueSource(strings = {"0", "45", "-2", "220.5", "\"220\"", "true", "null", "[220]", "4294967516"})
+	void testInvalidNameShorteningThreshold(String jsonValue) {
+		Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfSeeds.fromDecryptedPayload(specPayloadWithThreshold(jsonValue)));
+	}
+
 	@Test
 	@DisplayName("create")
 	void testCreate() {
-		try (UvfSeeds seeds = UvfSeeds.create(SecureRandomMock.PRNG_RANDOM)) {
+		try (UvfSeeds seeds = UvfSeeds.create(SecureRandomMock.PRNG_RANDOM, NameShortener.DISABLED)) {
 			Assertions.assertEquals(seeds.initialSeedId(), seeds.latestSeedId());
 			Assertions.assertEquals(1, seeds.seedIds().size());
 			Assertions.assertTrue(seeds.customFields().isEmpty());

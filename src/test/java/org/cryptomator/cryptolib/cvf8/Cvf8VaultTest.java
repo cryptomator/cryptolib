@@ -10,6 +10,8 @@ import org.cryptomator.cryptolib.api.Cvf8UnlockedVault;
 import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.api.LockedVault;
 import org.cryptomator.cryptolib.api.MasterkeyLoader;
+import org.cryptomator.cryptolib.api.NameShortener;
+import org.cryptomator.cryptolib.api.ShortenedVaultNode;
 import org.cryptomator.cryptolib.api.UnlockedVault;
 import org.cryptomator.cryptolib.api.UnsupportedVaultFormatException;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
@@ -429,20 +431,15 @@ class Cvf8VaultTest {
 
 		@Test
 		@DisplayName("name encryption is deterministic and bound to the directory")
-		void testNames() throws IOException {
+		void testNames() {
 			VaultDirectory dir = vault.newDirectory();
 			VaultNode node = dir.encryptName("Documents");
-			Assertions.assertEquals(node.name(), dir.encryptName("Documents").name());
+			Assertions.assertEquals(node, dir.encryptName("Documents"));
 			Assertions.assertTrue(node.name().endsWith(".c9r"));
-			Assertions.assertFalse(node.isShortened());
-			Assertions.assertEquals(node.name(), node.inflated());
-			Assertions.assertEquals(node.name(), node.contentsFile());
 			Assertions.assertEquals(node.name() + "/dir.c9r", node.dirFile());
 			Assertions.assertEquals(node.name() + "/symlink.c9r", node.symlinkFile());
-			Assertions.assertThrows(IllegalStateException.class, node::inflatedNameFile);
 
 			Assertions.assertEquals("Documents", dir.decryptName(node.name()));
-			Assertions.assertEquals("Documents", dir.decryptName(node.name(), reader));
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.newDirectory().decryptName(node.name()));
 			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName("masterkey.cryptomator"));
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName("dirid.c9r")); // ends with .c9r but isn't a ciphertext name
@@ -458,37 +455,37 @@ class Cvf8VaultTest {
 		}
 
 		@Test
-		@DisplayName("name shortening at threshold")
-		void testShortening() throws IOException {
+		@DisplayName("encryption never shortens, the vault's shortener does above its threshold")
+		void testShortening() {
 			VaultDirectory dir = vault.rootDirectory();
+			NameShortener shortener = vault.nameShortener();
+			Assertions.assertEquals(220, shortener.threshold());
 			// 146 cleartext chars -> 146 + 16 = 162 bytes -> 216 base64 chars + 4 = 220 chars: not shortened
 			VaultNode atThreshold = dir.encryptName(repeat('a', 146));
-			Assertions.assertEquals(220, atThreshold.inflated().length());
-			Assertions.assertFalse(atThreshold.isShortened());
+			Assertions.assertEquals(220, atThreshold.name().length());
+			Assertions.assertNull(shortener.shorten(atThreshold.name()));
 			// 147 chars -> 163 bytes -> 220 base64 chars (padded) + 4 = 224 chars: shortened
-			VaultNode shortened = dir.encryptName(repeat('a', 147));
-			Assertions.assertEquals(224, shortened.inflated().length());
-			Assertions.assertTrue(shortened.isShortened());
-			Assertions.assertTrue(shortened.name().endsWith(".c9s"));
-			Assertions.assertEquals(vault.shortenName(shortened.inflated()), shortened.name());
-			Assertions.assertTrue(vault.isShortenedName(shortened.name()));
-			Assertions.assertEquals(shortened.name() + "/contents.c9r", shortened.contentsFile());
-			Assertions.assertEquals(shortened.name() + "/name.c9s", shortened.inflatedNameFile());
-			Assertions.assertEquals(146, vault.maxCleartextNameLength(255));
-			Assertions.assertEquals(146, vault.maxCleartextNameLength(220));
-			Assertions.assertEquals(80, vault.maxCleartextNameLength(132));
+			VaultNode aboveThreshold = dir.encryptName(repeat('a', 147));
+			Assertions.assertEquals(224, aboveThreshold.name().length());
+			Assertions.assertTrue(aboveThreshold.name().endsWith(".c9r"), "the node itself is not shortened");
+			ShortenedVaultNode shortened = shortener.shorten(aboveThreshold.name());
+			Assertions.assertNotNull(shortened);
+			Assertions.assertEquals(aboveThreshold.name(), shortened.name());
+			Assertions.assertTrue(shortener.isShortened(shortened.shortenedName()));
 
-			// listing: inflate via reader
-			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName(shortened.name()));
-			files.put(dir.dirPath() + "/" + shortened.inflatedNameFile(), shortened.inflated().getBytes(UTF_8));
-			Assertions.assertEquals(repeat('a', 147), dir.decryptName(shortened.name(), reader));
+			// listing: unshorten, then decrypt
+			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName(shortened.shortenedName()));
+			String ciphertextName = shortener.unshorten(shortened.shortenedName(), shortened.sidecarContents());
+			Assertions.assertEquals(repeat('a', 147), dir.decryptName(ciphertextName));
 		}
 
 		@Test
-		@DisplayName("shortened name is base64url(sha1(inflated)) + .c9s")
-		void testShortenName() {
-			// printf 'foo.c9r' | openssl dgst -sha1 -binary | base64 | tr '+/' '-_'
-			Assertions.assertEquals("XzXY10UamRa7Fdaj94oXgEWr_tM=.c9s", vault.shortenName("foo.c9r"));
+		@DisplayName("max cleartext name length is plain arithmetic, independent of the shortening threshold")
+		void testMaxCleartextNameLength() {
+			Assertions.assertEquals(170, vault.maxCleartextNameLength(255));
+			Assertions.assertEquals(146, vault.maxCleartextNameLength(220));
+			Assertions.assertEquals(80, vault.maxCleartextNameLength(132));
+			Assertions.assertEquals(1610612714, vault.maxCleartextNameLength(Integer.MAX_VALUE));
 		}
 
 		@Test
@@ -497,25 +494,32 @@ class Cvf8VaultTest {
 			VaultDirectory parent = vault.rootDirectory();
 			VaultDirectory child = vault.newDirectory();
 			VaultNode node = parent.encryptName("sub");
-			node.createDirectory(child, writer);
+			parent.createDirectory(node, child, writer);
 			Assertions.assertEquals(2, files.size());
 			Assertions.assertArrayEquals(child.dirId(), files.get(parent.dirPath() + "/" + node.dirFile()));
 			Assertions.assertTrue(files.containsKey(child.backupFilePath()));
 
-			Assertions.assertEquals(child, node.directory(reader));
-			Assertions.assertEquals(child, node.directory(files.get(parent.dirPath() + "/" + node.dirFile())));
-			Assertions.assertEquals("sub", parent.decryptName(node.name(), reader));
+			Assertions.assertEquals(child, parent.directory(node, reader));
+			Assertions.assertEquals(child, vault.directory(files.get(parent.dirPath() + "/" + node.dirFile())));
+			Assertions.assertEquals("sub", parent.decryptName(node.name()));
 		}
 
 		@Test
-		@DisplayName("create shortened subdirectory writes name.c9s")
+		@DisplayName("create and resolve a shortened subdirectory: the sidecar is the caller's job")
 		void testCreateShortenedDirectory() throws IOException {
+			NameShortener shortener = vault.nameShortener();
 			VaultDirectory parent = vault.rootDirectory();
-			VaultNode node = parent.encryptName(repeat('b', 200));
-			node.createDirectory(vault.newDirectory(), writer);
-			Assertions.assertEquals(3, files.size());
-			Assertions.assertArrayEquals(node.inflated().getBytes(UTF_8), files.get(parent.dirPath() + "/" + node.inflatedNameFile()));
-			Assertions.assertEquals(repeat('b', 200), parent.decryptName(node.name(), reader));
+			VaultDirectory child = vault.newDirectory();
+			ShortenedVaultNode node = shortener.shorten(parent.encryptName(repeat('b', 200)).name());
+			Assertions.assertNotNull(node);
+			parent.createDirectory(node, child, writer);
+			Assertions.assertEquals(2, files.size(), "no sidecar written");
+			Assertions.assertArrayEquals(child.dirId(), files.get(parent.dirPath() + "/" + node.shortenedName() + "/dir.c9r"));
+			Assertions.assertEquals(child, parent.directory(node, reader));
+
+			writer.write(parent.dirPath() + "/" + node.sidecarFile(), node.sidecarContents());
+			byte[] sidecar = reader.read(parent.dirPath() + "/" + shortener.sidecarFile(node.shortenedName()));
+			Assertions.assertEquals(repeat('b', 200), parent.decryptName(shortener.unshorten(node.shortenedName(), sidecar)));
 		}
 
 		@Test
@@ -523,9 +527,9 @@ class Cvf8VaultTest {
 		void testCreateSymlink() throws IOException {
 			VaultDirectory parent = vault.rootDirectory();
 			VaultNode node = parent.encryptName("link");
-			node.createSymlink("/etc/passwd", writer);
+			parent.createSymlink(node, "/etc/passwd", writer);
 			Assertions.assertEquals(1, files.size());
-			Assertions.assertEquals("/etc/passwd", node.symlinkTarget(reader));
+			Assertions.assertEquals("/etc/passwd", parent.symlinkTarget(node, reader));
 			Assertions.assertEquals("/etc/passwd", vault.decryptSymlinkTarget(files.get(parent.dirPath() + "/" + node.symlinkFile())));
 		}
 

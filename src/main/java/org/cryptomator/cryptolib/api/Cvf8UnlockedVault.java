@@ -17,7 +17,7 @@ public interface Cvf8UnlockedVault extends UnlockedVault {
 	 * root directory with {@link VaultDirectory#writeMetadataBackup(VaultWriter)}.
 	 *
 	 * @param masterkey The vault's masterkey
-	 * @param shorteningThreshold Ciphertext names longer than this are shortened; Cryptomator uses 220
+	 * @param shorteningThreshold Ciphertext names with more characters than this are to be shortened, see {@link #nameShortener()}; Cryptomator uses 220
 	 * @param csprng A cryptographically secure random number generator used for nonces, new keys and directory ids
 	 * @return The new, unlocked vault
 	 */
@@ -46,24 +46,8 @@ public interface Cvf8UnlockedVault extends UnlockedVault {
 	CipherCombo cipherCombo();
 
 	/**
-	 * @return Ciphertext names longer than this are stored shortened
+	 * @return The threshold of {@link #nameShortener()}: ciphertext names with more characters than this are stored shortened
 	 */
 	int shorteningThreshold();
-
-	/**
-	 * Checks whether a name found on disk is a shortened name ({@code *.c9s}).
-	 *
-	 * @param nameOnDisk A ciphertext node name
-	 * @return {@code true} if the name is shortened and the inflated name must be read from its {@code name.c9s} file
-	 */
-	boolean isShortenedName(String nameOnDisk);
-
-	/**
-	 * Computes the shortened form of a ciphertext name, regardless of the {@link #shorteningThreshold()}.
-	 *
-	 * @param ciphertextName A full ciphertext name including the {@code .c9r} extension
-	 * @return The {@code *.c9s} name
-	 */
-	String shortenName(String ciphertextName);
 
 }

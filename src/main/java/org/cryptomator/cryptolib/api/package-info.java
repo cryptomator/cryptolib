@@ -29,12 +29,12 @@
  * VaultDirectory root = vault.rootDirectory();
  * try (DirectoryStream<Path> entries = Files.newDirectoryStream(vaultDir.resolve(root.dirPath()))) {
  *     for (Path entry : entries) {
- *         String cleartextName = root.decryptName(entry.getFileName().toString(), reader);
+ *         String cleartextName = root.decryptName(entry.getFileName().toString()); // see NameShortener for shortened entries
  *     }
  * }
  *
  * // Create a subdirectory:
- * root.encryptName("Documents").createDirectory(vault.newDirectory(), writer);
+ * root.createDirectory(root.encryptName("Documents"), vault.newDirectory(), writer);
  *
  * // Encrypt a file:
  * try (WritableByteChannel ch = vault.encryptingChannel(Files.newByteChannel(ciphertextPath, CREATE_NEW, WRITE))) {

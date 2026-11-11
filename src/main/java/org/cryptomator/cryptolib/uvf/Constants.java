@@ -26,6 +26,7 @@ final class Constants {
 	static final int DIR_ID_LEN = 32;
 	static final int SEED_DIGEST_LEN = 32;
 	static final String RECIPIENT_DETAILS_FIELD = "recipientDetails";
+	static final String NAME_SHORTENING_THRESHOLD_FIELD = "nameShorteningThreshold";
 
 	static final String DATA_DIR_NAME = "d";
 	static final String FILE_EXT = ".uvf";

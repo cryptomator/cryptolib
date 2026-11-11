@@ -23,7 +23,7 @@ final class Constants {
 	static final String DIR_FILE_NAME = "dir.c9r";
 	static final String SYMLINK_FILE_NAME = "symlink.c9r";
 	static final String CONTENTS_FILE_NAME = "contents.c9r";
-	static final String INFLATED_NAME_FILE_NAME = "name.c9s";
+	static final String SIDECAR_FILE_NAME = "name.c9s";
 	static final String DIR_ID_BACKUP_FILE_NAME = "dirid.c9r";
 
 	static final String CONTENT_ENC_ALG = "AES";

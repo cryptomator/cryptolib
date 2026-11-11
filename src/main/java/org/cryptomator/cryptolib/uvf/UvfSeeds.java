@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.HKDFHelper;
@@ -26,7 +27,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * The decrypted payload of {@code vault.uvf}: the vault's seeds, KDF salt, formats and recipient details, plus any fields cryptolib does not interpret.
+ * The decrypted payload of {@code vault.uvf}: the vault's seeds, KDF salt, formats, name shortening threshold and recipient details, plus any fields cryptolib does not interpret.
  * <p>
  * Seed ids are derived from the seeds ({@code kdf(seed, 32, "seedDigest")[0..4]}) and verified on parsing.
  */
@@ -35,7 +36,7 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	private static final Base64.Encoder B64 = Base64.getUrlEncoder().withoutPadding();
 	private static final Base64.Decoder B64_DECODER = Base64.getUrlDecoder();
 	private static final Gson GSON = new Gson();
-	private static final Set<String> KNOWN_FIELDS = new HashSet<>(Arrays.asList("fileFormat", "nameFormat", "seeds", "initialSeed", "latestSeed", "kdf", "kdfSalt", Constants.RECIPIENT_DETAILS_FIELD));
+	private static final Set<String> KNOWN_FIELDS = new HashSet<>(Arrays.asList("fileFormat", "nameFormat", "seeds", "initialSeed", "latestSeed", "kdf", "kdfSalt", Constants.NAME_SHORTENING_THRESHOLD_FIELD, Constants.RECIPIENT_DETAILS_FIELD));
 	private static final String ALG_MEMBER = "alg";
 	private static final String JWK_MEMBER = "jwk";
 
@@ -60,11 +61,13 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	private final byte[] kdfSalt;
 	private final int initialSeedId;
 	private int latestSeedId;
+	private final int nameShorteningThreshold;
 	private final Map<String, RecipientDetails> recipientDetails = new LinkedHashMap<>();
 	private final Map<String, JsonElement> customFields;
 	private boolean destroyed = false;
 
-	UvfSeeds(Map<Integer, byte[]> seeds, byte[] kdfSalt, int initialSeedId, int latestSeedId, Map<String, RecipientDetails> recipientDetails, Map<String, JsonElement> customFields) {
+	UvfSeeds(Map<Integer, byte[]> seeds, byte[] kdfSalt, int initialSeedId, int latestSeedId, int nameShorteningThreshold, Map<String, RecipientDetails> recipientDetails, Map<String, JsonElement> customFields) {
+		this.nameShorteningThreshold = UvfNameShortener.requireValidThreshold(nameShorteningThreshold);
 		if (kdfSalt.length != Constants.KDF_SALT_LEN) {
 			throw new IllegalArgumentException(String.format("kdfSalt must be %s bytes", Constants.KDF_SALT_LEN));
 		}
@@ -95,16 +98,19 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 
 	/**
 	 * @param csprng Source of randomness
+	 * @param nameShorteningThreshold The vault's name shortening threshold, see {@link NameShortener#uvf(int)}
 	 * @return Seeds for a new vault: a fresh salt and one seed, no recipients yet
+	 * @throws IllegalArgumentException If the threshold is invalid
 	 */
-	static UvfSeeds create(SecureRandom csprng) {
+	static UvfSeeds create(SecureRandom csprng, int nameShorteningThreshold) {
+		UvfNameShortener.requireValidThreshold(nameShorteningThreshold);
 		byte[] kdfSalt = new byte[Constants.KDF_SALT_LEN];
 		csprng.nextBytes(kdfSalt);
 		byte[] seed = new byte[Constants.SEED_LEN];
 		csprng.nextBytes(seed);
 		try {
 			int seedId = seedId(kdfSalt, seed);
-			return new UvfSeeds(Collections.singletonMap(seedId, seed), kdfSalt, seedId, seedId, Collections.<String, RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap());
+			return new UvfSeeds(Collections.singletonMap(seedId, seed), kdfSalt, seedId, seedId, nameShorteningThreshold, Collections.<String, RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap());
 		} finally {
 			Arrays.fill(seed, (byte) 0x00);
 			Arrays.fill(kdfSalt, (byte) 0x00);
@@ -147,6 +153,7 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 			for (Map.Entry<String, JsonElement> entry : requireObject(root, "seeds").entrySet()) {
 				seeds.put(decodeSeedId(entry.getKey()), decodeStrict(entry.getValue().getAsString()));
 			}
+			int nameShorteningThreshold = parseNameShorteningThreshold(root);
 			Map<String, RecipientDetails> recipientDetails = new LinkedHashMap<>();
 			for (Map.Entry<String, JsonElement> entry : requireObject(root, Constants.RECIPIENT_DETAILS_FIELD).entrySet()) {
 				recipientDetails.put(entry.getKey(), parseRecipientDetails(entry.getKey(), entry.getValue()));
@@ -157,9 +164,25 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 					customFields.put(entry.getKey(), entry.getValue());
 				}
 			}
-			return new UvfSeeds(seeds, kdfSalt, initialSeed, latestSeed, recipientDetails, customFields);
+			return new UvfSeeds(seeds, kdfSalt, initialSeed, latestSeed, nameShorteningThreshold, recipientDetails, customFields);
 		} catch (JsonSyntaxException | IllegalStateException | IllegalArgumentException | UnsupportedOperationException | NullPointerException e) {
 			throw new VaultConfigLoadException("Malformed vault metadata", e);
+		}
+	}
+
+	// the optional field must be an integer; its range is checked by the constructor
+	private static int parseNameShorteningThreshold(JsonObject root) throws VaultConfigLoadException {
+		JsonElement element = root.get(Constants.NAME_SHORTENING_THRESHOLD_FIELD);
+		if (element == null) {
+			return NameShortener.DISABLED;
+		}
+		if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+			throw new VaultConfigLoadException("Invalid field: " + Constants.NAME_SHORTENING_THRESHOLD_FIELD);
+		}
+		try {
+			return element.getAsBigDecimal().intValueExact();
+		} catch (ArithmeticException | NumberFormatException e) {
+			throw new VaultConfigLoadException("Invalid field: " + Constants.NAME_SHORTENING_THRESHOLD_FIELD, e);
 		}
 	}
 
@@ -227,6 +250,9 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 		root.addProperty("latestSeed", encodeSeedId(latestSeedId));
 		root.addProperty("kdf", Constants.KDF);
 		root.addProperty("kdfSalt", B64.encodeToString(kdfSalt));
+		if (nameShorteningThreshold != NameShortener.DISABLED) {
+			root.addProperty(Constants.NAME_SHORTENING_THRESHOLD_FIELD, nameShorteningThreshold);
+		}
 		JsonObject detailsObject = new JsonObject();
 		for (Map.Entry<String, RecipientDetails> entry : recipientDetails.entrySet()) {
 			JsonObject details = new JsonObject();
@@ -277,6 +303,13 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 
 	Set<Integer> seedIds() {
 		return Collections.unmodifiableSet(new TreeSet<>(seeds.keySet()));
+	}
+
+	/**
+	 * @return The name shortening threshold, or {@link NameShortener#DISABLED}
+	 */
+	int nameShorteningThreshold() {
+		return nameShorteningThreshold;
 	}
 
 	boolean hasSeed(int seedId) {
