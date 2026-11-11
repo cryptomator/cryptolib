@@ -24,6 +24,7 @@ jobs:
       with:
         fetch-depth: 2
         show-progress: false
+        persist-credentials: false
     - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
       with:
         java-version: 25
