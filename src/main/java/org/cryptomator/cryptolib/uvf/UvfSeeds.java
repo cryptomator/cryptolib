@@ -30,8 +30,10 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	private static final Base64.Decoder BASE64URL_DECODER = Base64.getUrlDecoder();
 	private static final Set<String> KNOWN_FIELDS = new HashSet<>(Arrays.asList(Constants.FILE_FORMAT_FIELD, Constants.NAME_FORMAT_FIELD, Constants.SEEDS_FIELD, Constants.INITIAL_SEED_FIELD, Constants.LATEST_SEED_FIELD, Constants.KDF_FIELD, Constants.KDF_SALT_FIELD,
 			Constants.NAME_SHORTENING_THRESHOLD_FIELD, Constants.RECIPIENT_DETAILS_FIELD));
-	private static final String ALG_MEMBER = "alg";
-	private static final String JWK_MEMBER = "jwk";
+	private static final class JsonKey {
+		private static final String ALG = "alg";
+		private static final String JWK = "jwk";
+	}
 
 	/**
 	 * One entry of the payload's {@code recipientDetails}: the recipient's key management algorithm, its public key for public-key algorithms, and vendor-specific members.
@@ -176,9 +178,9 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 			throw new VaultConfigLoadException("Invalid recipient details for " + kid);
 		}
 		Json.Obj object = (Json.Obj) json;
-		String alg = object.getString(ALG_MEMBER);
+		String alg = object.getString(JsonKey.ALG);
 		Map<String, @Nullable Object> jwk = null;
-		Json jwkJson = object.get(JWK_MEMBER);
+		Json jwkJson = object.get(JsonKey.JWK);
 		if (jwkJson instanceof Json.Obj) {
 			jwk = ((Json.Obj) jwkJson).toJava();
 		} else if (jwkJson != null) {
@@ -186,7 +188,7 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 		}
 		Map<String, @Nullable Object> vendorFields = new LinkedHashMap<>();
 		for (Map.Entry<String, Json> member : object.members().entrySet()) {
-			if (!ALG_MEMBER.equals(member.getKey()) && !JWK_MEMBER.equals(member.getKey())) {
+			if (!JsonKey.ALG.equals(member.getKey()) && !JsonKey.JWK.equals(member.getKey())) {
 				vendorFields.put(member.getKey(), member.getValue().toJava());
 			}
 		}
@@ -223,9 +225,9 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 		Map<String, Object> detailsObject = new LinkedHashMap<>();
 		for (Map.Entry<String, RecipientDetails> entry : recipientDetails.entrySet()) {
 			Map<String, @Nullable Object> details = new LinkedHashMap<>();
-			details.put(ALG_MEMBER, entry.getValue().alg);
+			details.put(JsonKey.ALG, entry.getValue().alg);
 			if (entry.getValue().jwk != null) {
-				details.put(JWK_MEMBER, entry.getValue().jwk);
+				details.put(JsonKey.JWK, entry.getValue().jwk);
 			}
 			details.putAll(entry.getValue().vendorFields);
 			detailsObject.put(entry.getKey(), details);
