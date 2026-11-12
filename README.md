@@ -9,6 +9,321 @@
 
 This library contains all cryptographic functions that are used by Cryptomator. The purpose of this project is to provide a separate light-weight library with its own release cycle that can be used in other projects, too.
 
+cryptolib does "all but I/O": it understands the vault layout (config file, directory structure, file names, file contents) and operates on `byte[]`, `ByteBuffer`, `String`, channels and streams. Reading and writing actual files is left to the caller. Both the Cryptomator Vault Format 8 (CVF8) and the [Unified Vault Format](https://github.com/encryption-alliance/unified-vault-format) (UVF) are supported behind the same API.
+
+## Usage
+
+### Overview
+
+| Type | Responsibility |
+|---|---|
+| `LockedVault` | Parsed but not yet authenticated `vault.cryptomator` / `vault.uvf`. Sealed: it is either a `Cvf8LockedVault` (tells you the `kid` of the required masterkey) or a `UvfLockedVault` (lists the recipients). `unlock(...)` yields the matching `UnlockedVault`. |
+| `UnlockedVault` | An unlocked vault. Serializes its config and its recovery key (as words, see below), hands out `VaultDirectory` objects and the vault's `NameShortener`, creates/opens `VaultFile`s, encrypts whole files and streams, does the header/chunk size arithmetic, encodes symlink targets. Sealed: `Cvf8UnlockedVault` (masterkey, cipher combo, shortening threshold) or `UvfUnlockedVault` (seed rotation, recipient management, name shortening threshold). |
+| `VaultDirectory` | One directory in the vault (its dirId and, for UVF, its seed). Computes the `d/XX/YYY` storage path and the path of its backup metadata file, encrypts/decrypts child names, produces the `dir.*` metadata bytes, and resolves or creates child directories and symlinks through the callbacks (`directory(node, reader)`, `symlinkTarget(node, reader)`, `createDirectory(node, child, writer)`, `createSymlink(node, target, writer)`). |
+| `VaultNode` | Result of `VaultDirectory.encryptName`: a plain value with the full ciphertext name of an entry and the relative paths of its well-known files (`dir.*`, `symlink.*`). Never shortened. |
+| `NameShortener`, `ShortenedVaultNode` | The layer below name encryption that keeps stored names short: key-less and free of I/O. `shorten(name)` yields a `ShortenedVaultNode` (short name, layout, sidecar path and contents) for names above the threshold, `isShortened` / `isSidecar` / `sidecarFile` / `unshorten` handle entries found in a listing. |
+| `VaultReader`, `VaultWriter` | Functional interfaces `byte[] read(String pathRelativeToVaultRoot)` and `void write(String pathRelativeToVaultRoot, byte[] contents)`. The only way cryptolib reads or writes vault metadata files (`dir.*`, `dirid.c9r`, `symlink.*`). A writer must create missing parent directories. |
+| `VaultFile` | One open file: its (encrypted-once) header, file key and cleartext size. Positional `read`/`write`/`truncate` via `CiphertextReader`/`CiphertextWriter` callbacks, plus the raw chunk layer with its index/offset arithmetic. |
+| `CiphertextReader`, `CiphertextWriter` | Functional interfaces shaped like `FileChannel.read(ByteBuffer, long)` / `write(ByteBuffer, long)`; the only way cryptolib touches a file's bytes. |
+| `CvfMasterkey` | The 512-bit key of all Cryptomator Vault Format versions. `MasterkeyLoader` resolves a CVF8 config's `kid` to one; `MasterkeyFileAccess` (package `common`) reads/writes `masterkey.cryptomator`. UVF has no standalone key type: seeds live inside `vault.uvf` and are managed by `UvfUnlockedVault`. |
+| `UvfLockedVault` / `UvfUnlockedVault` | `vault.uvf` has exactly two recipients: a key encryption key, either derived from a password with Argon2id (`org.cryptomator.password.argon2`) or a member key from Cryptomator Hub (`org.cryptomator.hub.memberkey`), and an EC recovery key (`org.cryptomator.recoverykey`). Algorithms, the Argon2 parameters and the recovery key's public key are committed in the encrypted payload (`recipientDetails`) and verified against the headers on unlock. `unlock(password)`, `unlock(memberKey)`, `recover(privateKey)` or `recover(words)`, optionally after `requireSeeds(pinnedDigests)`. Recipients are value objects (`UvfKeyEncryptionKey.password/memberKey`, `UvfRecoveryKey.generate/of`) passed to `create` or to `setKeyEncryptionKey`/`setRecoveryKey`, which require `addSeed()` before serializing. |
+
+`LockedVault` and `UnlockedVault` are declared `sealed` in a Java 25 variant of their class files (multi-release jar), so consumers on Java 21+ can `switch` over them exhaustively; on Java 8 they are plain interfaces and `instanceof` does the job.
+
+All examples assume `Path vaultDir` pointing at the vault's root directory, `SecureRandom csprng`, and these two callbacks through which cryptolib reads and writes metadata files:
+
+```java
+VaultReader reader = relPath -> Files.readAllBytes(vaultDir.resolve(relPath));
+VaultWriter writer = (relPath, bytes) -> {
+	Path file = vaultDir.resolve(relPath);
+	Files.createDirectories(file.getParent());
+	Files.write(file, bytes);
+};
+```
+
+Exceptions in `org.cryptomator.cryptolib.api` are unchecked, except `IOException` passing through the callbacks.
+
+### Open an existing vault
+
+`LockedVault.parse` detects the format from the file contents. CVF8 vaults are protected by a masterkey, whose `kid` is in the config and which a `MasterkeyLoader` resolves. UVF vaults are protected by a password or a Hub member key, plus a recovery key:
+
+```java
+byte[] configBytes = Files.readAllBytes(configPath); // vault.cryptomator or vault.uvf
+LockedVault locked = LockedVault.parse(configBytes);
+
+UnlockedVault vault = switch (locked) { // Java 21+; exhaustive, no default needed
+	case Cvf8LockedVault cvf8 -> {
+		MasterkeyLoader keyLoader = keyId -> masterkeyFileAccess.load(vaultDir.resolve("masterkey.cryptomator"), passphrase);
+		yield cvf8.unlock(keyLoader, csprng); // loads the key for cvf8.keyId(), verifies the signature, checks format == 8
+	}
+	case UvfLockedVault uvf -> yield uvf.unlock(passphrase, csprng); // or uvf.unlock(memberKey, csprng) for Hub vaults, see uvf.keyEncryptionKid()
+};
+```
+
+On Java 8 the same code uses `instanceof` and casts. Unlocking with a wrong key/password throws `VaultKeyInvalidException`; an unsupported `format`/`uvf.spec.version` throws `UnsupportedVaultFormatException`. An `UnlockedVault` is likewise either a `Cvf8UnlockedVault` or a `UvfUnlockedVault`; format-agnostic code only needs `UnlockedVault`.
+
+`UvfLockedVault.keyEncryptionKid()` tells whether the vault expects a password or a member key; `recover(recoveryKeyWords, csprng)` (on either format) unlocks it with the recovery key instead, e.g. to set a new password, see below.
+
+### Create a new vault
+
+```java
+// CVF8
+try (CvfMasterkey masterkey = CvfMasterkey.generate(csprng)) {
+	masterkeyFileAccess.persist(masterkey, vaultDir.resolve("masterkey.cryptomator"), passphrase);
+	try (Cvf8UnlockedVault vault = Cvf8UnlockedVault.create(masterkey, 220, csprng)) { // new vaults always use SIV_GCM and kid "masterkeyfile:masterkey.cryptomator"
+		writer.write(vault.configFileName(), vault.serializeConfig()); // vault.cryptomator
+		vault.rootDirectory().writeMetadataBackup(writer);              // d/XX/YYY…/dirid.c9r
+	}
+}
+
+// UVF
+UvfKeyEncryptionKey kek = UvfKeyEncryptionKey.password(passphrase); // Argon2id → A256KW; or UvfKeyEncryptionKey.memberKey(aesKey) for Hub vaults
+UvfRecoveryKey recoveryKey = UvfRecoveryKey.generate(csprng);       // ECDH-ES+A256KW; or UvfRecoveryKey.of(ecPublicKey) if only the public key is known
+try (UvfUnlockedVault vault = UvfUnlockedVault.create(csprng, kek, recoveryKey, 220)) { // fresh KDF salt and initial seed; names above 220 bytes are shortened (-1: never)
+	String recoveryWords = vault.serializedRecoveryKey();           // 126 words for the user to write down
+	writer.write(vault.configFileName(), vault.serializeConfig()); // vault.uvf
+	vault.rootDirectory().writeMetadataBackup(writer);              // d/XX/YYY…/dir.uvf
+}
+```
+
+### List a directory
+
+Listing has two independent steps: undo name shortening (no keys involved, see [Name shortening](#name-shortening)), then decrypt the name.
+
+```java
+VaultDirectory dir = ...; // e.g. vault.rootDirectory()
+NameShortener shortener = vault.nameShortener();
+try (DirectoryStream<Path> entries = Files.newDirectoryStream(vaultDir.resolve(dir.dirPath()))) {
+	for (Path entry : entries) {
+		String entryName = entry.getFileName().toString();
+		if (shortener.isSidecar(entryName)) {
+			continue; // UVF: <hash>.original.uvf holds the full name of a shortened sibling
+		}
+		String ciphertextName = entryName;
+		if (shortener.isShortened(entryName)) {
+			try {
+				byte[] sidecar = reader.read(dir.dirPath() + "/" + shortener.sidecarFile(entryName));
+				ciphertextName = shortener.unshorten(entryName, sidecar); // verifies that the sidecar belongs to this entry
+			} catch (NoSuchFileException | AuthenticationFailedException e) {
+				continue; // sidecar missing or not matching
+			}
+		}
+		String cleartextName;
+		try {
+			cleartextName = dir.decryptName(ciphertextName);
+		} catch (AuthenticationFailedException | IllegalArgumentException e) {
+			continue; // not a vault node (e.g. dirid.c9r, dir.uvf) or tampered
+		}
+		// Whether `entry` is a file, directory or symlink is decided by the caller (presence of the node's dirFile() / symlinkFile()).
+	}
+}
+```
+
+A consumer that stacks its own shortening layer below (or a UVF vault without `nameShorteningThreshold`) only needs the `decryptName` part.
+
+### Descend into a subdirectory
+
+```java
+VaultNode node = dir.encryptName("Documents");       // deterministic, never shortened
+VaultDirectory subDir = dir.directory(node, reader); // reads "<dirPath>/<name>/dir.c9r" (or dir.uvf) through the callback
+Path subDirPath = vaultDir.resolve(subDir.dirPath());
+
+// equivalent, if you already hold the bytes:
+VaultDirectory subDir2 = vault.directory(Files.readAllBytes(vaultDir.resolve(dir.dirPath()).resolve(node.dirFile())));
+```
+
+`VaultNode` is a plain value describing the layout of a node: `name()` is the full ciphertext name, which is the entry itself and, for a regular file, the file holding its contents; `dirFile()` and `symlinkFile()` are the paths of the well-known files below it, relative to the parent's `dirPath()`. A `VaultNode` is *not* a `VaultDirectory`: a node is an entry relative to its parent and may be a file, directory or symlink (the caller decides by looking at the files below it), whereas a `VaultDirectory` is identified by its dirId and is resolved from the `dir.*` contents. The root directory has no node at all.
+
+If the `dir.*` file is lost, the copy inside the content directory can be used instead: `vault.directoryFromBackup(Files.readAllBytes(vaultDir.resolve(subDir.backupFilePath())))`.
+
+### Create a subdirectory
+
+```java
+VaultDirectory parent = ...;
+VaultDirectory child = vault.newDirectory();   // fresh dirId (UVF: bound to latestSeed)
+VaultNode node = parent.encryptName("Documents");
+parent.createDirectory(node, child, writer);   // writes "<parent>/<name>/dir.*" and "d/XX/YYY…/dirid.c9r|dir.uvf"
+```
+
+Without the writer, the same happens in pieces: `node.dirFile()` + `child.encryptedMetadata()`, `child.backupFilePath()` + `child.encryptedMetadataBackup()`. A file node is created by writing the content yourself (see below) to `node.name()`.
+
+Name encryption is deterministic, so callers may cache `encryptName` results. `vault.maxCleartextNameLength(maxCiphertextNameLength)` is the longest cleartext name whose ciphertext name fits the given length; it is plain arithmetic and independent of shortening.
+
+### Name shortening
+
+Storage often limits file names to 255 bytes, and sync services need some headroom for conflict suffixes. Both formats therefore store ciphertext names above a threshold under a short name derived from the name's hash, next to a sidecar file with the full name. This is a separate layer below name encryption: `NameShortener` involves no keys, performs no I/O and can be created from the threshold alone (`NameShortener.cvf8(220)`, `NameShortener.uvf(220)`); `vault.nameShortener()` returns the one for the vault's configuration. `encryptName` never shortens and `decryptName` never reads sidecars.
+
+```java
+VaultNode node = parent.encryptName(cleartextName);                       // encryption layer: full ciphertext name
+ShortenedVaultNode shortened = vault.nameShortener().shorten(node.name()); // shortening layer: null unless the name exceeds the threshold
+
+String contentsFile = node.name();
+if (shortened != null) {
+	writer.write(parent.dirPath() + "/" + shortened.sidecarFile(), shortened.sidecarContents()); // sidecar first
+	contentsFile = shortened.contentsFile();
+}
+// regular file: write the content to <parent.dirPath()>/<contentsFile>
+
+VaultNode stored = shortened != null ? shortened : node;        // a ShortenedVaultNode is a VaultNode whose dirFile()/symlinkFile() point below the short name
+parent.createDirectory(stored, vault.newDirectory(), writer);   // or createSymlink / directory / symlinkTarget; none of them touches the sidecar
+```
+
+| | Cryptomator Vault Format 8 | Unified Vault Format |
+|---|---|---|
+| threshold | `shorteningThreshold` of `vault.cryptomator`, in characters | optional `nameShorteningThreshold` of `vault.uvf`, in UTF-8 bytes; `UvfUnlockedVault.nameShorteningThreshold()` is `-1` if disabled |
+| `shortenedName()` | `<base64url(SHA-1(name))>.c9s`, always a directory | `<base32(SHA-256(name)[0..20])>.shortened.uvf`, a file stays a file |
+| `contentsFile()` | `<hash>.c9s/contents.c9r` | `<hash>.shortened.uvf` |
+| `dirFile()` / `symlinkFile()` | `<hash>.c9s/dir.c9r` / `<hash>.c9s/symlink.c9r` | `<hash>.shortened.uvf/dir.uvf` / `<hash>.shortened.uvf/symlink.uvf` |
+| `sidecarFile()` | `<hash>.c9s/name.c9s`, inside the entry | `<hash>.original.uvf`, next to the entry (`isSidecar` hides it when listing) |
+
+`unshorten(shortenedName, sidecarContents)` returns the full name only if the contents hash to the entry's name (and, for UVF, exceed the threshold); otherwise it throws `AuthenticationFailedException`, so sidecars cannot be swapped between entries. Everything about I/O stays with the caller: reading, writing and deleting sidecars, re-evaluating the name on every move, and caching verified sidecars. Conflicting copies created by sync services (`<hash>.shortened (1).uvf`) are not recognized as shortened entries. An application that applies no shortening must not access a UVF vault whose `nameShorteningThreshold()` is not `-1`.
+
+Two complete examples are compiled and run with the tests: [`Cvf8Example`](src/test/java/org/cryptomator/cryptolib/examples/Cvf8Example.java) handles name encryption and shortening in one place (which works for UVF as well), [`UvfExample`](src/test/java/org/cryptomator/cryptolib/examples/UvfExample.java) stacks name encryption on top of a key-less shortening storage layer.
+
+### Files: whole content, streams, channels
+
+```java
+// whole buffer (small files, dir.uvf, symlinks)
+byte[] ciphertext = vault.encryptFile("hello".getBytes(UTF_8));
+byte[] cleartext = vault.decryptFile(ciphertext);
+
+// channels (the primitive; ByteBuffer-based, no extra copy)
+try (WritableByteChannel out = vault.encryptingChannel(Files.newByteChannel(ciphertextPath, CREATE_NEW, WRITE))) {
+	out.write(cleartextBuffer);
+}
+try (ReadableByteChannel in = vault.decryptingChannel(Files.newByteChannel(ciphertextPath))) {
+	in.read(cleartextBuffer);
+}
+
+// streams (adapters for consumers that only have InputStream/OutputStream, e.g. cloud SDKs)
+try (OutputStream out = vault.encryptingStream(cloudClient.upload(remotePath))) {
+	out.write(cleartextBytes);
+}
+try (InputStream in = vault.decryptingStream(cloudClient.download(remotePath))) {
+	in.read(cleartextBytes);
+}
+```
+
+Both families write the header first and then whole chunks; the decrypting side authenticates every chunk and throws `AuthenticationFailedException` on tampering.
+
+### Files: random access
+
+An `VaultFile` represents one open file: its header (created and encrypted exactly once), the file key and the current cleartext size. Reads and writes at arbitrary cleartext positions are expressed against the *ciphertext* through two positional callbacks that mirror `FileChannel`'s `read(ByteBuffer, long)` and `write(ByteBuffer, long)`, so a `FileChannel` plugs in via method references. cryptolib does the chunk arithmetic, authenticates and decrypts the touched chunks, performs read-modify-write for partial chunks, zero-fills gaps when writing beyond the end, and maintains the UVF EOF chunk.
+
+```java
+// existing file
+try (FileChannel ch = FileChannel.open(ciphertextPath, READ, WRITE)) {
+	ByteBuffer header = ByteBuffer.allocate(vault.headerSize());
+	ch.read(header, 0);
+	header.flip();
+	try (VaultFile file = vault.openFile(header, ch.size())) {
+		ByteBuffer buf = ByteBuffer.allocate(4096);
+		int read = file.read(1_000_000L, buf, ch::read);            // -1 at EOF; AuthenticationFailedException if a chunk was tampered
+		file.write(file.size(), data, ch::read, ch::write);         // append
+		file.truncate(100, ch::read, ch::write);                    // re-encrypts the last chunk ...
+		ch.truncate(vault.ciphertextSize(100));                     // ... the caller cuts the channel
+		file.adoptCiphertextSize(ch.size());                        // adopt a size changed through another handle (same header), no I/O
+	}
+}
+
+// new file: size() == 0, header is written on the first write
+try (FileChannel ch = FileChannel.open(ciphertextPath, CREATE_NEW, WRITE); VaultFile file = vault.createFile()) {
+	file.write(0, data, ch::read, ch::write);
+}
+
+// sizes (both include the header); no file needs to be opened for these
+long cleartextSize = vault.cleartextSize(Files.size(ciphertextPath));
+long ciphertextSize = vault.ciphertextSize(cleartextSize);
+```
+
+Nothing is cached: every call touches the ciphertext through the callbacks. Only the cleartext size is state; if another handle changed the ciphertext, `adoptCiphertextSize(ciphertextSize)` adopts the new size without re-opening the file. A file system with its own chunk cache uses the chunk layer below instead. All buffers are caller-provided; no method allocates and returns a `ByteBuffer`.
+
+### Files: chunk layer
+
+```java
+VaultFile file = ...; // vault.createFile() or vault.openFile(header, ciphertextFileSize)
+
+ch.write(file.encryptedHeader(), 0); // new file
+
+long chunkIndex = file.chunkIndex(cleartextPosition);
+int offsetInChunk = file.offsetInChunk(cleartextPosition);
+
+ByteBuffer ciphertextChunk = ByteBuffer.allocate(vault.ciphertextChunkSize());
+ByteBuffer cleartextChunk = ByteBuffer.allocate(vault.cleartextChunkSize());
+ch.read(ciphertextChunk, file.ciphertextChunkOffset(chunkIndex));
+ciphertextChunk.flip();
+file.decryptChunk(ciphertextChunk, cleartextChunk, chunkIndex); // throws AuthenticationFailedException
+cleartextChunk.flip();
+
+file.encryptChunk(cleartextChunk, ciphertextChunk, chunkIndex);
+ciphertextChunk.flip();
+ch.write(ciphertextChunk, file.ciphertextChunkOffset(chunkIndex));
+
+long chunks = file.chunkCount(cleartextSize); // UVF: includes the empty EOF chunk when the size is a multiple of the chunk size
+```
+
+### Symlinks
+
+```java
+VaultNode node = parent.encryptName("link");
+parent.createSymlink(node, "../target/file.txt", writer); // writes "<parent>/<name>/symlink.c9r|symlink.uvf"
+String target = parent.symlinkTarget(node, reader);       // reads it back
+
+// byte-level equivalents: vault.encryptSymlinkTarget(String) / vault.decryptSymlinkTarget(byte[]) with node.symlinkFile()
+```
+
+### UVF: key rotation and recovery
+
+```java
+try (UvfUnlockedVault vault = uvfLocked.unlock(passphrase, csprng)) {
+	vault.setKeyEncryptionKey(UvfKeyEncryptionKey.password(newPassphrase)); // or a member key; setRecoveryKey(UvfRecoveryKey) likewise
+	vault.addSeed();                                                        // required after replacing a secret: the old one's holder knows all existing seeds, new files and directories use the new seed
+	Files.write(vaultDir.resolve("vault.uvf"), vault.serializeConfig(), TRUNCATE_EXISTING);
+}
+
+// forgotten password: unlock with the recovery key and set a new one
+try (UvfUnlockedVault vault = uvfLocked.recover(recoveryKeyWords, csprng)) { // or recover(ecPrivateKey, csprng)
+	vault.setKeyEncryptionKey(UvfKeyEncryptionKey.password(newPassphrase));
+	vault.addSeed();
+	Files.write(vaultDir.resolve("vault.uvf"), vault.serializeConfig(), TRUNCATE_EXISTING);
+}
+```
+
+`serializeConfig()` encrypts the metadata with a fresh content key for both recipients whenever something changed, and returns the previous serialization otherwise, so it is cheap to call and write unconditionally. It refuses to serialize after a password, member key or recovery key was replaced until `addSeed()` was called. The unlocked vault keeps what it needs for re-encryption: the key encryption key (the Argon2id output; its salt and cost parameters are committed in the payload) or the member key, and the recovery key's public key from the payload. Passwords are never retained. The private recovery key is retained only if the vault was created with a key pair or unlocked with the recovery key; only then is `serializedRecoveryKey()` available.
+
+### UVF: seed pinning
+
+`vault.uvf` carries no version counter, so a former member with write access could restore an older file or forge one for the recovery key it once knew. The specification therefore requires clients to remember the seeds they have seen (their 32-byte digests reveal nothing about the seeds) outside the vault, integrity-protected, and to reject a `vault.uvf` lacking any of them:
+
+```java
+try (UvfUnlockedVault vault = uvfLocked.requireSeeds(pinnedDigests).unlock(passphrase, csprng)) { // VaultRollbackException if a pinned seed is missing
+	pinnedDigests.addAll(vault.seedDigests().values()); // persist, e.g. in the application's settings
+}
+```
+
+When recovering a directory from the `dir.uvf` copy inside the directory (`directoryFromBackup`), compare the resulting `dirPath()` with the location the copy was found at.
+
+### Recovery keys
+
+Both formats encode their recovery key as words from a 4096-word dictionary (`WordEncoder` in package `common`) with a checksum, compatible with Cryptomator and Cryptomator Hub: for CVF8 it is the masterkey (44 words), for UVF the private recovery key (126 words).
+
+```java
+String words = unlocked.serializedRecoveryKey(); // show to the user
+
+LockedVault locked = LockedVault.parse(configBytes);
+try (UnlockedVault recovered = locked.recover(words, csprng)) { // IllegalArgumentException for malformed words, VaultKeyInvalidException if they don't match
+	// CVF8: persist recovered masterkey with a new passphrase
+	if (recovered instanceof Cvf8UnlockedVault cvf8) {
+		masterkeyFileAccess.persist(cvf8.masterkey(), vaultDir.resolve("masterkey.cryptomator"), newPassphrase);
+	}
+	// UVF: set a new password and write the config, see above
+}
+```
+
+### Keys
+
+`UnlockedVault` objects hold key material and implement `Destroyable`/`AutoCloseable`; use try-with-resources. `VaultFile` holds the file key and should be closed when the file is closed. `Cvf8UnlockedVault.masterkey()` exposes the `CvfMasterkey` for applications that need raw key access, e.g. to re-persist `masterkey.cryptomator` with a new passphrase.
+
 ## Audits
 
 - [Version 1.1.5 audit by Cure53](https://cryptomator.org/audits/2017-11-27%20crypto%20cure53.pdf)

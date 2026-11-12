@@ -1,9 +1,8 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.io.BaseEncoding;
 import org.cryptomator.cryptolib.api.CryptoException;
 import org.cryptomator.cryptolib.api.InvalidPassphraseException;
-import org.cryptomator.cryptolib.api.Masterkey;
+import org.cryptomator.cryptolib.api.CvfMasterkey;
 import org.cryptomator.cryptolib.api.MasterkeyLoadingFailedException;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Assertions;
@@ -18,57 +17,52 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 
-public class MasterkeyFileAccessTest {
+class MasterkeyFileAccessTest {
 
 	private static final SecureRandom RANDOM_MOCK = SecureRandomMock.NULL_RANDOM;
 	private static final byte[] DEFAULT_PEPPER = new byte[0];
 
-	private Masterkey key = new Masterkey(new byte[64]);
+	private CvfMasterkey key = new CvfMasterkey(new byte[64]);
 	private MasterkeyFile keyFile = new MasterkeyFile();
 	private MasterkeyFileAccess masterkeyFileAccess = Mockito.spy(new MasterkeyFileAccess(DEFAULT_PEPPER, RANDOM_MOCK));
 
 	@BeforeEach
-	public void setup() {
+	void setup() {
 		keyFile.version = 3;
 		keyFile.scryptSalt = new byte[8];
 		keyFile.scryptCostParam = 2;
 		keyFile.scryptBlockSize = 8;
-		keyFile.encMasterKey = BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
-		keyFile.macMasterKey = BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
-		keyFile.versionMac = BaseEncoding.base64().decode("iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=");
+		keyFile.encMasterKey = Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
+		keyFile.macMasterKey = Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q==");
+		keyFile.versionMac = Base64.getDecoder().decode("iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA=");
 	}
 
 	@Test
 	@DisplayName("changePassphrase(MasterkeyFile, ...)")
-	public void testChangePassphraseWithMasterkeyFile() throws CryptoException {
+	void testChangePassphraseWithMasterkeyFile() throws CryptoException {
 		MasterkeyFile changed1 = masterkeyFileAccess.changePassphrase(keyFile, "asd", "qwe");
 		MasterkeyFile changed2 = masterkeyFileAccess.changePassphrase(changed1, "qwe", "asd");
 
 		MatcherAssert.assertThat(keyFile.encMasterKey, not(equalTo(changed1.encMasterKey)));
 		Assertions.assertArrayEquals(keyFile.encMasterKey, changed2.encMasterKey);
-	}
-
-	@Test
-	@DisplayName("readAllegedVaultVersion()")
-	public void testReadAllegedVaultVersion() throws IOException {
-		byte[] content = "{\"version\": 1337}".getBytes(UTF_8);
-
-		int version = MasterkeyFileAccess.readAllegedVaultVersion(content);
-
-		Assertions.assertEquals(1337, version);
 	}
 
 	@Nested
@@ -78,15 +72,15 @@ public class MasterkeyFileAccessTest {
 		private byte[] serializedKeyFile;
 
 		@BeforeEach
-		public void setup() throws IOException {
+		void setup() throws IOException {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			masterkeyFileAccess.persist(key, out, "asd", 999, 2);
+			masterkeyFileAccess.persist(key, out, "asd", 2);
 			serializedKeyFile = out.toByteArray();
 		}
 
 		@Test
 		@DisplayName("changePassphrase(byte[], ...)")
-		public void testChangePassphraseWithRawBytes() throws CryptoException, IOException {
+		void testChangePassphraseWithRawBytes() throws CryptoException, IOException {
 			byte[] changed = masterkeyFileAccess.changePassphrase(serializedKeyFile, "asd", "qwe");
 			byte[] restored = masterkeyFileAccess.changePassphrase(changed, "qwe", "asd");
 
@@ -96,17 +90,17 @@ public class MasterkeyFileAccessTest {
 
 		@Test
 		@DisplayName("load()")
-		public void testLoad() throws IOException {
+		void testLoad() throws IOException {
 			InputStream in = new ByteArrayInputStream(serializedKeyFile);
 
-			Masterkey loaded = masterkeyFileAccess.load(in, "asd");
+			CvfMasterkey loaded = masterkeyFileAccess.load(in, "asd");
 
 			Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 		}
 
 		@Test
 		@DisplayName("load() unrelated json file")
-		public void testLoadInvalid() {
+		void testLoadInvalid() {
 			String content = "{\"foo\": 42}";
 			InputStream in = new ByteArrayInputStream(content.getBytes(UTF_8));
 
@@ -117,7 +111,7 @@ public class MasterkeyFileAccessTest {
 
 		@Test
 		@DisplayName("load() non-json file")
-		public void testLoadMalformed() {
+		void testLoadMalformed() {
 			final String content = "not even json";
 			InputStream in = new ByteArrayInputStream(content.getBytes(UTF_8));
 
@@ -132,7 +126,7 @@ public class MasterkeyFileAccessTest {
 
 			@Test
 			@DisplayName("all-rejecting validator throws exception, no key derivation happens")
-			public void testLoadWithRejectingValidator() throws InvalidPassphraseException {
+			void testLoadWithRejectingValidator() throws InvalidPassphraseException {
 				InputStream in = new ByteArrayInputStream(serializedKeyFile);
 				IOException rejection = new IOException("scrypt parameters exceed memory limit");
 
@@ -147,11 +141,11 @@ public class MasterkeyFileAccessTest {
 
 			@Test
 			@DisplayName("passing validator receives the parsed file and allows loading the key")
-			public void testLoadWithPassingValidator() throws IOException {
+			void testLoadWithPassingValidator() throws IOException {
 				InputStream in = new ByteArrayInputStream(serializedKeyFile);
 				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
 
-				Masterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
+				CvfMasterkey loaded = masterkeyFileAccess.load(in, "asd", validator);
 
 				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 				ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
@@ -163,7 +157,7 @@ public class MasterkeyFileAccessTest {
 
 			@Test
 			@DisplayName("validator is not invoked for structurally invalid files")
-			public void testValidatorNotInvokedForInvalidFile() {
+			void testValidatorNotInvokedForInvalidFile() {
 				InputStream in = new ByteArrayInputStream("{\"foo\": 42}".getBytes(UTF_8));
 				MasterkeyFileValidator validator = Mockito.mock(MasterkeyFileValidator.class);
 
@@ -175,7 +169,7 @@ public class MasterkeyFileAccessTest {
 
 			@Test
 			@DisplayName("load(Path, ...) with rejecting validator -> MasterkeyLoadingFailedException caused by validator's exception")
-			public void testLoadPathWithRejectingValidator(@TempDir Path tmpDir) throws IOException {
+			void testLoadPathWithRejectingValidator(@TempDir Path tmpDir) throws IOException {
 				Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
 				Files.write(masterkeyFile, serializedKeyFile);
 				IOException rejection = new IOException("scrypt parameters exceed memory limit");
@@ -204,7 +198,7 @@ public class MasterkeyFileAccessTest {
 			"2, 128", // scryptBlockSize > DEFAULT_MAX_SCRYPT_BLOCK_SIZE
 			"1048576, 64", // both within their bounds, but 2^20 * 64 * 128 = 8 GiB
 	})
-	public void testLoadWithOutOfRangeScryptParams(int scryptCostParam, int scryptBlockSize) throws IOException, InvalidPassphraseException {
+	void testLoadWithOutOfRangeScryptParams(int scryptCostParam, int scryptBlockSize) throws IOException, InvalidPassphraseException {
 		keyFile.scryptCostParam = scryptCostParam;
 		keyFile.scryptBlockSize = scryptBlockSize;
 		InputStream in = new ByteArrayInputStream(serialize(keyFile));
@@ -217,13 +211,13 @@ public class MasterkeyFileAccessTest {
 
 	@Test
 	@DisplayName("load() with custom validator replaces the default scrypt parameter bounds")
-	public void testLoadWithCustomValidatorReplacesDefault() throws IOException, InvalidPassphraseException {
+	void testLoadWithCustomValidatorReplacesDefault() throws IOException, InvalidPassphraseException {
 		keyFile.scryptCostParam = MasterkeyFileValidator.DEFAULT_MAX_SCRYPT_COST_PARAM << 1;
 		keyFile.scryptBlockSize = 1; // 2^21 * 1 * 128 = 256 MiB, accepted by a looser custom validator
 		InputStream in = new ByteArrayInputStream(serialize(keyFile));
 		Mockito.doReturn(key).when(masterkeyFileAccess).unlock(ArgumentMatchers.any(), ArgumentMatchers.any());
 
-		Masterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
+		CvfMasterkey loaded = masterkeyFileAccess.load(in, "asd", file -> {
 		});
 
 		Assertions.assertSame(key, loaded);
@@ -231,7 +225,7 @@ public class MasterkeyFileAccessTest {
 
 	@Test
 	@DisplayName("changePassphrase(byte[], ...) rejects out of range scrypt parameters without deriving a key")
-	public void testChangePassphraseWithOutOfRangeScryptParams() throws IOException, InvalidPassphraseException {
+	void testChangePassphraseWithOutOfRangeScryptParams() throws IOException, InvalidPassphraseException {
 		keyFile.scryptCostParam = MasterkeyFileValidator.DEFAULT_MAX_SCRYPT_COST_PARAM << 1;
 		byte[] serialized = serialize(keyFile);
 
@@ -282,7 +276,7 @@ public class MasterkeyFileAccessTest {
 
 			byte[] changed = masterkeyFileAccess.changePassphrase(serialized, "asd", "qwe", validator);
 
-			try (Masterkey loaded = masterkeyFileAccess.load(new ByteArrayInputStream(changed), "qwe")) {
+			try (CvfMasterkey loaded = masterkeyFileAccess.load(new ByteArrayInputStream(changed), "qwe")) {
 				Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 			}
 			ArgumentCaptor<MasterkeyFile> captor = ArgumentCaptor.forClass(MasterkeyFile.class);
@@ -341,15 +335,15 @@ public class MasterkeyFileAccessTest {
 
 		@Test
 		@DisplayName("with correct password")
-		public void testUnlockWithCorrectPassword() throws CryptoException {
-			Masterkey key = masterkeyFileAccess.unlock(keyFile, "asd");
+		void testUnlockWithCorrectPassword() throws CryptoException {
+			CvfMasterkey unlocked = masterkeyFileAccess.unlock(keyFile, "asd");
 
-			Assertions.assertNotNull(key);
+			Assertions.assertNotNull(unlocked);
 		}
 
 		@Test
 		@DisplayName("with scrypt parameters exceeding the maximum array size")
-		public void testUnlockWithOutOfRangeScryptParams() {
+		void testUnlockWithOutOfRangeScryptParams() {
 			keyFile.scryptCostParam = MasterkeyFileValidator.DEFAULT_MAX_SCRYPT_COST_PARAM << 1; // 2^21 * 8 * 128 = 2 GiB, rejected by Scrypt's int overflow check
 
 			Assertions.assertThrows(IllegalArgumentException.class, () -> {
@@ -359,7 +353,7 @@ public class MasterkeyFileAccessTest {
 
 		@Test
 		@DisplayName("with invalid password")
-		public void testUnlockWithIncorrectPassword() {
+		void testUnlockWithIncorrectPassword() {
 			Assertions.assertThrows(InvalidPassphraseException.class, () -> {
 				masterkeyFileAccess.unlock(keyFile, "qwe");
 			});
@@ -367,7 +361,7 @@ public class MasterkeyFileAccessTest {
 
 		@Test
 		@DisplayName("with correct password but invalid pepper")
-		public void testUnlockWithIncorrectPepper() {
+		void testUnlockWithIncorrectPepper() {
 			MasterkeyFileAccess masterkeyFileAccess = new MasterkeyFileAccess(new byte[1], RANDOM_MOCK);
 
 			Assertions.assertThrows(InvalidPassphraseException.class, () -> {
@@ -381,39 +375,46 @@ public class MasterkeyFileAccessTest {
 	@DisplayName("lock()")
 	class Lock {
 
+		// HMAC-SHA256 with the all-zero mac key over the version as 4 byte big-endian integer
+		private byte[] versionMac(int version) throws GeneralSecurityException {
+			Mac mac = Mac.getInstance("HmacSHA256");
+			mac.init(new SecretKeySpec(new byte[32], "HmacSHA256"));
+			return mac.doFinal(ByteBuffer.allocate(4).putInt(version).array());
+		}
+
 		@Test
 		@DisplayName("creates expected values")
-		public void testLock() {
-			MasterkeyFile keyFile = masterkeyFileAccess.lock(key, "asd", 3, 2);
+		void testLock() throws GeneralSecurityException {
+			MasterkeyFile locked = masterkeyFileAccess.lock(key, "asd", 2);
 
-			Assertions.assertEquals(3, keyFile.version);
-			Assertions.assertArrayEquals(new byte[8], keyFile.scryptSalt);
-			Assertions.assertEquals(2, keyFile.scryptCostParam);
-			Assertions.assertEquals(8, keyFile.scryptBlockSize);
-			Assertions.assertArrayEquals(BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.encMasterKey);
-			Assertions.assertArrayEquals(BaseEncoding.base64().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), keyFile.macMasterKey);
-			Assertions.assertArrayEquals(BaseEncoding.base64().decode("iUmRRHITuyJsJbVNqGNw+82YQ4A3Rma7j/y1v0DCVLA="), keyFile.versionMac);
+			Assertions.assertEquals(999, locked.version);
+			Assertions.assertArrayEquals(new byte[8], locked.scryptSalt);
+			Assertions.assertEquals(2, locked.scryptCostParam);
+			Assertions.assertEquals(8, locked.scryptBlockSize);
+			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), locked.encMasterKey);
+			Assertions.assertArrayEquals(Base64.getDecoder().decode("mM+qoQ+o0qvPTiDAZYt+flaC3WbpNAx1sTXaUzxwpy0M9Ctj6Tih/Q=="), locked.macMasterKey);
+			Assertions.assertArrayEquals(versionMac(999), locked.versionMac);
 		}
 
 		@Test
 		@DisplayName("different passwords -> different wrapped keys")
-		public void testLockWithDifferentPasswords() {
-			MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 8, 2);
-			MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 8, 2);
+		void testLockWithDifferentPasswords() {
+			MasterkeyFile keyFile1 = masterkeyFileAccess.lock(key, "asd", 2);
+			MasterkeyFile keyFile2 = masterkeyFileAccess.lock(key, "qwe", 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
 
 		@Test
 		@DisplayName("different peppers -> different wrapped keys")
-		public void testLockWithDifferentPeppers() {
+		void testLockWithDifferentPeppers() {
 			byte[] pepper1 = new byte[]{(byte) 0x01};
 			byte[] pepper2 = new byte[]{(byte) 0x02};
 			MasterkeyFileAccess masterkeyFileAccess1 = new MasterkeyFileAccess(pepper1, RANDOM_MOCK);
 			MasterkeyFileAccess masterkeyFileAccess2 = new MasterkeyFileAccess(pepper2, RANDOM_MOCK);
 
-			MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 8, 2);
-			MasterkeyFile keyFile2 = masterkeyFileAccess2.lock(key, "asd", 8, 2);
+			MasterkeyFile keyFile1 = masterkeyFileAccess1.lock(key, "asd", 2);
+			MasterkeyFile keyFile2 = masterkeyFileAccess2.lock(key, "asd", 2);
 
 			MatcherAssert.assertThat(keyFile1.encMasterKey, not(equalTo(keyFile2.encMasterKey)));
 		}
@@ -422,11 +423,11 @@ public class MasterkeyFileAccessTest {
 
 	@Test
 	@DisplayName("persist and load")
-	public void testPersistAndLoad(@TempDir Path tmpDir) throws IOException, MasterkeyLoadingFailedException {
+	void testPersistAndLoad(@TempDir Path tmpDir) throws IOException, MasterkeyLoadingFailedException {
 		Path masterkeyFile = tmpDir.resolve("masterkey.cryptomator");
 
 		masterkeyFileAccess.persist(key, masterkeyFile, "asd");
-		Masterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
+		CvfMasterkey loaded = masterkeyFileAccess.load(masterkeyFile, "asd");
 
 		Assertions.assertArrayEquals(key.getEncoded(), loaded.getEncoded());
 	}

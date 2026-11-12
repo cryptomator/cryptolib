@@ -8,12 +8,8 @@
  *******************************************************************************/
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.collect.Iterators;
-import com.google.common.primitives.Bytes;
-
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Random;
 
 public class SecureRandomMock extends SecureRandom {
@@ -53,15 +49,17 @@ public class SecureRandomMock extends SecureRandom {
 
 	private static class CyclicByteFiller implements ByteFiller {
 
-		private final Iterator<Byte> source;
+		private final byte[] source;
+		private int next = 0;
 
 		CyclicByteFiller(byte... bytes) {
-			source = Iterators.cycle(Bytes.asList(bytes));
+			this.source = bytes.clone();
 		}
 
 		@Override
 		public void fill(byte[] bytes) {
-			Arrays.fill(bytes, source.next());
+			Arrays.fill(bytes, source[next]);
+			next = (next + 1) % source.length;
 		}
 
 	}

@@ -18,10 +18,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 
-public class ByteBuffersTest {
+class ByteBuffersTest {
 
 	@Test
-	public void testCopyOfEmptySource() {
+	void testCopyOfEmptySource() {
 		final ByteBuffer src = ByteBuffer.allocate(0);
 		final ByteBuffer dst = ByteBuffer.allocate(5);
 		dst.put(new byte[3]);
@@ -37,7 +37,7 @@ public class ByteBuffersTest {
 	}
 
 	@Test
-	public void testCopyToEmptyDestination() {
+	void testCopyToEmptyDestination() {
 		final ByteBuffer src = ByteBuffer.wrap(new byte[4]);
 		final ByteBuffer dst = ByteBuffer.allocate(0);
 		src.put(new byte[2]);
@@ -53,7 +53,7 @@ public class ByteBuffersTest {
 	}
 
 	@Test
-	public void testCopyToBiggerDestination() {
+	void testCopyToBiggerDestination() {
 		final ByteBuffer src = ByteBuffer.wrap(new byte[2]);
 		final ByteBuffer dst = ByteBuffer.allocate(10);
 		dst.put(new byte[3]);
@@ -69,7 +69,7 @@ public class ByteBuffersTest {
 	}
 
 	@Test
-	public void testCopyToSmallerDestination() {
+	void testCopyToSmallerDestination() {
 		final ByteBuffer src = ByteBuffer.wrap(new byte[5]);
 		final ByteBuffer dst = ByteBuffer.allocate(2);
 		Assertions.assertEquals(0, src.position());
@@ -84,7 +84,7 @@ public class ByteBuffersTest {
 	}
 
 	@Test
-	public void testFillReachingBufferLimit() throws IOException {
+	void testFillReachingBufferLimit() throws IOException {
 		final ReadableByteChannel src = Mockito.mock(ReadableByteChannel.class);
 		final ByteBuffer dst = ByteBuffer.allocate(10);
 		Mockito.when(src.read(dst)).then(new Answer(){
@@ -114,7 +114,7 @@ public class ByteBuffersTest {
 	}
 	
 	@Test
-	public void testFillReachingEof() throws IOException {
+	void testFillReachingEof() throws IOException {
 		final ReadableByteChannel src = Mockito.mock(ReadableByteChannel.class);
 		final ByteBuffer dst = ByteBuffer.allocate(10);
 		Mockito.when(src.read(dst)).then(new Answer(){
@@ -144,7 +144,7 @@ public class ByteBuffersTest {
 	}
 
 	@Test
-	public void testFillStartingAtEof() throws IOException {
+	void testFillStartingAtEof() throws IOException {
 		final ReadableByteChannel src = Mockito.mock(ReadableByteChannel.class);
 		final ByteBuffer dst = ByteBuffer.allocate(10);
 		Mockito.when(src.read(dst)).thenReturn(-1);

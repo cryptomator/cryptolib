@@ -21,11 +21,6 @@
     "name":"java.security.SecureRandomParameters"
   },
   {
-    "name":"org.cryptomator.cryptolib.common.MasterkeyFile",
-    "allDeclaredFields":true,
-    "methods":[{"name":"<init>","parameterTypes":[] }]
-  },
-  {
     "name":"sun.misc.Unsafe",
     "fields":[{"name":"theUnsafe"}],
     "methods":[

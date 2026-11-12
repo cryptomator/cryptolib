@@ -16,10 +16,10 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 
-public class AesKeyWrapTest {
+class AesKeyWrapTest {
 
 	@Test
-	public void wrapAndUnwrap() throws InvalidKeyException {
+	void wrapAndUnwrap() throws InvalidKeyException {
 		DestroyableSecretKey kek = new DestroyableSecretKey(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[32], "AES");
 		byte[] wrapped = AesKeyWrap.wrap(kek, key);
@@ -28,7 +28,7 @@ public class AesKeyWrapTest {
 	}
 
 	@Test
-	public void wrapWithInvalidKey() {
+	void wrapWithInvalidKey() {
 		DestroyableSecretKey kek = new DestroyableSecretKey(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[17], "AES");
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
@@ -37,7 +37,7 @@ public class AesKeyWrapTest {
 	}
 
 	@Test
-	public void unwrapWithInvalidKey() {
+	void unwrapWithInvalidKey() {
 		DestroyableSecretKey kek = new DestroyableSecretKey(new byte[32], "AES");
 		SecretKey key = new SecretKeySpec(new byte[32], "AES");
 		byte[] wrapped = AesKeyWrap.wrap(kek, key);

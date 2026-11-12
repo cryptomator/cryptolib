@@ -18,17 +18,17 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.RC5ParameterSpec;
 import java.security.spec.AlgorithmParameterSpec;
 
-public class CipherSupplierTest {
+class CipherSupplierTest {
 
 	@Test
-	public void testGetUnknownCipher() {
+	void testGetUnknownCipher() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new CipherSupplier("doesNotExist");
 		});
 	}
 
 	@Test
-	public void testGetCipherWithInvalidKey() {
+	void testGetCipherWithInvalidKey() {
 		CipherSupplier supplier = new CipherSupplier("AES/CBC/PKCS5Padding");
 		SecretKey key = new DestroyableSecretKey(new byte[13], "AES");
 		AlgorithmParameterSpec params = new IvParameterSpec(new byte[16]);
@@ -39,7 +39,7 @@ public class CipherSupplierTest {
 	}
 
 	@Test
-	public void testGetCipherWithInvalidAlgorithmParam() {
+	void testGetCipherWithInvalidAlgorithmParam() {
 		CipherSupplier supplier = new CipherSupplier("AES/CBC/PKCS5Padding");
 		SecretKey key = new DestroyableSecretKey(new byte[16], "AES");
 		AlgorithmParameterSpec params = new RC5ParameterSpec(1, 1, 8);

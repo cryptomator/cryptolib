@@ -11,7 +11,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 /**
  * Tests from https://tools.ietf.org/html/rfc7914#section-12
  */
-public class ScryptTest {
+class ScryptTest {
 
 	@ParameterizedTest(name = "N = {0}, r = {1} -> {2}")
 	@DisplayName("workingMemoryBytes()")
@@ -20,12 +20,12 @@ public class ScryptTest {
 			"1048576, 8, 1073744896", // 1 GiB for V plus 3 KiB for B and XY
 			"2147483647, 2147483647, 9223372036854775807", // overflow saturates at Long.MAX_VALUE
 	})
-	public void testWorkingMemoryBytes(int costParam, int blockSize, long expected) {
+	void testWorkingMemoryBytes(int costParam, int blockSize, long expected) {
 		Assertions.assertEquals(expected, Scrypt.workingMemoryBytes(costParam, blockSize));
 	}
 
 	@Test
-	public void testEmptyString() {
+	void testEmptyString() {
 		byte[] key = Scrypt.scrypt("", "".getBytes(US_ASCII), 16, 1, 64);
 		byte[] expected = new byte[] { //
 				(byte) 0x77, (byte) 0xd6, (byte) 0x57, (byte) 0x62, (byte) 0x38, (byte) 0x65, (byte) 0x7b, (byte) 0x20, //
@@ -41,7 +41,7 @@ public class ScryptTest {
 	}
 
 	@Test
-	public void testPleaseLetMeInString() {
+	void testPleaseLetMeInString() {
 		byte[] key = Scrypt.scrypt("pleaseletmein", "SodiumChloride".getBytes(US_ASCII), 16384, 8, 64);
 		byte[] expected = new byte[] { //
 				(byte) 0x70, (byte) 0x23, (byte) 0xbd, (byte) 0xcb, (byte) 0x3a, (byte) 0xfd, (byte) 0x73, (byte) 0x48, //

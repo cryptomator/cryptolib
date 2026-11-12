@@ -9,7 +9,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
 
-public class MasterkeyFileValidatorTest {
+class MasterkeyFileValidatorTest {
 
 	@Nested
 	@DisplayName("DEFAULT")
@@ -18,7 +18,7 @@ public class MasterkeyFileValidatorTest {
 		private MasterkeyFile masterkeyFile;
 
 		@BeforeEach
-		public void setup() {
+		void setup() {
 			masterkeyFile = new MasterkeyFile();
 			masterkeyFile.version = 999;
 			masterkeyFile.scryptSalt = new byte[8];
@@ -34,7 +34,7 @@ public class MasterkeyFileValidatorTest {
 				"1048576, 8", // scryptCostParam at DEFAULT_MAX_SCRYPT_COST_PARAM, exactly at DEFAULT_MAX_SCRYPT_WORKING_MEMORY
 				"2, 64", // scryptBlockSize at DEFAULT_MAX_SCRYPT_BLOCK_SIZE
 		})
-		public void testAccepts(int scryptCostParam, int scryptBlockSize) {
+		void testAccepts(int scryptCostParam, int scryptBlockSize) {
 			masterkeyFile.scryptCostParam = scryptCostParam;
 			masterkeyFile.scryptBlockSize = scryptBlockSize;
 
@@ -52,7 +52,7 @@ public class MasterkeyFileValidatorTest {
 				"1048576, 16", // 2^20 * 16 * 128 = 2 GiB, while both factors are within their individual bounds
 				"1048576, 64", // both at their upper bounds, 2^20 * 64 * 128 = 8 GiB
 		})
-		public void testRejects(int scryptCostParam, int scryptBlockSize) {
+		void testRejects(int scryptCostParam, int scryptBlockSize) {
 			masterkeyFile.scryptCostParam = scryptCostParam;
 			masterkeyFile.scryptBlockSize = scryptBlockSize;
 

@@ -1,6 +1,5 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.common.base.Preconditions;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.CertIOException;
@@ -106,11 +105,21 @@ public class X509CertBuilder {
 	}
 
 	private void validate() throws IllegalStateException {
-		Preconditions.checkState(issuer != null, "issuer not set");
-		Preconditions.checkState(subject != null, "subject not set");
-		Preconditions.checkState(notBefore != null, "notBefore not set");
-		Preconditions.checkState(notAfter != null, "notAfter not set");
-		Preconditions.checkState(notBefore.compareTo(notAfter) < 0, "notBefore must be before notAfter");
+		if (issuer == null) {
+			throw new IllegalStateException("issuer not set");
+		}
+		if (subject == null) {
+			throw new IllegalStateException("subject not set");
+		}
+		if (notBefore == null) {
+			throw new IllegalStateException("notBefore not set");
+		}
+		if (notAfter == null) {
+			throw new IllegalStateException("notAfter not set");
+		}
+		if (notBefore.compareTo(notAfter) >= 0) {
+			throw new IllegalStateException("notBefore must be before notAfter");
+		}
 	}
 
 	/**

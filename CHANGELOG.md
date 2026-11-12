@@ -9,7 +9,26 @@ Changes to prior versions can be found on the [Github release page](https://gith
 
 ## [Unreleased](https://github.com/cryptomator/cryptolib/compare/2.4.0...HEAD)
 
-No changes yet.
+### Added
+* Recovery keys as words: `UnlockedVault.serializedRecoveryKey()` encodes the CVF8 masterkey (44 words) or the UVF private recovery key (126 words, PKCS#8 as produced by Cryptomator Hub), `LockedVault.recover(words, csprng)` unlocks with them. The encoding (CRC32-based checksum, 4096-word dictionary, now `common.WordEncoder`) is the one used by Cryptomator and Cryptomator Hub. A vault retains its P-384 recovery key pair for that when created or configured with a `UvfRecoveryKey` that holds the private key.
+* Name shortening as a key-less layer that is independent of name encryption: `NameShortener` (`UnlockedVault.nameShortener()`, or `NameShortener.cvf8(threshold)` / `NameShortener.uvf(threshold)` from the threshold alone) maps ciphertext names above the threshold to a `ShortenedVaultNode` (short name, layout, sidecar path and contents) and back (`isShortened`, `isSidecar`, `sidecarFile`, `unshorten`). It performs no I/O; `unshorten` verifies that a sidecar hashes to its entry's name. Cryptomator Vault Format 8 uses `<hash>.c9s` with `name.c9s` inside as before. For the Unified Vault Format this implements the draft of [spec PR #37](https://github.com/encryption-alliance/unified-vault-format/pull/37) (`<hash>.shortened.uvf` next to `<hash>.original.uvf`); the threshold is the optional payload field `nameShorteningThreshold`, set through `UvfUnlockedVault.create(..., nameShorteningThreshold)` (`-1` to disable) and readable as `UvfUnlockedVault.nameShorteningThreshold()`. Conflicting copies created by sync services are not handled.
+
+### Removed
+* All APIs deprecated in 2.x: `CipherSupplier.for*`, `MacSupplier.withKey`, `MessageDigestSupplier.get`, `MasterkeyFileAccess.readAllegedVaultVersion` and the `vaultVersion` parameter of `persist` (the file always records 999).
+* `ObjectPool` and the pooling of `Cipher`/`Mac`/`MessageDigest` instances: `CipherSupplier`, `MacSupplier` and `MessageDigestSupplier` now return fresh JCA objects. On current JDKs instantiation costs well under a microsecond, which is negligible against the work per chunk, and the pool was a contention point under parallel load.
+* `P384KeyPair`, `ECKeyPair`, `Pkcs12Helper` and the PKCS#12 exceptions. `X509CertBuilder` stays.
+* The dependency on Guava (`com.google.guava:guava`, together with its `failureaccess` and `listenablefuture` artifacts). Base64 now uses `java.util.Base64`, the base32 directory hashes use BouncyCastle's `Base32`.
+
+### Changed
+* **Breaking:** complete redesign of the public API for version 3.0.0 ("all but I/O"). See the `Usage` section of the README.
+* `VaultFile.adoptCiphertextSize(ciphertextSize)` adopts the size of a ciphertext that was changed through another handle without re-opening the file.
+* Unified Vault Format support (`vault.uvf`). A vault has two recipients: a key encryption key, derived from a password with Argon2id (BouncyCastle; kid `org.cryptomator.password.argon2`, parameters in the recipient header) or supplied by Cryptomator Hub as member key (kid `org.cryptomator.hub.memberkey`), and an EC recovery key (kid `org.cryptomator.recoverykey`). Unlocking, recovery and re-encryption use nimbus' multi-recipient JWE API.
+* UVF specification update of 2026-10-20: recipient algorithms, the password recipient's Argon2 parameters and the recovery key's public JWK are committed in the encrypted payload (`recipientDetails`) and verified against the unprotected headers on unlock; public keys no longer appear in headers. Seed ids are derived from the seeds (`kdf(seed, 32, "seedDigest")[0..4]`) and verified. File headers use a per-node-type KDF context (`fileHeader`, `dirHeader`, `symlinkHeader`) and the spec version byte `1`. Seed pinning via `UvfLockedVault.requireSeeds(digests)` / `UvfUnlockedVault.seedDigests()` and `VaultRollbackException`. Replacing a password, member key or recovery key requires `addSeed()` before `serializeConfig()`, which otherwise returns the cached serialization while nothing changed. Decrypted names that are empty, `.`, `..` or contain `/` or NUL are rejected for both formats; UVF ciphertext names must be canonical base64url.
+* UVF recipients are value objects: `UvfKeyEncryptionKey.password(pw[, Argon2Params])` / `memberKey(key)` and `UvfRecoveryKey.generate(csprng)` / `of(KeyPair)` / `of(ECPublicKey)`, passed to `UvfUnlockedVault.create(csprng, kek, recoveryKey, nameShorteningThreshold)` or to `setKeyEncryptionKey`/`setRecoveryKey`. A created vault is complete; every setter call is a replacement and requires `addSeed()` before `serializeConfig()`.
+* BouncyCastle is no longer shaded into the jar; `org.bouncycastle:bcpkix-jdk18on` is now a regular (transitive) dependency.
+* Added `com.nimbusds:nimbus-jose-jwt` as a dependency (vault config handling for `vault.cryptomator` and `vault.uvf`).
+* Added `org.jspecify:jspecify` for nullness annotations; the public API is `@NullMarked` (`requires static org.jspecify` in the module descriptor).
+* Multi-release jar now has exactly two layers: Java 8 (base) and Java 25 (`module-info`, sealed API roots). JDK 25 is required to build.
 
 
 ## [2.4.0](https://github.com/cryptomator/cryptolib/releases/tag/2.4.0) - 2026-10-26

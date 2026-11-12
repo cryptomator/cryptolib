@@ -13,24 +13,21 @@ import org.junit.jupiter.api.Test;
 
 import java.security.MessageDigest;
 
-public class MessageDigestSupplierTest {
+class MessageDigestSupplierTest {
 
 	@Test
-	public void testConstructorWithInvalidDigest() {
+	void testConstructorWithInvalidDigest() {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			new MessageDigestSupplier("FOO3000");
 		});
 	}
 
 	@Test
-	public void testGetSha1() {
-		try (ObjectPool.Lease<MessageDigest> digest = MessageDigestSupplier.SHA1.instance()) {
-			Assertions.assertNotNull(digest);
-		}
-
-		try (ObjectPool.Lease<MessageDigest> digest = MessageDigestSupplier.SHA1.instance()) {
-			Assertions.assertNotNull(digest);
-		}
+	void testGetSha1() {
+		MessageDigest digest1 = MessageDigestSupplier.SHA1.instance();
+		MessageDigest digest2 = MessageDigestSupplier.SHA1.instance();
+		Assertions.assertNotNull(digest1);
+		Assertions.assertNotSame(digest1, digest2);
 	}
 
 }

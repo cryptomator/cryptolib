@@ -58,7 +58,7 @@ public class Scrypt {
 	 * @param blockSize        Block size <code>r</code>
 	 * @param keyLengthInBytes Key output length <code>dkLen</code>
 	 * @return Derived key
-	 * @author Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
+	 * @implNote Derived from com.lambdaworks.crypto.SCrypt, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 * @see <a href="https://tools.ietf.org/html/rfc7914#section-2">RFC 7914</a>
 	 */
 	public static byte[] scrypt(byte[] passphrase, byte[] salt, int costParam, int blockSize, int keyLengthInBytes) {
@@ -72,8 +72,8 @@ public class Scrypt {
 			throw new IllegalArgumentException("Parameter r is too large");
 		}
 
-		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256");
-			 ObjectPool.Lease<Mac> mac = MacSupplier.HMAC_SHA256.keyed(key)) {
+		try (DestroyableSecretKey key = new DestroyableSecretKey(passphrase, "HmacSHA256")) {
+			Mac mac = MacSupplier.HMAC_SHA256.keyed(key);
 
 			byte[] DK = new byte[keyLengthInBytes];
 			byte[] B;
@@ -88,13 +88,13 @@ public class Scrypt {
 				throw new IllegalArgumentException("Insufficient memory for parameters N and r", e);
 			}
 
-			pbkdf2(mac.get(), salt, 1, B, P * 128 * blockSize);
+			pbkdf2(mac, salt, 1, B, P * 128 * blockSize);
 
 			for (int i = 0; i < P; i++) {
 				smix(B, i * 128 * blockSize, blockSize, costParam, V, XY);
 			}
 
-			pbkdf2(mac.get(), B, 1, DK, keyLengthInBytes);
+			pbkdf2(mac, B, 1, DK, keyLengthInBytes);
 
 			return DK;
 		}
@@ -123,7 +123,7 @@ public class Scrypt {
 	 * @param c     Iteration count.
 	 * @param DK    Byte array that derived key will be placed in.
 	 * @param dkLen Intended length, in octets, of the derived key.
-	 * @author Derived from com.lambdaworks.crypto.PBKDF, Apache License 2.0, Copyright (C) 2011 - Will Glozer
+	 * @implNote Derived from com.lambdaworks.crypto.PBKDF, Apache License 2.0, Copyright (C) 2011 - Will Glozer
 	 */
 	private static void pbkdf2(Mac mac, byte[] S, int c, byte[] DK, int dkLen) {
 		int hLen = mac.getMacLength();
