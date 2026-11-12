@@ -1,27 +1,20 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSyntaxException;
 import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.HKDFHelper;
+import org.cryptomator.cryptolib.internal.json.Json;
 import org.jspecify.annotations.Nullable;
 
 import javax.security.auth.Destroyable;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -33,9 +26,8 @@ import java.util.TreeSet;
  */
 final class UvfSeeds implements Destroyable, AutoCloseable {
 
-	private static final Base64.Encoder B64 = Base64.getUrlEncoder().withoutPadding();
-	private static final Base64.Decoder B64_DECODER = Base64.getUrlDecoder();
-	private static final Gson GSON = new Gson();
+	private static final Base64.Encoder BASE64URL = Base64.getUrlEncoder().withoutPadding();
+	private static final Base64.Decoder BASE64URL_DECODER = Base64.getUrlDecoder();
 	private static final Set<String> KNOWN_FIELDS = new HashSet<>(Arrays.asList(Constants.FILE_FORMAT_FIELD, Constants.NAME_FORMAT_FIELD, Constants.SEEDS_FIELD, Constants.INITIAL_SEED_FIELD, Constants.LATEST_SEED_FIELD, Constants.KDF_FIELD, Constants.KDF_SALT_FIELD,
 			Constants.NAME_SHORTENING_THRESHOLD_FIELD, Constants.RECIPIENT_DETAILS_FIELD));
 	private static final String ALG_MEMBER = "alg";
@@ -47,10 +39,10 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	static final class RecipientDetails {
 
 		final String alg;
-		final @Nullable Map<String, Object> jwk;
-		final Map<String, Object> vendorFields;
+		final @Nullable Map<String, @Nullable Object> jwk;
+		final Map<String, @Nullable Object> vendorFields;
 
-		RecipientDetails(String alg, @Nullable Map<String, Object> jwk, Map<String, Object> vendorFields) {
+		RecipientDetails(String alg, @Nullable Map<String, @Nullable Object> jwk, Map<String, @Nullable Object> vendorFields) {
 			this.alg = alg;
 			this.jwk = jwk == null ? null : Collections.unmodifiableMap(new LinkedHashMap<>(jwk));
 			this.vendorFields = Collections.unmodifiableMap(new LinkedHashMap<>(vendorFields));
@@ -64,10 +56,10 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	private int latestSeedId;
 	private final int nameShorteningThreshold;
 	private final Map<String, RecipientDetails> recipientDetails = new LinkedHashMap<>();
-	private final Map<String, JsonElement> customFields;
+	private final Map<String, Json> customFields;
 	private boolean destroyed = false;
 
-	UvfSeeds(Map<Integer, byte[]> seeds, byte[] kdfSalt, int initialSeedId, int latestSeedId, int nameShorteningThreshold, Map<String, RecipientDetails> recipientDetails, Map<String, JsonElement> customFields) {
+	UvfSeeds(Map<Integer, byte[]> seeds, byte[] kdfSalt, int initialSeedId, int latestSeedId, int nameShorteningThreshold, Map<String, RecipientDetails> recipientDetails, Map<String, Json> customFields) {
 		this.nameShorteningThreshold = UvfNameShortener.requireValidThreshold(nameShorteningThreshold);
 		if (kdfSalt.length != Constants.KDF_SALT_LEN) {
 			throw new IllegalArgumentException(String.format("kdfSalt must be %s bytes", Constants.KDF_SALT_LEN));
@@ -111,7 +103,7 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 		csprng.nextBytes(seed);
 		try {
 			int seedId = seedId(kdfSalt, seed);
-			return new UvfSeeds(Collections.singletonMap(seedId, seed), kdfSalt, seedId, seedId, nameShorteningThreshold, Collections.<String, RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap());
+			return new UvfSeeds(Collections.singletonMap(seedId, seed), kdfSalt, seedId, seedId, nameShorteningThreshold, Collections.emptyMap(), Collections.emptyMap());
 		} finally {
 			Arrays.fill(seed, (byte) 0x00);
 			Arrays.fill(kdfSalt, (byte) 0x00);
@@ -143,95 +135,69 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	 */
 	static UvfSeeds fromDecryptedPayload(String json) throws VaultConfigLoadException {
 		try {
-			JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+			Json parsed = Json.parse(json);
+			if (!(parsed instanceof Json.Obj)) {
+				throw new VaultConfigLoadException("Vault metadata is not a JSON object");
+			}
+			Json.Obj root = (Json.Obj) parsed;
 			requireFormat(root, Constants.FILE_FORMAT_FIELD, Constants.FILE_FORMAT);
 			requireFormat(root, Constants.NAME_FORMAT_FIELD, Constants.NAME_FORMAT);
 			requireFormat(root, Constants.KDF_FIELD, Constants.KDF);
-			byte[] kdfSalt = decodeStrict(requireString(root, Constants.KDF_SALT_FIELD));
-			int initialSeed = decodeSeedId(requireString(root, Constants.INITIAL_SEED_FIELD));
-			int latestSeed = decodeSeedId(requireString(root, Constants.LATEST_SEED_FIELD));
+			byte[] kdfSalt = decodeStrict(root.getString(Constants.KDF_SALT_FIELD));
+			int initialSeed = decodeSeedId(root.getString(Constants.INITIAL_SEED_FIELD));
+			int latestSeed = decodeSeedId(root.getString(Constants.LATEST_SEED_FIELD));
+			Json.Obj seedsObject = root.getObj(Constants.SEEDS_FIELD);
 			Map<Integer, byte[]> seeds = new LinkedHashMap<>();
-			for (Map.Entry<String, JsonElement> entry : requireObject(root, Constants.SEEDS_FIELD).entrySet()) {
-				seeds.put(decodeSeedId(entry.getKey()), decodeStrict(entry.getValue().getAsString()));
+			for (String seedId : seedsObject.members().keySet()) {
+				seeds.put(decodeSeedId(seedId), decodeStrict(seedsObject.getString(seedId)));
 			}
-			int nameShorteningThreshold = parseNameShorteningThreshold(root);
+			// the optional field must be an integer; its range is checked by the constructor
+			int nameShorteningThreshold = root.get(Constants.NAME_SHORTENING_THRESHOLD_FIELD) == null ? NameShortener.DISABLED : root.getInt(Constants.NAME_SHORTENING_THRESHOLD_FIELD);
 			Map<String, RecipientDetails> recipientDetails = new LinkedHashMap<>();
-			for (Map.Entry<String, JsonElement> entry : requireObject(root, Constants.RECIPIENT_DETAILS_FIELD).entrySet()) {
+			for (Map.Entry<String, Json> entry : root.getObj(Constants.RECIPIENT_DETAILS_FIELD).members().entrySet()) {
 				recipientDetails.put(entry.getKey(), parseRecipientDetails(entry.getKey(), entry.getValue()));
 			}
-			Map<String, JsonElement> customFields = new LinkedHashMap<>();
-			for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+			Map<String, Json> customFields = new LinkedHashMap<>();
+			for (Map.Entry<String, Json> entry : root.members().entrySet()) {
 				if (!KNOWN_FIELDS.contains(entry.getKey())) {
 					customFields.put(entry.getKey(), entry.getValue());
 				}
 			}
 			return new UvfSeeds(seeds, kdfSalt, initialSeed, latestSeed, nameShorteningThreshold, recipientDetails, customFields);
-		} catch (JsonSyntaxException | IllegalStateException | IllegalArgumentException | UnsupportedOperationException | NullPointerException e) {
+		} catch (Json.ParseException e) {
+			throw new VaultConfigLoadException("Malformed vault metadata: " + e.getMessage(), e);
+		} catch (IllegalArgumentException e) {
 			throw new VaultConfigLoadException("Malformed vault metadata", e);
 		}
 	}
 
-	// the optional field must be an integer; its range is checked by the constructor
-	private static int parseNameShorteningThreshold(JsonObject root) throws VaultConfigLoadException {
-		JsonElement element = root.get(Constants.NAME_SHORTENING_THRESHOLD_FIELD);
-		if (element == null) {
-			return NameShortener.DISABLED;
-		}
-		if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
-			throw new VaultConfigLoadException("Invalid field: " + Constants.NAME_SHORTENING_THRESHOLD_FIELD);
-		}
-		try {
-			return element.getAsBigDecimal().intValueExact();
-		} catch (ArithmeticException | NumberFormatException e) {
-			throw new VaultConfigLoadException("Invalid field: " + Constants.NAME_SHORTENING_THRESHOLD_FIELD, e);
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private static RecipientDetails parseRecipientDetails(String kid, JsonElement element) throws VaultConfigLoadException {
-		if (!element.isJsonObject()) {
+	private static RecipientDetails parseRecipientDetails(String kid, Json json) throws VaultConfigLoadException, Json.ParseException {
+		if (!(json instanceof Json.Obj)) {
 			throw new VaultConfigLoadException("Invalid recipient details for " + kid);
 		}
-		JsonObject object = element.getAsJsonObject();
-		String alg = requireString(object, ALG_MEMBER);
-		Map<String, Object> jwk = null;
-		if (object.has(JWK_MEMBER)) {
-			Object parsed = toJavaObject(object.get(JWK_MEMBER));
-			if (!(parsed instanceof Map)) {
-				throw new VaultConfigLoadException("Invalid jwk in recipient details for " + kid);
-			}
-			jwk = (Map<String, Object>) parsed;
+		Json.Obj object = (Json.Obj) json;
+		String alg = object.getString(ALG_MEMBER);
+		Map<String, @Nullable Object> jwk = null;
+		Json jwkJson = object.get(JWK_MEMBER);
+		if (jwkJson instanceof Json.Obj) {
+			jwk = ((Json.Obj) jwkJson).toJava();
+		} else if (jwkJson != null) {
+			throw new VaultConfigLoadException("Invalid jwk in recipient details for " + kid);
 		}
-		Map<String, Object> vendorFields = new LinkedHashMap<>();
-		for (Map.Entry<String, JsonElement> member : object.entrySet()) {
+		Map<String, @Nullable Object> vendorFields = new LinkedHashMap<>();
+		for (Map.Entry<String, Json> member : object.members().entrySet()) {
 			if (!ALG_MEMBER.equals(member.getKey()) && !JWK_MEMBER.equals(member.getKey())) {
-				vendorFields.put(member.getKey(), toJavaObject(member.getValue()));
+				vendorFields.put(member.getKey(), member.getValue().toJava());
 			}
 		}
 		return new RecipientDetails(alg, jwk, vendorFields);
 	}
 
-	private static void requireFormat(JsonObject root, String field, String expected) throws VaultConfigLoadException {
-		String actual = requireString(root, field);
+	private static void requireFormat(Json.Obj root, String field, String expected) throws VaultConfigLoadException, Json.ParseException {
+		String actual = root.getString(field);
 		if (!expected.equals(actual)) {
 			throw new VaultConfigLoadException("Unsupported " + field + ": " + actual);
 		}
-	}
-
-	private static String requireString(JsonObject root, String field) throws VaultConfigLoadException {
-		JsonElement element = root.get(field);
-		if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
-			throw new VaultConfigLoadException("Missing or invalid field: " + field);
-		}
-		return element.getAsString();
-	}
-
-	private static JsonObject requireObject(JsonObject root, String field) throws VaultConfigLoadException {
-		JsonElement element = root.get(field);
-		if (element == null || !element.isJsonObject()) {
-			throw new VaultConfigLoadException("Missing or invalid field: " + field);
-		}
-		return element.getAsJsonObject();
 	}
 
 	/**
@@ -239,44 +205,40 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	 */
 	String toDecryptedPayload() {
 		assertNotDestroyed();
-		JsonObject root = new JsonObject();
-		root.addProperty(Constants.FILE_FORMAT_FIELD, Constants.FILE_FORMAT);
-		root.addProperty(Constants.NAME_FORMAT_FIELD, Constants.NAME_FORMAT);
-		JsonObject seedsObject = new JsonObject();
+		Map<String, Object> root = new LinkedHashMap<>();
+		root.put(Constants.FILE_FORMAT_FIELD, Constants.FILE_FORMAT);
+		root.put(Constants.NAME_FORMAT_FIELD, Constants.NAME_FORMAT);
+		Map<String, Object> seedsObject = new LinkedHashMap<>();
 		for (Map.Entry<Integer, byte[]> entry : seeds.entrySet()) {
-			seedsObject.addProperty(encodeSeedId(entry.getKey()), B64.encodeToString(entry.getValue()));
+			seedsObject.put(encodeSeedId(entry.getKey()), BASE64URL.encodeToString(entry.getValue()));
 		}
-		root.add(Constants.SEEDS_FIELD, seedsObject);
-		root.addProperty(Constants.INITIAL_SEED_FIELD, encodeSeedId(initialSeedId));
-		root.addProperty(Constants.LATEST_SEED_FIELD, encodeSeedId(latestSeedId));
-		root.addProperty(Constants.KDF_FIELD, Constants.KDF);
-		root.addProperty(Constants.KDF_SALT_FIELD, B64.encodeToString(kdfSalt));
+		root.put(Constants.SEEDS_FIELD, seedsObject);
+		root.put(Constants.INITIAL_SEED_FIELD, encodeSeedId(initialSeedId));
+		root.put(Constants.LATEST_SEED_FIELD, encodeSeedId(latestSeedId));
+		root.put(Constants.KDF_FIELD, Constants.KDF);
+		root.put(Constants.KDF_SALT_FIELD, BASE64URL.encodeToString(kdfSalt));
 		if (nameShorteningThreshold != NameShortener.DISABLED) {
-			root.addProperty(Constants.NAME_SHORTENING_THRESHOLD_FIELD, nameShorteningThreshold);
+			root.put(Constants.NAME_SHORTENING_THRESHOLD_FIELD, nameShorteningThreshold);
 		}
-		JsonObject detailsObject = new JsonObject();
+		Map<String, Object> detailsObject = new LinkedHashMap<>();
 		for (Map.Entry<String, RecipientDetails> entry : recipientDetails.entrySet()) {
-			JsonObject details = new JsonObject();
-			details.addProperty(ALG_MEMBER, entry.getValue().alg);
+			Map<String, @Nullable Object> details = new LinkedHashMap<>();
+			details.put(ALG_MEMBER, entry.getValue().alg);
 			if (entry.getValue().jwk != null) {
-				details.add(JWK_MEMBER, GSON.toJsonTree(entry.getValue().jwk));
+				details.put(JWK_MEMBER, entry.getValue().jwk);
 			}
-			for (Map.Entry<String, Object> vendorField : entry.getValue().vendorFields.entrySet()) {
-				details.add(vendorField.getKey(), GSON.toJsonTree(vendorField.getValue()));
-			}
-			detailsObject.add(entry.getKey(), details);
+			details.putAll(entry.getValue().vendorFields);
+			detailsObject.put(entry.getKey(), details);
 		}
-		root.add(Constants.RECIPIENT_DETAILS_FIELD, detailsObject);
-		for (Map.Entry<String, JsonElement> entry : customFields.entrySet()) {
-			root.add(entry.getKey(), entry.getValue());
-		}
-		return root.toString();
+		root.put(Constants.RECIPIENT_DETAILS_FIELD, detailsObject);
+		root.putAll(customFields);
+		return Json.of(root).serialize();
 	}
 
 	// base64url without padding, rejecting padding characters, foreign characters and non-zero trailing bits
 	private static byte[] decodeStrict(String base64url) {
-		byte[] bytes = B64_DECODER.decode(base64url);
-		if (!B64.encodeToString(bytes).equals(base64url)) {
+		byte[] bytes = BASE64URL_DECODER.decode(base64url);
+		if (!BASE64URL.encodeToString(bytes).equals(base64url)) {
 			throw new IllegalArgumentException("Non-canonical base64url");
 		}
 		return bytes;
@@ -291,7 +253,7 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	}
 
 	static String encodeSeedId(int seedId) {
-		return B64.encodeToString(ByteBuffer.allocate(Constants.SEED_ID_LEN).putInt(seedId).array());
+		return BASE64URL.encodeToString(ByteBuffer.allocate(Constants.SEED_ID_LEN).putInt(seedId).array());
 	}
 
 	int initialSeedId() {
@@ -368,42 +330,10 @@ final class UvfSeeds implements Destroyable, AutoCloseable {
 	 */
 	Map<String, @Nullable Object> customFields() {
 		Map<String, @Nullable Object> result = new LinkedHashMap<>();
-		for (Map.Entry<String, JsonElement> entry : customFields.entrySet()) {
-			result.put(entry.getKey(), toJavaObject(entry.getValue()));
+		for (Map.Entry<String, Json> entry : customFields.entrySet()) {
+			result.put(entry.getKey(), entry.getValue().toJava());
 		}
 		return Collections.unmodifiableMap(result);
-	}
-
-	private static @Nullable Object toJavaObject(JsonElement element) {
-		if (element.isJsonNull()) {
-			return null;
-		} else if (element.isJsonPrimitive()) {
-			JsonPrimitive primitive = element.getAsJsonPrimitive();
-			if (primitive.isBoolean()) {
-				return primitive.getAsBoolean();
-			} else if (primitive.isNumber()) {
-				String number = primitive.getAsString();
-				if (number.contains(".") || number.contains("e") || number.contains("E")) {
-					return primitive.getAsDouble();
-				} else {
-					return primitive.getAsLong();
-				}
-			} else {
-				return primitive.getAsString();
-			}
-		} else if (element.isJsonArray()) {
-			List<Object> list = new ArrayList<>();
-			for (JsonElement child : element.getAsJsonArray()) {
-				list.add(toJavaObject(child));
-			}
-			return Collections.unmodifiableList(list);
-		} else {
-			Map<String, Object> map = new LinkedHashMap<>();
-			for (Map.Entry<String, JsonElement> entry : element.getAsJsonObject().entrySet()) {
-				map.put(entry.getKey(), toJavaObject(entry.getValue()));
-			}
-			return Collections.unmodifiableMap(map);
-		}
 	}
 
 	/**

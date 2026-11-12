@@ -1,72 +1,89 @@
 package org.cryptomator.cryptolib.common;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonParseException;
-import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.SerializedName;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
+import org.cryptomator.cryptolib.internal.json.Json;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Representation of encrypted masterkey json file. Used by {@link MasterkeyFileAccess} to load and persist keys.
  */
 public class MasterkeyFile {
 
-	private static final Gson GSON = new GsonBuilder() //
-			.setPrettyPrinting() //
-			.disableHtmlEscaping() //
-			.registerTypeHierarchyAdapter(byte[].class, new MasterkeyFile.ByteArrayJsonAdapter()) //
-			.create();
+	private static final Base64.Encoder BASE64 = Base64.getEncoder();
+	private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
+	private static final String VERSION = "version";
+	private static final String SCRYPT_SALT = "scryptSalt";
+	private static final String SCRYPT_COST_PARAM = "scryptCostParam";
+	private static final String SCRYPT_BLOCK_SIZE = "scryptBlockSize";
+	private static final String ENC_MASTER_KEY = "primaryMasterKey";
+	private static final String MAC_MASTER_KEY = "hmacMasterKey";
+	private static final String VERSION_MAC = "versionMac";
 
-	@SerializedName("version")
 	public int version;
 
-	@SerializedName("scryptSalt")
 	public byte[] scryptSalt;
 
-	@SerializedName("scryptCostParam")
 	public int scryptCostParam;
 
-	@SerializedName("scryptBlockSize")
 	public int scryptBlockSize;
 
-	@SerializedName("primaryMasterKey")
 	public byte[] encMasterKey;
 
-	@SerializedName("hmacMasterKey")
 	public byte[] macMasterKey;
 
-	@SerializedName("versionMac")
 	public byte[] versionMac;
 
 	public static MasterkeyFile read(Reader reader) throws IOException {
 		try {
-			MasterkeyFile result = GSON.fromJson(reader, MasterkeyFile.class);
-			if (result == null) {
+			Json json = Json.parse(reader);
+			if (json == Json.Null.INSTANCE) {
 				throw new IOException("JSON EOF");
-			} else {
-				return result;
+			} else if (!(json instanceof Json.Obj)) {
+				throw new IOException("Unreadable JSON");
 			}
-		} catch (JsonParseException e) {
+			Json.Obj object = (Json.Obj) json;
+			MasterkeyFile result = new MasterkeyFile();
+			result.version = object.getInt(VERSION, 0);
+			result.scryptSalt = base64Decode(object.getString(SCRYPT_SALT, null));
+			result.scryptCostParam = object.getInt(SCRYPT_COST_PARAM, 0);
+			result.scryptBlockSize = object.getInt(SCRYPT_BLOCK_SIZE, 0);
+			result.encMasterKey = base64Decode(object.getString(ENC_MASTER_KEY, null));
+			result.macMasterKey = base64Decode(object.getString(MAC_MASTER_KEY, null));
+			result.versionMac = base64Decode(object.getString(VERSION_MAC, null));
+			return result;
+		} catch (Json.ParseException e) {
 			throw new IOException("Unreadable JSON", e);
 		} catch (IllegalArgumentException e) {
 			throw new IOException("Invalid JSON content", e);
 		}
 	}
 
+	private static byte @Nullable [] base64Decode(@Nullable String base64) {
+		return base64 == null ? null : BASE64_DECODER.decode(base64);
+	}
+
 	public void write(Writer writer) throws IOException {
-		try {
-			GSON.toJson(this, writer);
-		} catch (JsonIOException e) {
-			throw new IOException(e);
+		Map<String, Object> members = new LinkedHashMap<>();
+		members.put(VERSION, version);
+		putBytes(members, SCRYPT_SALT, scryptSalt);
+		members.put(SCRYPT_COST_PARAM, scryptCostParam);
+		members.put(SCRYPT_BLOCK_SIZE, scryptBlockSize);
+		putBytes(members, ENC_MASTER_KEY, encMasterKey);
+		putBytes(members, MAC_MASTER_KEY, macMasterKey);
+		putBytes(members, VERSION_MAC, versionMac);
+		Json.of(members).write(writer, true);
+	}
+
+	// unset fields are omitted
+	private static void putBytes(Map<String, Object> members, String name, byte[] value) {
+		if (value != null) {
+			members.put(name, BASE64.encodeToString(value));
 		}
 	}
 
@@ -78,31 +95,6 @@ public class MasterkeyFile {
 				&& encMasterKey != null
 				&& macMasterKey != null
 				&& versionMac != null;
-	}
-
-	private static class ByteArrayJsonAdapter extends TypeAdapter<byte[]> {
-
-		private static final Base64.Encoder BASE64 = Base64.getEncoder();
-		private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
-
-		@Override
-		public void write(JsonWriter writer, byte[] value) throws IOException {
-			if (value == null) {
-				writer.nullValue();
-			} else {
-				writer.value(BASE64.encodeToString(value));
-			}
-		}
-
-		@Override
-		public byte[] read(JsonReader reader) throws IOException {
-			if (reader.peek() == JsonToken.NULL) {
-				reader.nextNull();
-				return null;
-			} else {
-				return BASE64_DECODER.decode(reader.nextString());
-			}
-		}
 	}
 
 }

@@ -88,4 +88,44 @@ class MasterkeyFileTest {
 		MatcherAssert.assertThat(json, CoreMatchers.containsString("\"scryptSalt\": \"Zm9v\""));
 	}
 
+	@Test
+	@DisplayName("read() maps all members, ignores unknown ones and leaves missing or null ones unset")
+	void testReadAllMembers() throws IOException {
+		String json = "{\"version\": 999, \"scryptSalt\": \"AAAAAAAAAAA=\", \"scryptCostParam\": 32768, \"scryptBlockSize\": 8.0, \"primaryMasterKey\": \"Zm9v\", \"versionMac\": null, \"unknown\": [1]}";
+
+		MasterkeyFile masterkeyFile = MasterkeyFile.read(new StringReader(json));
+
+		Assertions.assertEquals(999, masterkeyFile.version);
+		Assertions.assertArrayEquals(new byte[8], masterkeyFile.scryptSalt);
+		Assertions.assertEquals(32768, masterkeyFile.scryptCostParam);
+		Assertions.assertEquals(8, masterkeyFile.scryptBlockSize, "an integer written with a fraction");
+		Assertions.assertArrayEquals("foo".getBytes(), masterkeyFile.encMasterKey);
+		Assertions.assertNull(masterkeyFile.macMasterKey);
+		Assertions.assertNull(masterkeyFile.versionMac);
+	}
+
+	@ParameterizedTest(name = "read() rejects {0}")
+	@ValueSource(strings = {"", "null", "[]", "\"text\"", "{", "{\"version\": 1.5}", "{\"version\": 4294967296}", "{\"version\": \"999\"}", "{\"version\": true}", "{\"scryptSalt\": 1}", "{\"scryptSalt\": \"!\"}"})
+	void testReadInvalid(String json) {
+		StringReader reader = new StringReader(json);
+
+		Assertions.assertThrows(IOException.class, () -> MasterkeyFile.read(reader));
+	}
+
+	@Test
+	@DisplayName("write() emits indented JSON with unescaped base64 padding and omits unset members")
+	void testWriteFormat() throws IOException {
+		MasterkeyFile masterkeyFile = new MasterkeyFile();
+		masterkeyFile.version = 999;
+		masterkeyFile.scryptSalt = new byte[8];
+		masterkeyFile.scryptCostParam = 32768;
+		masterkeyFile.scryptBlockSize = 8;
+		masterkeyFile.encMasterKey = "foo".getBytes();
+
+		StringWriter jsonWriter = new StringWriter();
+		masterkeyFile.write(jsonWriter);
+
+		Assertions.assertEquals("{\n  \"version\": 999,\n  \"scryptSalt\": \"AAAAAAAAAAA=\",\n  \"scryptCostParam\": 32768,\n  \"scryptBlockSize\": 8,\n  \"primaryMasterKey\": \"Zm9v\"\n}", jsonWriter.toString());
+	}
+
 }

@@ -1,11 +1,11 @@
 package org.cryptomator.cryptolib.uvf;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.VaultConfigLoadException;
 import org.cryptomator.cryptolib.common.DestroyableSecretKey;
 import org.cryptomator.cryptolib.common.SecureRandomMock;
+import org.cryptomator.cryptolib.internal.json.Json;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class UvfSeedsTest {
 	static final Map<Integer, byte[]> TEST_SEEDS = Collections.singletonMap(TEST_SEED_ID, TEST_SEED);
 
 	static UvfSeeds testSeeds() {
-		return new UvfSeeds(TEST_SEEDS, TEST_KDF_SALT, TEST_SEED_ID, TEST_SEED_ID, NameShortener.DISABLED, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap());
+		return new UvfSeeds(TEST_SEEDS, TEST_KDF_SALT, TEST_SEED_ID, TEST_SEED_ID, NameShortener.DISABLED, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, Json>emptyMap());
 	}
 
 	@Test
@@ -71,7 +71,7 @@ class UvfSeedsTest {
 			Assertions.assertTrue(seeds.hasSeedWithDigest(digests.get(TEST_SEED_ID)));
 			Assertions.assertFalse(seeds.hasSeedWithDigest(new byte[32]));
 		}
-		Assertions.assertThrows(IllegalArgumentException.class, () -> new UvfSeeds(Collections.singletonMap(42, TEST_SEED), TEST_KDF_SALT, 42, 42, NameShortener.DISABLED, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, JsonElement>emptyMap()), "id must match the seed");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> new UvfSeeds(Collections.singletonMap(42, TEST_SEED), TEST_KDF_SALT, 42, 42, NameShortener.DISABLED, Collections.<String, UvfSeeds.RecipientDetails>emptyMap(), Collections.<String, Json>emptyMap()), "id must match the seed");
 	}
 
 	@Test

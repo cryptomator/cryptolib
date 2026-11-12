@@ -17,6 +17,4 @@ module org.cryptomator.cryptolib {
 
 	exports org.cryptomator.cryptolib.api;
 	exports org.cryptomator.cryptolib.common;
-
-	opens org.cryptomator.cryptolib.common to com.google.gson;
 }
