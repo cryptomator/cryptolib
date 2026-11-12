@@ -5,6 +5,7 @@ import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
+import org.cryptomator.cryptolib.api.Argon2Params;
 import org.cryptomator.cryptolib.api.AuthenticationFailedException;
 import org.cryptomator.cryptolib.api.NameShortener;
 import org.cryptomator.cryptolib.api.UvfKeyEncryptionKey;
@@ -210,11 +211,12 @@ public final class UvfVault extends AbstractUnlockedVault implements UvfUnlocked
 		Map<String, Object> vendorFields;
 		SecretKey memberKey = keyEncryptionKey.memberKey();
 		CharSequence password = keyEncryptionKey.password();
+		Argon2Params argon2Params = keyEncryptionKey.argon2Params();
 		if (memberKey != null) {
 			key = new OctetSequenceKey.Builder(memberKey).keyID(keyEncryptionKey.kid()).algorithm(JWEAlgorithm.A256KW).build();
 			vendorFields = Collections.emptyMap();
-		} else if (password != null && keyEncryptionKey.argon2Params() != null) {
-			vendorFields = Argon2Kdf.newHeaderParams(keyEncryptionKey.argon2Params(), csprng);
+		} else if (password != null && argon2Params != null) {
+			vendorFields = Argon2Kdf.newHeaderParams(argon2Params, csprng);
 			byte[] kek = Argon2Kdf.deriveKey(password, vendorFields);
 			try {
 				key = new OctetSequenceKey.Builder(kek).keyID(keyEncryptionKey.kid()).algorithm(JWEAlgorithm.A256KW).build();
