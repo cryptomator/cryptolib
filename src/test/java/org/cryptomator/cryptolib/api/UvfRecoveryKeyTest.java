@@ -34,7 +34,8 @@ class UvfRecoveryKeyTest {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> UvfRecoveryKey.of(p256));
 		KeyPairGenerator rsa = KeyPairGenerator.getInstance("RSA");
 		rsa.initialize(1024);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> UvfRecoveryKey.of(rsa.generateKeyPair()));
+		KeyPair rsaPair = rsa.generateKeyPair();
+		Assertions.assertThrows(IllegalArgumentException.class, () -> UvfRecoveryKey.of(rsaPair));
 	}
 
 	@Test

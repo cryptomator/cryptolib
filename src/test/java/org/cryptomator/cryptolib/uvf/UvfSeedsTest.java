@@ -215,7 +215,8 @@ class UvfSeedsTest {
 	@ParameterizedTest(name = "nameShorteningThreshold {0} is rejected")
 	@ValueSource(strings = {"0", "45", "-2", "220.5", "\"220\"", "true", "null", "[220]", "4294967516"})
 	void testInvalidNameShorteningThreshold(String jsonValue) {
-		Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfSeeds.fromDecryptedPayload(specPayloadWithThreshold(jsonValue)));
+		String payload = specPayloadWithThreshold(jsonValue);
+		Assertions.assertThrows(VaultConfigLoadException.class, () -> UvfSeeds.fromDecryptedPayload(payload));
 	}
 
 	@Test

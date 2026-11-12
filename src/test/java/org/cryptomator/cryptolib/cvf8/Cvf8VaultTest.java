@@ -120,7 +120,8 @@ class Cvf8VaultTest {
 			Assertions.assertThrows(VaultKeyInvalidException.class, () -> locked.recover(otherWords, CSPRNG));
 			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover("hallo bonjour", CSPRNG));
 			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover(words + " ad ad", CSPRNG), "46 words: valid checksum impossible, or wrong length");
-			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover(words.substring(0, words.lastIndexOf(' ')) + " ad", CSPRNG), "checksum mismatch");
+			String wrongLastWord = words.substring(0, words.lastIndexOf(' ')) + " ad";
+			Assertions.assertThrows(IllegalArgumentException.class, () -> locked.recover(wrongLastWord, CSPRNG), "checksum mismatch");
 		}
 
 		@Test
@@ -161,7 +162,9 @@ class Cvf8VaultTest {
 		void testUnlockWithWrongKey() {
 			byte[] config = Cvf8UnlockedVault.create(ZERO_KEY, 220, CSPRNG).serializeConfig();
 			Cvf8LockedVault locked = (Cvf8LockedVault) LockedVault.parse(config);
-			Assertions.assertThrows(VaultKeyInvalidException.class, () -> locked.unlock(CvfMasterkey.generate(CSPRNG), CSPRNG));
+			try (CvfMasterkey wrongKey = CvfMasterkey.generate(CSPRNG)) {
+				Assertions.assertThrows(VaultKeyInvalidException.class, () -> locked.unlock(wrongKey, CSPRNG));
+			}
 		}
 
 		@Test
@@ -182,7 +185,8 @@ class Cvf8VaultTest {
 		@Test
 		@DisplayName("parse garbage")
 		void testParseGarbage() {
-			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse("garbage".getBytes(UTF_8)));
+			byte[] garbage = "garbage".getBytes(UTF_8);
+			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse(garbage));
 			Assertions.assertThrows(VaultConfigLoadException.class, () -> LockedVault.parse(new byte[0]));
 		}
 
@@ -312,17 +316,15 @@ class Cvf8VaultTest {
 
 		@ParameterizedTest(name = "{0}: manipulated chunk is detected")
 		@EnumSource(CipherCombo.class)
-		void testManipulatedChunk(CipherCombo combo) {
+		void testManipulatedChunk(CipherCombo combo) throws IOException {
 			try (Cvf8Vault vault = vault(combo, CSPRNG)) {
 				byte[] ciphertext = vault.encryptFile(new byte[50000]);
 				ciphertext[vault.headerSize() + 20] ^= 0x01;
 				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.decryptFile(ciphertext));
 				ByteBuffer dst = ByteBuffer.allocate(50000);
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> {
-					try (ReadableByteChannel ch = vault.decryptingChannel(Channels.newChannel(new ByteArrayInputStream(ciphertext)))) {
-						ch.read(dst);
-					}
-				});
+				try (ReadableByteChannel ch = vault.decryptingChannel(Channels.newChannel(new ByteArrayInputStream(ciphertext)))) {
+					Assertions.assertThrows(AuthenticationFailedException.class, () -> ch.read(dst));
+				}
 			}
 		}
 
@@ -333,7 +335,8 @@ class Cvf8VaultTest {
 				byte[] ciphertext = vault.encryptFile(new byte[100]);
 				ciphertext[vault.headerSize() - 1] ^= 0x01;
 				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.decryptFile(ciphertext));
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.openFile(ByteBuffer.wrap(ciphertext, 0, vault.headerSize()), ciphertext.length));
+				ByteBuffer header = ByteBuffer.wrap(ciphertext, 0, vault.headerSize());
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.openFile(header, ciphertext.length));
 			}
 		}
 
@@ -344,7 +347,8 @@ class Cvf8VaultTest {
 				byte[] ciphertext = vault.encryptFile(new byte[100]);
 				byte[] truncated = Arrays.copyOf(ciphertext, vault.headerSize() + 10);
 				Assertions.assertThrows(IllegalArgumentException.class, () -> vault.decryptFile(truncated));
-				Assertions.assertThrows(IllegalArgumentException.class, () -> vault.openFile(ByteBuffer.wrap(truncated, 0, vault.headerSize()), truncated.length));
+				ByteBuffer header = ByteBuffer.wrap(truncated, 0, vault.headerSize());
+				Assertions.assertThrows(IllegalArgumentException.class, () -> vault.openFile(header, truncated.length));
 			}
 		}
 
@@ -439,8 +443,10 @@ class Cvf8VaultTest {
 			Assertions.assertEquals(node.name() + "/dir.c9r", node.dirFile());
 			Assertions.assertEquals(node.name() + "/symlink.c9r", node.symlinkFile());
 
-			Assertions.assertEquals("Documents", dir.decryptName(node.name()));
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> vault.newDirectory().decryptName(node.name()));
+			String ciphertextName = node.name();
+			Assertions.assertEquals("Documents", dir.decryptName(ciphertextName));
+			VaultDirectory otherDir = vault.newDirectory();
+			Assertions.assertThrows(AuthenticationFailedException.class, () -> otherDir.decryptName(ciphertextName));
 			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName("masterkey.cryptomator"));
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName("dirid.c9r")); // ends with .c9r but isn't a ciphertext name
 			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName("lol.c9r"));
@@ -450,8 +456,8 @@ class Cvf8VaultTest {
 		@ValueSource(strings = {"", ".", "..", "a/b", "a\u0000b"})
 		void testInvalidCleartextNames(String name) {
 			VaultDirectory dir = vault.newDirectory();
-			VaultNode node = dir.encryptName(name);
-			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName(node.name()));
+			String ciphertextName = dir.encryptName(name).name();
+			Assertions.assertThrows(AuthenticationFailedException.class, () -> dir.decryptName(ciphertextName));
 		}
 
 		@Test
@@ -474,8 +480,9 @@ class Cvf8VaultTest {
 			Assertions.assertTrue(shortener.isShortened(shortened.shortenedName()));
 
 			// listing: unshorten, then decrypt
-			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName(shortened.shortenedName()));
-			String ciphertextName = shortener.unshorten(shortened.shortenedName(), shortened.sidecarContents());
+			String shortenedName = shortened.shortenedName();
+			Assertions.assertThrows(IllegalArgumentException.class, () -> dir.decryptName(shortenedName));
+			String ciphertextName = shortener.unshorten(shortenedName, shortened.sidecarContents());
 			Assertions.assertEquals(repeat('a', 147), dir.decryptName(ciphertextName));
 		}
 

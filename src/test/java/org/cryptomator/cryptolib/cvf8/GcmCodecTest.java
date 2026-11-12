@@ -59,7 +59,8 @@ class GcmCodecTest {
 	@DisplayName("decrypt too short header")
 	void testDecryptTooShortHeader() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.allocate(7)));
+		ByteBuffer tooShort = ByteBuffer.allocate(7);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(tooShort));
 	}
 
 	@Test
@@ -85,7 +86,9 @@ class GcmCodecTest {
 	void testEncryptChunkWithTooSmallBuffer() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.cycle((byte) 0x33));
 		ByteBuffer ciphertext = ByteBuffer.allocate(11 + 27);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[12], zeroKey(), US_ASCII.encode("hello world"), ciphertext, 0));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer cleartext = US_ASCII.encode("hello world");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[12], fileKey, cleartext, ciphertext, 0));
 	}
 
 	@Test
@@ -103,7 +106,9 @@ class GcmCodecTest {
 	void testDecryptChunkWithWrongIndex() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 1));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[12], fileKey, ciphertext, cleartext, 1));
 	}
 
 	@Test
@@ -111,7 +116,9 @@ class GcmCodecTest {
 	void testDecryptChunkWithTooSmallBuffer() {
 		GcmCodec codec = new GcmCodec(masterkey, SecureRandomMock.NULL_RANDOM);
 		ByteBuffer cleartext = ByteBuffer.allocate(10);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[12], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[12], fileKey, ciphertext, cleartext, 0));
 	}
 
 	private static DestroyableSecretKey zeroKey() {

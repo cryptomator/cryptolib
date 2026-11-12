@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -22,7 +23,8 @@ class WordEncoderTest {
 		Assertions.assertEquals(4096, encoder.words().size());
 		Assertions.assertEquals(4096, new HashSet<>(encoder.words()).size());
 		Assertions.assertEquals("ad", encoder.words().get(0));
-		Assertions.assertThrows(UnsupportedOperationException.class, () -> encoder.words().add("x"));
+		List<String> words = encoder.words();
+		Assertions.assertThrows(UnsupportedOperationException.class, () -> words.add("x"));
 	}
 
 	@DisplayName("decode(encode(input)) == input")

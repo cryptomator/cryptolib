@@ -51,7 +51,8 @@ class Cvf8ConfigCodecTest {
 		Cvf8ConfigCodec.Claims claims = Cvf8ConfigCodec.parse(CRYPTOFS_TOKEN);
 		byte[] wrongKey = new byte[64];
 		wrongKey[0] = 1;
-		Assertions.assertThrows(VaultKeyInvalidException.class, () -> Cvf8ConfigCodec.verify(claims.jwt, new CvfMasterkey(wrongKey)));
+		CvfMasterkey wrongMasterkey = new CvfMasterkey(wrongKey);
+		Assertions.assertThrows(VaultKeyInvalidException.class, () -> Cvf8ConfigCodec.verify(claims.jwt, wrongMasterkey));
 	}
 
 	@Test
@@ -101,7 +102,8 @@ class Cvf8ConfigCodecTest {
 	void testMissingKidRejected() throws Exception {
 		SignedJWT jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.HS256).build(), claims(8));
 		jwt.sign(new MACSigner(masterkey.getEncoded()));
-		Assertions.assertThrows(VaultConfigLoadException.class, () -> Cvf8ConfigCodec.parse(jwt.serialize()));
+		String token = jwt.serialize();
+		Assertions.assertThrows(VaultConfigLoadException.class, () -> Cvf8ConfigCodec.parse(token));
 	}
 
 	@Test
@@ -110,7 +112,8 @@ class Cvf8ConfigCodecTest {
 		JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("format", 8).claim("cipherCombo", "SIV_GCM").build();
 		SignedJWT jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.HS256).keyID("masterkeyfile:masterkey.cryptomator").build(), claims);
 		jwt.sign(new MACSigner(masterkey.getEncoded()));
-		Assertions.assertThrows(VaultConfigLoadException.class, () -> Cvf8ConfigCodec.parse(jwt.serialize()));
+		String token = jwt.serialize();
+		Assertions.assertThrows(VaultConfigLoadException.class, () -> Cvf8ConfigCodec.parse(token));
 	}
 
 	@Test

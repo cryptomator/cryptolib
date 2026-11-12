@@ -158,7 +158,8 @@ class Cvf8VaultFileTest {
 		try (Cvf8Vault vault = vault(combo)) {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(cleartext));
 			try (VaultFile file = vault.openFile(ByteBuffer.wrap(ciphertext.toByteArray(), 0, vault.headerSize()), ciphertext.size())) {
-				Assertions.assertThrows(IllegalArgumentException.class, () -> file.truncate(file.size() + 1, ciphertext, ciphertext));
+				long beyondEnd = file.size() + 1;
+				Assertions.assertThrows(IllegalArgumentException.class, () -> file.truncate(beyondEnd, ciphertext, ciphertext));
 
 				// mid-chunk:
 				file.truncate(CHUNK + 100, ciphertext, ciphertext);
@@ -193,7 +194,8 @@ class Cvf8VaultFileTest {
 			ByteBuffer header = ByteBuffer.wrap(ciphertext.toByteArray(), 0, vault.headerSize());
 			try (VaultFile stale = vault.openFile(header.duplicate(), ciphertext.size()); VaultFile writer = vault.openFile(header.duplicate(), ciphertext.size())) {
 				Assertions.assertThrows(IllegalArgumentException.class, () -> stale.adoptCiphertextSize(0));
-				Assertions.assertThrows(IllegalArgumentException.class, () -> stale.adoptCiphertextSize(vault.headerSize() + 10));
+				long incompleteChunk = vault.headerSize() + 10L;
+				Assertions.assertThrows(IllegalArgumentException.class, () -> stale.adoptCiphertextSize(incompleteChunk));
 				Assertions.assertEquals(10, stale.size());
 
 				// grow through the other handle:
@@ -233,8 +235,10 @@ class Cvf8VaultFileTest {
 			InMemoryCiphertext ciphertext = new InMemoryCiphertext(vault.encryptFile(randomBytes(1000, 5)));
 			ciphertext.flipBit(vault.headerSize() + 30);
 			try (VaultFile file = vault.openFile(ByteBuffer.wrap(ciphertext.toByteArray(), 0, vault.headerSize()), ciphertext.size())) {
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> file.read(0, ByteBuffer.allocate(10), ciphertext));
-				Assertions.assertThrows(AuthenticationFailedException.class, () -> file.write(5, ByteBuffer.allocate(10), ciphertext, ciphertext));
+				ByteBuffer readBuf = ByteBuffer.allocate(10);
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> file.read(0, readBuf, ciphertext));
+				ByteBuffer writeBuf = ByteBuffer.allocate(10);
+				Assertions.assertThrows(AuthenticationFailedException.class, () -> file.write(5, writeBuf, ciphertext, ciphertext));
 				// a full overwrite doesn't need to read the chunk:
 				Assertions.assertDoesNotThrow(() -> file.write(0, ByteBuffer.allocate(1000), ciphertext, ciphertext));
 				ByteBuffer dst = ByteBuffer.allocate(1000);

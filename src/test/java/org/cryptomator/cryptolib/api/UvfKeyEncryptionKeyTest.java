@@ -29,7 +29,8 @@ class UvfKeyEncryptionKeyTest {
 		Assertions.assertSame(aes, key.memberKey());
 		Assertions.assertNull(key.password());
 		Assertions.assertNull(key.argon2Params());
-		Assertions.assertThrows(IllegalArgumentException.class, () -> UvfKeyEncryptionKey.memberKey(new SecretKeySpec(new byte[16], "AES")));
+		SecretKeySpec aes128 = new SecretKeySpec(new byte[16], "AES");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> UvfKeyEncryptionKey.memberKey(aes128));
 	}
 
 }

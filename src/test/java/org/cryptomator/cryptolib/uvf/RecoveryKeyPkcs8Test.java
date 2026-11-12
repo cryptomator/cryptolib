@@ -76,7 +76,8 @@ class RecoveryKeyPkcs8Test {
 	@DisplayName("other curves and garbage are rejected")
 	void testInvalid() throws Exception {
 		KeyPair p256 = generate("secp256r1");
-		Assertions.assertThrows(IllegalArgumentException.class, () -> RecoveryKeyPkcs8.decode(p256.getPrivate().getEncoded()));
+		byte[] p256Pkcs8 = p256.getPrivate().getEncoded();
+		Assertions.assertThrows(IllegalArgumentException.class, () -> RecoveryKeyPkcs8.decode(p256Pkcs8));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> RecoveryKeyPkcs8.decode(new byte[185]));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> RecoveryKeyPkcs8.decode(new byte[0]));
 		ECKey p256Key = new ECKey.Builder(Curve.P_256, (ECPublicKey) p256.getPublic()).privateKey((ECPrivateKey) p256.getPrivate()).build();

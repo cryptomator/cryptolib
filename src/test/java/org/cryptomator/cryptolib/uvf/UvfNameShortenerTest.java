@@ -84,7 +84,8 @@ class UvfNameShortenerTest {
 		Assertions.assertFalse(shortener.isShortened(entryName));
 		Assertions.assertFalse(shortener.isSidecar(entryName));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.sidecarFile(entryName));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.unshorten(entryName, SPEC_NAME.getBytes(UTF_8)));
+		byte[] sidecar = SPEC_NAME.getBytes(UTF_8);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.unshorten(entryName, sidecar));
 	}
 
 	@Test
@@ -92,24 +93,28 @@ class UvfNameShortenerTest {
 	void testUnshorten() {
 		Assertions.assertEquals(SPEC_NAME, shortener.unshorten(SPEC_SHORTENED, SPEC_NAME.getBytes(UTF_8)));
 
-		String otherName = repeat('b', 300) + ".uvf";
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, otherName.getBytes(UTF_8)), "sidecar of another node");
+		byte[] otherName = (repeat('b', 300) + ".uvf").getBytes(UTF_8);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, otherName), "sidecar of another node");
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, new byte[0]));
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, (SPEC_NAME + "\n").getBytes(UTF_8)));
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, "short.uvf".getBytes(UTF_8)));
+		byte[] nameWithNewline = (SPEC_NAME + "\n").getBytes(UTF_8);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, nameWithNewline));
+		byte[] shortName = "short.uvf".getBytes(UTF_8);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(SPEC_SHORTENED, shortName));
 	}
 
 	@Test
 	@DisplayName("a sidecar matching the hash is rejected if its name needs no shortening or is not UTF-8")
 	void testUnshortenMatchingHash() throws NoSuchAlgorithmException {
 		byte[] shortName = (repeat('a', 216) + ".uvf").getBytes(UTF_8);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(shortenedNameOf(shortName), shortName), "220 bytes need no shortening");
+		String shortNameEntry = shortenedNameOf(shortName);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(shortNameEntry, shortName), "220 bytes need no shortening");
 		byte[] longName = (repeat('a', 217) + ".uvf").getBytes(UTF_8);
 		Assertions.assertEquals(repeat('a', 217) + ".uvf", shortener.unshorten(shortenedNameOf(longName), longName));
 
 		byte[] invalidUtf8 = new byte[300];
 		Arrays.fill(invalidUtf8, (byte) 0xFF);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(shortenedNameOf(invalidUtf8), invalidUtf8));
+		String invalidUtf8Entry = shortenedNameOf(invalidUtf8);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(invalidUtf8Entry, invalidUtf8));
 	}
 
 	@Test
@@ -122,7 +127,8 @@ class UvfNameShortenerTest {
 		Assertions.assertFalse(disabled.isShortened(SPEC_SHORTENED));
 		Assertions.assertFalse(disabled.isSidecar(SPEC_SIDECAR));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> disabled.sidecarFile(SPEC_SHORTENED));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> disabled.unshorten(SPEC_SHORTENED, SPEC_NAME.getBytes(UTF_8)));
+		byte[] sidecar = SPEC_NAME.getBytes(UTF_8);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> disabled.unshorten(SPEC_SHORTENED, sidecar));
 	}
 
 	@Test

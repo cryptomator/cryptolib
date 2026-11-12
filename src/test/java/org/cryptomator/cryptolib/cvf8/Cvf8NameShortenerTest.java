@@ -70,7 +70,8 @@ class Cvf8NameShortenerTest {
 		Assertions.assertFalse(shortener.isShortened(entryName));
 		Assertions.assertFalse(shortener.isSidecar(entryName));
 		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.sidecarFile(entryName));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.unshorten(entryName, LONG_NAME.getBytes(UTF_8)));
+		byte[] sidecar = LONG_NAME.getBytes(UTF_8);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> shortener.unshorten(entryName, sidecar));
 	}
 
 	@Test
@@ -81,10 +82,11 @@ class Cvf8NameShortenerTest {
 		Assertions.assertEquals(LONG_NAME_SHORTENED + "/name.c9s", shortener.sidecarFile(LONG_NAME_SHORTENED));
 		Assertions.assertEquals(LONG_NAME, shortener.unshorten(LONG_NAME_SHORTENED, LONG_NAME.getBytes(UTF_8)));
 
-		String otherName = repeat('b', 300) + ".c9r";
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(LONG_NAME_SHORTENED, otherName.getBytes(UTF_8)), "sidecar of another node");
+		byte[] otherName = (repeat('b', 300) + ".c9r").getBytes(UTF_8);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(LONG_NAME_SHORTENED, otherName), "sidecar of another node");
 		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(LONG_NAME_SHORTENED, new byte[0]));
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(LONG_NAME_SHORTENED, (LONG_NAME + "\n").getBytes(UTF_8)));
+		byte[] nameWithNewline = (LONG_NAME + "\n").getBytes(UTF_8);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> shortener.unshorten(LONG_NAME_SHORTENED, nameWithNewline));
 	}
 
 	@Test

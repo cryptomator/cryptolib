@@ -64,7 +64,8 @@ class CtrMacCodecTest {
 	@Test
 	@DisplayName("decrypt too short header")
 	void testDecryptTooShortHeader() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.allocate(7)));
+		ByteBuffer tooShort = ByteBuffer.allocate(7);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(tooShort));
 	}
 
 	@Test
@@ -98,7 +99,9 @@ class CtrMacCodecTest {
 	@DisplayName("encrypt chunk with too small ciphertext buffer")
 	void testEncryptChunkWithTooSmallBuffer() {
 		ByteBuffer ciphertext = ByteBuffer.allocate(11 + 47);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[16], zeroKey(), US_ASCII.encode("hello world"), ciphertext, 0));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer cleartext = US_ASCII.encode("hello world");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[16], fileKey, cleartext, ciphertext, 0));
 	}
 
 	@Test
@@ -114,7 +117,9 @@ class CtrMacCodecTest {
 	@DisplayName("decrypt chunk with wrong index")
 	void testDecryptChunkWithWrongIndex() {
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 1));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(new byte[16], fileKey, ciphertext, cleartext, 1));
 	}
 
 	@Test
@@ -123,14 +128,18 @@ class CtrMacCodecTest {
 		ByteBuffer cleartext = ByteBuffer.allocate(32768);
 		byte[] nonce = new byte[16];
 		nonce[0] = 1;
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(nonce, zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(nonce, fileKey, ciphertext, cleartext, 0));
 	}
 
 	@Test
 	@DisplayName("decrypt chunk with too small cleartext buffer")
 	void testDecryptChunkWithTooSmallBuffer() {
 		ByteBuffer cleartext = ByteBuffer.allocate(10);
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[16], zeroKey(), ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR)), cleartext, 0));
+		DestroyableSecretKey fileKey = zeroKey();
+		ByteBuffer ciphertext = ByteBuffer.wrap(Base64.getDecoder().decode(CHUNK_VECTOR));
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptChunk(new byte[16], fileKey, ciphertext, cleartext, 0));
 	}
 
 	@Test

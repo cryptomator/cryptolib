@@ -73,18 +73,24 @@ class UvfContentCodecTest {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.NULL_RANDOM);
 		byte[] invalidTag = Base64.getDecoder().decode(HEADER_VECTOR);
 		invalidTag[67] ^= 0x01;
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(invalidTag), Constants.KDF_CONTEXT_FILE_HEADER));
+		ByteBuffer invalidTagHeader = ByteBuffer.wrap(invalidTag);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(invalidTagHeader, Constants.KDF_CONTEXT_FILE_HEADER));
 		byte[] tamperedKey = Base64.getDecoder().decode(HEADER_VECTOR);
 		tamperedKey[30] ^= 0x01;
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(tamperedKey), Constants.KDF_CONTEXT_FILE_HEADER));
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR)), Constants.KDF_CONTEXT_DIR_HEADER), "node type bound into the header key");
+		ByteBuffer tamperedKeyHeader = ByteBuffer.wrap(tamperedKey);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(tamperedKeyHeader, Constants.KDF_CONTEXT_FILE_HEADER));
+		ByteBuffer validHeader = ByteBuffer.wrap(Base64.getDecoder().decode(HEADER_VECTOR));
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptHeader(validHeader, Constants.KDF_CONTEXT_DIR_HEADER), "node type bound into the header key");
 		byte[] wrongMagic = Base64.getDecoder().decode(HEADER_VECTOR);
 		wrongMagic[3] = 0;
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.wrap(wrongMagic), Constants.KDF_CONTEXT_FILE_HEADER), "unsupported spec version byte");
+		ByteBuffer wrongMagicHeader = ByteBuffer.wrap(wrongMagic);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(wrongMagicHeader, Constants.KDF_CONTEXT_FILE_HEADER), "unsupported spec version byte");
 		byte[] unknownSeed = Base64.getDecoder().decode(HEADER_VECTOR);
 		unknownSeed[7] ^= 0x01;
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.wrap(unknownSeed), Constants.KDF_CONTEXT_FILE_HEADER));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(ByteBuffer.allocate(7), Constants.KDF_CONTEXT_FILE_HEADER));
+		ByteBuffer unknownSeedHeader = ByteBuffer.wrap(unknownSeed);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(unknownSeedHeader, Constants.KDF_CONTEXT_FILE_HEADER));
+		ByteBuffer tooShortHeader = ByteBuffer.allocate(7);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.decryptHeader(tooShortHeader, Constants.KDF_CONTEXT_FILE_HEADER));
 	}
 
 	@Test
@@ -103,10 +109,14 @@ class UvfContentCodecTest {
 		cleartext.flip();
 		Assertions.assertEquals(US_ASCII.encode("hello world"), cleartext);
 
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(headerNonce, fileKey, ciphertext.duplicate(), ByteBuffer.allocate(32740), 8));
+		ByteBuffer wrongIndexSrc = ciphertext.duplicate();
+		ByteBuffer wrongIndexDst = ByteBuffer.allocate(32740);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(headerNonce, fileKey, wrongIndexSrc, wrongIndexDst, 8));
 		byte[] otherNonce = new byte[12];
 		otherNonce[0] = 1;
-		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(otherNonce, fileKey, ciphertext.duplicate(), ByteBuffer.allocate(32740), 7));
+		ByteBuffer wrongNonceSrc = ciphertext.duplicate();
+		ByteBuffer wrongNonceDst = ByteBuffer.allocate(32740);
+		Assertions.assertThrows(AuthenticationFailedException.class, () -> codec.decryptChunk(otherNonce, fileKey, wrongNonceSrc, wrongNonceDst, 7));
 	}
 
 	@Test
@@ -129,8 +139,12 @@ class UvfContentCodecTest {
 		UvfContentCodec codec = new UvfContentCodec(seeds, SecureRandomMock.PRNG_RANDOM);
 		DestroyableSecretKey fileKey = new DestroyableSecretKey(new byte[32], "AES");
 		Assertions.assertDoesNotThrow(() -> codec.encryptChunk(new byte[12], fileKey, ByteBuffer.allocate(1), ByteBuffer.allocate(100), 0xFFFFFFFFL));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[12], fileKey, ByteBuffer.allocate(1), ByteBuffer.allocate(100), 0x100000000L));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[12], fileKey, ByteBuffer.allocate(32741), ByteBuffer.allocate(40000), 0));
+		ByteBuffer oneByte = ByteBuffer.allocate(1);
+		ByteBuffer smallDst = ByteBuffer.allocate(100);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[12], fileKey, oneByte, smallDst, 0x100000000L));
+		ByteBuffer oversizedChunk = ByteBuffer.allocate(32741);
+		ByteBuffer largeDst = ByteBuffer.allocate(40000);
+		Assertions.assertThrows(IllegalArgumentException.class, () -> codec.encryptChunk(new byte[12], fileKey, oversizedChunk, largeDst, 0));
 	}
 
 	@Test
