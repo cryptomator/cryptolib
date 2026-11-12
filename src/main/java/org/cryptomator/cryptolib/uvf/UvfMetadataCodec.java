@@ -23,6 +23,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,7 +42,13 @@ import java.util.Set;
 final class UvfMetadataCodec {
 
 	private static final Set<String> DEFERRED_CRITICAL_HEADERS = Collections.singleton(Constants.SPEC_VERSION_HEADER);
-	private static final Set<String> KEY_ENCRYPTION_KIDS = new HashSet<>(Arrays.asList(UvfLockedVault.PASSWORD_KID, UvfLockedVault.MEMBER_KEY_KID));
+	private static final Map<String, JWEAlgorithm> EXPECTED_ALGS = new HashMap<>(); // the one algorithm of each supported recipient
+
+	static {
+		EXPECTED_ALGS.put(UvfLockedVault.PASSWORD_KID, JWEAlgorithm.A256KW);
+		EXPECTED_ALGS.put(UvfLockedVault.MEMBER_KEY_KID, JWEAlgorithm.A256KW);
+		EXPECTED_ALGS.put(UvfLockedVault.RECOVERY_KEY_KID, JWEAlgorithm.ECDH_ES_A256KW);
+	}
 
 	private UvfMetadataCodec() {
 	}
@@ -147,6 +154,18 @@ final class UvfMetadataCodec {
 	 * @throws VaultConfigLoadException If headers and details disagree or the recipients are not the expected two
 	 */
 	static void validateRecipients(JWEObjectJSON jwe, Map<String, UvfSeeds.RecipientDetails> recipientDetails) throws VaultConfigLoadException {
+		Set<String> kids = validateHeaders(jwe, recipientDetails);
+		for (Map.Entry<String, UvfSeeds.RecipientDetails> entry : recipientDetails.entrySet()) {
+			validateDetails(entry.getKey(), entry.getValue());
+		}
+		if (kids.size() != 2 || !kids.contains(UvfLockedVault.RECOVERY_KEY_KID)) {
+			throw new VaultConfigLoadException("Expected one key encryption key and one recovery key recipient, got " + kids);
+		}
+		validateArgon2Params(jwe, recipientDetails.get(UvfLockedVault.PASSWORD_KID));
+	}
+
+	// spec rule: every recipient header has a unique kid with a recipientDetails entry of the same alg, and there is no entry without a recipient
+	private static Set<String> validateHeaders(JWEObjectJSON jwe, Map<String, UvfSeeds.RecipientDetails> recipientDetails) throws VaultConfigLoadException {
 		Set<String> kids = new HashSet<>();
 		for (JWEObjectJSON.Recipient recipient : jwe.getRecipients()) {
 			UnprotectedHeader header = recipient.getUnprotectedHeader();
@@ -165,39 +184,38 @@ final class UvfMetadataCodec {
 		if (!kids.equals(recipientDetails.keySet())) {
 			throw new VaultConfigLoadException("recipients and recipientDetails disagree: " + kids + " vs. " + recipientDetails.keySet());
 		}
-		for (Map.Entry<String, UvfSeeds.RecipientDetails> entry : recipientDetails.entrySet()) {
-			String kid = entry.getKey();
-			UvfSeeds.RecipientDetails details = entry.getValue();
-			JWEAlgorithm alg = JWEAlgorithm.parse(details.alg);
-			boolean publicKeyAlg = JWEAlgorithm.Family.ASYMMETRIC.contains(alg);
-			if (publicKeyAlg != (details.jwk != null)) {
-				throw new VaultConfigLoadException("Recipient " + kid + ": jwk must be present exactly for public key algorithms");
-			}
-			if (details.jwk != null && details.jwk.containsKey("alg") && !details.alg.equals(details.jwk.get("alg"))) {
-				throw new VaultConfigLoadException("Recipient " + kid + ": jwk alg differs from recipientDetails alg");
-			}
-			if (KEY_ENCRYPTION_KIDS.contains(kid)) {
-				if (!JWEAlgorithm.A256KW.equals(alg)) {
-					throw new VaultConfigLoadException("Recipient " + kid + ": unsupported alg " + alg);
-				}
-			} else if (UvfLockedVault.RECOVERY_KEY_KID.equals(kid)) {
-				if (!JWEAlgorithm.ECDH_ES_A256KW.equals(alg)) {
-					throw new VaultConfigLoadException("Recipient " + kid + ": unsupported alg " + alg);
-				}
-			} else {
-				throw new VaultConfigLoadException("Unsupported recipient " + kid);
-			}
+		return kids;
+	}
+
+	// spec rule: a jwk is committed exactly for public key algorithms; cryptolib's model: only the known kids, each with its one algorithm
+	private static void validateDetails(String kid, UvfSeeds.RecipientDetails details) throws VaultConfigLoadException {
+		JWEAlgorithm alg = JWEAlgorithm.parse(details.alg);
+		boolean isPublicKeyAlg = JWEAlgorithm.Family.ASYMMETRIC.contains(alg);
+		boolean publicKeyIsPresent = details.jwk != null;
+		if (isPublicKeyAlg != publicKeyIsPresent) {
+			throw new VaultConfigLoadException("Recipient " + kid + ": jwk must be present exactly for public key algorithms");
 		}
-		if (kids.size() != 2 || !kids.contains(UvfLockedVault.RECOVERY_KEY_KID)) {
-			throw new VaultConfigLoadException("Expected one key encryption key and one recovery key recipient, got " + kids);
+		if (details.jwk != null && details.jwk.containsKey("alg") && !details.alg.equals(details.jwk.get("alg"))) {
+			throw new VaultConfigLoadException("Recipient " + kid + ": jwk alg differs from recipientDetails alg");
 		}
-		UvfSeeds.RecipientDetails password = recipientDetails.get(UvfLockedVault.PASSWORD_KID);
-		if (password != null) {
-			Map<String, Object> header = Objects.requireNonNull(recipientHeader(jwe, UvfLockedVault.PASSWORD_KID));
-			for (String param : Argon2Kdf.PARAMS) {
-				if (!String.valueOf(header.get(param)).equals(String.valueOf(password.vendorFields.get(param)))) {
-					throw new VaultConfigLoadException("Argon2 parameters in the header differ from the committed ones");
-				}
+		JWEAlgorithm expectedAlg = EXPECTED_ALGS.get(kid);
+		if (expectedAlg == null) {
+			throw new VaultConfigLoadException("Unsupported recipient " + kid);
+		}
+		if (!expectedAlg.equals(alg)) {
+			throw new VaultConfigLoadException("Recipient " + kid + ": unsupported alg " + alg);
+		}
+	}
+
+	// the password recipient's header parameters, which were needed before decryption, must equal the committed ones
+	private static void validateArgon2Params(JWEObjectJSON jwe, UvfSeeds.@Nullable RecipientDetails password) throws VaultConfigLoadException {
+		if (password == null) {
+			return; // not a password vault
+		}
+		Map<String, Object> header = Objects.requireNonNull(recipientHeader(jwe, UvfLockedVault.PASSWORD_KID));
+		for (String param : Argon2Kdf.PARAMS) {
+			if (!String.valueOf(header.get(param)).equals(String.valueOf(password.vendorFields.get(param)))) {
+				throw new VaultConfigLoadException("Argon2 parameters in the header differ from the committed ones");
 			}
 		}
 	}
